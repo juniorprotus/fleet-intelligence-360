@@ -175,6 +175,229 @@ internal implementation.
 
 ## 3. Module Boundaries
 
+FI360 shall be organized into clearly defined modules based on business
+capabilities and platform responsibilities.
+
+Each module shall have a defined responsibility, ownership boundary,
+interface boundary, and dependency boundary.
+
+### 3.1 Module Definition
+
+A FI360 module is a logically and operationally bounded unit of
+functionality responsible for a specific business capability or shared
+platform capability.
+
+A module may contain:
+
+- Business logic
+- Application services
+- Domain models
+- Data access components
+- Module-owned data
+- APIs
+- Event producers and consumers
+- Configuration
+- Security policies
+- Module-specific observability
+
+The internal implementation of a module shall remain private to that
+module unless explicitly exposed through an approved contract.
+
+### 3.2 Platform Modules
+
+The FI360 Platform Foundation shall provide capabilities that are
+required across multiple FI360 modules.
+
+Platform capabilities may include:
+
+- Identity and access management
+- Authentication and authorization
+- Configuration management
+- API and integration infrastructure
+- Event and messaging infrastructure
+- Audit logging
+- Observability
+- Common security controls
+- Shared infrastructure standards
+- Common technical services
+
+The Platform Foundation shall not contain business logic that belongs
+to a specific business module.
+
+### 3.3 Business Modules
+
+Business modules shall represent distinct FI360 business capabilities.
+
+Examples may include:
+
+- Fleet Management
+- Workshop Management
+- Fuel Management
+- Driver Management
+- Tyre Management
+- Procurement
+- Financial Management
+
+The final list of business modules shall be determined by the FI360
+business domain and approved architecture decisions.
+
+Each business module shall own its business functionality and shall
+remain independently maintainable.
+
+### 3.4 Module Ownership
+
+Every module shall have clearly defined ownership for:
+
+- Business responsibilities
+- Business rules
+- Data
+- APIs
+- Events
+- Configuration
+- Security policies
+- Operational behavior
+
+Ownership shall prevent ambiguity about which module is responsible for
+a particular capability or data element.
+
+### 3.5 Module Internal Boundaries
+
+The internal components of a module shall not be treated as public
+interfaces.
+
+Other modules shall not directly depend on:
+
+- Internal classes
+- Internal services
+- Internal database tables
+- Internal database schemas
+- Internal configuration files
+- Internal implementation details
+
+Only explicitly approved interfaces shall be considered public module
+contracts.
+
+### 3.6 Module Interface Boundary
+
+Each module shall expose only the interfaces required for legitimate
+integration.
+
+Public interfaces may include:
+
+- REST APIs
+- Asynchronous events
+- Webhooks
+- Message contracts
+- Other approved integration contracts
+
+Interfaces shall be documented and versioned where required.
+
+### 3.7 Data Boundary
+
+A module shall own its internal business data.
+
+Other modules shall not directly access or modify another module's
+internal business data.
+
+Where information from another module is required, the consuming module
+shall use an approved API, event, or integration contract.
+
+### 3.8 Dependency Boundary
+
+Dependencies between modules shall be explicit and intentional.
+
+A module may depend on:
+
+- Approved Platform services
+- Approved shared technical capabilities
+- Versioned public contracts
+- Approved external services
+
+A module shall not depend on another module's internal
+implementation.
+
+### 3.9 Circular Dependency Prevention
+
+The architecture shall prevent circular dependencies between modules.
+
+For example:
+
+Module A → Module B → Module A
+
+shall not be introduced as an uncontrolled dependency.
+
+Where two modules require information from each other, the architecture
+shall use appropriate contracts, events, shared reference data, or
+another approved integration mechanism.
+
+### 3.10 Module Independence
+
+A module shall be designed to minimize its dependency on the deployment,
+availability, and internal implementation of unrelated modules.
+
+Where a runtime dependency is unavoidable, the dependency shall be
+explicitly documented and governed.
+
+### 3.11 Module Communication
+
+Modules shall communicate through approved integration mechanisms.
+
+Communication mechanisms may include:
+
+- Synchronous APIs
+- Asynchronous events
+- Webhooks
+- Message queues
+- Other approved integration mechanisms
+
+Direct access to another module's internal implementation or database
+shall not be permitted.
+
+### 3.12 Module Lifecycle
+
+Each module shall have a controlled lifecycle covering:
+
+1. Design
+2. Development
+3. Testing
+4. Deployment
+5. Versioning
+6. Maintenance
+7. Deprecation
+8. Retirement
+
+Changes to a module shall consider their impact on its published
+contracts and dependent modules.
+
+### 3.13 Module Contract Ownership
+
+The module that owns a capability shall also own the contracts exposing
+that capability.
+
+For example, if the Fleet module owns vehicle management, the Fleet
+module shall own the APIs and events that expose approved vehicle
+capabilities.
+
+### 3.14 Shared Services
+
+Shared services shall be introduced only where there is a clear
+architectural justification.
+
+A shared service shall not become a mechanism for bypassing module
+boundaries.
+
+Shared services shall have clearly defined ownership, interfaces, and
+responsibilities.
+
+### 3.15 Boundary Governance
+
+Module boundaries shall be documented and reviewed as part of FI360
+architecture governance.
+
+Any new dependency, shared service, cross-module data requirement, or
+public interface shall be evaluated against the FI360 architectural
+principles before implementation.
+
 ## 4. Standalone Module Architecture
 
 ## 5. Connectable Module Architecture

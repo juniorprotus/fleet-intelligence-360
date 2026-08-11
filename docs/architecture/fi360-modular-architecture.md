@@ -1878,11 +1878,1106 @@ A capability should be considered a Platform service when:
 
 ## 9. Data Ownership
 
+FI360 shall follow a clear data ownership model in which each business
+module is responsible for the data associated with its business
+capabilities.
+
+Data ownership shall preserve module independence, prevent uncontrolled
+cross-module access, and provide a clear basis for database architecture,
+security, auditing, and integration design.
+
+### 9.1 Data Ownership Principle
+
+Each business module shall own the business data required to perform its
+responsibilities.
+
+The owning module shall be responsible for:
+
+- Data definition
+- Data validation
+- Data creation
+- Data modification
+- Data lifecycle
+- Data integrity
+- Data access rules
+- Data retention requirements
+- Data migration
+- Data security
+- Data auditing where required
+
+### 9.2 Single Ownership
+
+Each business data element shall have a clearly identified authoritative
+owner.
+
+Two or more modules shall not independently claim ownership of the same
+business data without an explicit architecture decision.
+
+Where multiple modules require information about the same business
+entity, one module shall remain the authoritative owner while other
+modules consume the required information through approved contracts.
+
+### 9.3 Module-Owned Data
+
+Examples of module-owned data may include:
+
+Fleet Module:
+- Vehicles
+- Fleet assets
+- Vehicle lifecycle information
+- Fleet-specific operational information
+
+Workshop Module:
+- Work orders
+- Maintenance activities
+- Workshop records
+- Maintenance schedules
+
+Fuel Module:
+- Fuel transactions
+- Fuel records
+- Fuel-related operational information
+
+The exact ownership of each data entity shall be defined through the
+FI360 domain and data architecture.
+
+### 9.4 Platform-Owned Data
+
+The FI360 Platform may own technical and cross-cutting data required to
+provide Platform capabilities.
+
+Examples may include:
+
+- User identity information
+- Roles
+- Permissions
+- Configuration
+- Audit records
+- Platform integration metadata
+- Operational metadata
+
+Platform-owned data shall not be used as a substitute for business
+module data ownership.
+
+### 9.5 Database Ownership
+
+Each business module shall have a clearly defined database ownership
+boundary.
+
+The implementation may use one or more physical databases depending on
+operational and scalability requirements, but logical ownership shall
+remain clear.
+
+A module shall control the database structures representing its owned
+business data.
+
+### 9.6 Cross-Module Database Access
+
+Direct access to another module's internal database structures shall be
+prohibited.
+
+A module shall not:
+
+- Read another module's private tables
+- Write another module's private tables
+- Modify another module's records directly
+- Depend on another module's private schema
+- Create uncontrolled database-level dependencies on another module
+
+Cross-module data requirements shall use approved integration
+mechanisms.
+
+### 9.7 Cross-Module Data Access
+
+When a module requires information owned by another module, it shall use
+an approved mechanism such as:
+
+- Synchronous API
+- Asynchronous event
+- Approved query/service contract
+- Other explicitly governed integration mechanism
+
+The consuming module shall use only the information required for its
+business responsibility.
+
+### 9.8 Data Replication
+
+Where a module requires frequently accessed information owned by another
+module, controlled replication or local projections may be used where
+architecturally justified.
+
+Replicated data shall not become a competing source of truth.
+
+The authoritative source shall remain the owning module.
+
+Replicated data shall have:
+
+- Identified source
+- Defined synchronization mechanism
+- Defined consistency expectations
+- Defined update behavior
+- Defined failure handling
+- Defined lifecycle
+
+### 9.9 Reference Data
+
+Shared reference data shall have clearly defined ownership.
+
+Examples may include:
+
+- Country codes
+- Currency codes
+- Time zones
+- Standard units of measurement
+- Industry reference values
+
+Reference data may be provided through Platform capabilities where
+appropriate.
+
+Business-specific reference data shall remain owned by the relevant
+business module.
+
+### 9.10 Data Integrity
+
+The owning module shall be responsible for enforcing the business
+integrity rules associated with its data.
+
+Database constraints may enforce technical integrity such as:
+
+- Required fields
+- Uniqueness
+- Valid relationships within the module
+- Data types
+- Referential integrity within the ownership boundary
+
+Business rules that cross module boundaries shall not depend on direct
+database relationships.
+
+### 9.11 Cross-Module Relationships
+
+Cross-module relationships shall be represented through identifiers
+and integration contracts rather than direct database foreign keys into
+another module's private data.
+
+For example:
+
+A Workshop record may reference a Vehicle identifier owned by the Fleet
+module.
+
+The Workshop module shall not create a direct foreign key into the
+Fleet module's private database structure.
+
+### 9.12 Data Consistency
+
+FI360 shall distinguish between:
+
+- Strong consistency
+- Eventual consistency
+- Cached data
+- Replicated projections
+
+The required consistency model shall be selected according to the
+business operation.
+
+Cross-module integrations should prefer eventual consistency where
+immediate consistency is not required.
+
+### 9.13 Data Security
+
+Module-owned data shall be protected according to its sensitivity and
+business requirements.
+
+Data security shall consider:
+
+- Authentication
+- Authorization
+- Tenant isolation
+- Encryption
+- Data masking where appropriate
+- Access logging
+- Retention
+- Secure deletion
+
+### 9.14 Data Lifecycle
+
+Each module shall define the lifecycle of its owned data.
+
+The lifecycle should address:
+
+1. Creation
+2. Validation
+3. Active use
+4. Modification
+5. Archival where required
+6. Retention
+7. Deletion where permitted
+
+Lifecycle requirements shall comply with applicable FI360 business and
+regulatory requirements.
+
+### 9.15 Data Migration
+
+The module that owns the affected data shall be responsible for
+migration planning and execution.
+
+Database migrations shall be:
+
+- Version controlled
+- Repeatable
+- Tested
+- Reversible where practical
+- Documented
+
+Cross-module migrations shall be coordinated through defined contracts
+and migration plans.
+
+### 9.16 Data Access APIs
+
+APIs exposing module-owned data shall expose only approved data required
+for legitimate consumers.
+
+An API shall not expose the module's entire internal database model
+simply because another module requests access.
+
+API responses shall be designed around business capabilities and
+contracts.
+
+### 9.17 Data Events
+
+Modules may publish events when important changes occur to owned data.
+
+For example:
+
+Fleet:
+VehicleCreated
+
+Workshop:
+MaintenanceCompleted
+
+Fuel:
+FuelTransactionRecorded
+
+Events shall communicate meaningful business occurrences rather than
+database implementation details.
+
+### 9.18 Audit and Data Ownership
+
+Data owners shall identify operations requiring audit records.
+
+Audit records shall capture appropriate information such as:
+
+- Actor
+- Action
+- Resource
+- Timestamp
+- Outcome
+- Source
+- Correlation identifier
+
+Audit requirements shall be coordinated with FI360 Platform audit
+services.
+
+### 9.19 Data Ownership Documentation
+
+FI360 shall maintain documentation identifying:
+
+- Data entity
+- Owning module
+- Source of truth
+- Sensitivity
+- Access rules
+- Retention requirements
+- Integration interfaces
+- Replication requirements
+- Migration responsibility
+
+### 9.20 Data Ownership Acceptance Criteria
+
+A data entity shall be considered properly governed when:
+
+1. Its owning module is identified.
+2. Its source of truth is known.
+3. Its access rules are defined.
+4. Its security requirements are defined.
+5. Its lifecycle is understood.
+6. Its cross-module access mechanism is defined.
+7. Its migration responsibility is known.
+8. Its audit requirements are identified.
+9. Its replication requirements are understood where applicable.
+10. Direct uncontrolled access from other modules is prevented.
 ## 10. API and Event Contracts
 
+FI360 shall use explicit, documented, versioned, and governed contracts
+for communication between modules and with approved external systems.
+
+Contracts shall provide a stable boundary between a module's public
+capabilities and its internal implementation.
+
+### 10.1 Contract-First Principle
+
+A module shall define and govern its public integration contracts
+independently from its internal implementation.
+
+Consumers shall depend on the published contract rather than the
+implementation of the producing module.
+
+A contract shall remain stable even when the internal implementation
+changes, provided the published behavior remains compatible.
+
+### 10.2 Contract Types
+
+FI360 shall support multiple contract types, including:
+
+- Synchronous API contracts
+- Asynchronous event contracts
+- Webhook contracts
+- Messaging contracts
+- External integration contracts
+
+The appropriate contract type shall be selected according to the
+integration requirement.
+
+### 10.3 API Contracts
+
+API contracts shall define how a consumer interacts synchronously with a
+module.
+
+An API contract shall define, where applicable:
+
+- API purpose
+- Endpoint
+- HTTP method
+- Request parameters
+- Request body
+- Response body
+- Response status codes
+- Validation rules
+- Authentication
+- Authorization
+- Error responses
+- Version
+- Idempotency requirements
+- Rate limits
+- Timeout expectations
+
+### 10.4 API Resource Design
+
+API resources shall represent meaningful business capabilities rather
+than directly exposing database tables.
+
+APIs should be designed around business operations and consumer needs.
+
+Internal database structures shall not automatically become public API
+structures.
+
+### 10.5 API Versioning
+
+Public APIs shall support controlled versioning.
+
+Breaking changes shall not be introduced without an appropriate version,
+migration, or compatibility strategy.
+
+API versions shall have clearly defined:
+
+- Release status
+- Compatibility expectations
+- Deprecation policy
+- Migration path
+- Retirement date where applicable
+
+### 10.6 API Backward Compatibility
+
+Non-breaking changes should preserve existing consumer behavior.
+
+Examples of generally safer changes include:
+
+- Adding optional response fields
+- Adding optional request fields
+- Adding new endpoints
+- Adding new non-breaking event metadata
+
+Potentially breaking changes include:
+
+- Removing fields
+- Changing field meaning
+- Changing data types
+- Removing endpoints
+- Changing required behavior
+- Changing authorization requirements without migration
+
+Breaking changes shall undergo explicit review.
+
+### 10.7 API Error Contracts
+
+API errors shall use standardized structures.
+
+An error response should provide appropriate information such as:
+
+- Error code
+- Human-readable message
+- Validation details where appropriate
+- Correlation identifier
+- Documentation reference where appropriate
+
+Error responses shall not expose sensitive internal implementation
+details.
+
+### 10.8 Event Contracts
+
+Event contracts shall define the structure and meaning of asynchronous
+events.
+
+An event should contain metadata such as:
+
+- Event identifier
+- Event type
+- Event version
+- Event timestamp
+- Producer identifier
+- Correlation identifier
+- Causation identifier where applicable
+- Payload
+
+### 10.9 Event Semantics
+
+Events shall represent meaningful business occurrences.
+
+For example:
+
+```text
+VehicleCreated
+MaintenanceCompleted
+FuelTransactionRecorded
+UserAccessChanged
 ## 11. Module Lifecycle and Versioning
 
+FI360 modules shall follow a controlled lifecycle that supports
+independent development, testing, deployment, evolution, and retirement.
+
+Module lifecycle management shall preserve architectural integrity,
+contract compatibility, security, and operational stability.
+
+### 11.1 Module Lifecycle Stages
+
+A FI360 module shall progress through the following lifecycle stages
+where applicable:
+
+1. Proposed
+2. Designed
+3. In Development
+4. Testing
+5. Released
+6. Maintained
+7. Deprecated
+8. Retired
+
+Each stage shall have defined expectations and acceptance criteria.
+
+### 11.2 Proposed
+
+A module shall be proposed when a new business or platform capability
+has been identified.
+
+The proposal should define:
+
+- Business purpose
+- Scope
+- Responsibilities
+- Expected consumers
+- Data ownership
+- Dependencies
+- Integration requirements
+- Security considerations
+- Operational requirements
+
+The proposed module shall be evaluated against existing FI360 modules
+to avoid unnecessary duplication.
+
+### 11.3 Designed
+
+During the design stage, the module's architecture shall be defined.
+
+Design should establish:
+
+- Module boundaries
+- Responsibilities
+- Data ownership
+- Public interfaces
+- Dependencies
+- Security model
+- Configuration
+- Observability
+- Deployment approach
+- Testing strategy
+
+Significant architectural decisions shall be documented.
+
+### 11.4 In Development
+
+During development, the module shall be implemented according to its
+approved architecture and contracts.
+
+Development shall follow:
+
+- Coding standards
+- Security standards
+- Database standards
+- API standards
+- Testing standards
+- Documentation standards
+
+Changes that significantly alter the approved architecture shall be
+reviewed before implementation.
+
+### 11.5 Testing
+
+Before release, the module shall undergo appropriate testing.
+
+Testing may include:
+
+- Unit testing
+- Integration testing
+- Contract testing
+- Security testing
+- Performance testing
+- Configuration testing
+- Migration testing
+- End-to-end testing where appropriate
+
+The required testing level shall depend on the module's risk and
+responsibility.
+
+### 11.6 Released
+
+A module may enter the Released stage when it satisfies its defined
+acceptance criteria.
+
+A release should have:
+
+- Version identifier
+- Release notes
+- Documented configuration
+- Documented dependencies
+- Tested contracts
+- Deployment instructions
+- Rollback or recovery strategy
+- Monitoring requirements
+
+### 11.7 Maintenance
+
+Released modules shall be maintained throughout their operational
+lifecycle.
+
+Maintenance may include:
+
+- Bug fixes
+- Security updates
+- Performance improvements
+- Compatibility updates
+- Dependency updates
+- Non-breaking feature improvements
+
+Changes shall preserve module boundaries and contract guarantees.
+
+### 11.8 Module Versioning
+
+Modules shall use controlled version identifiers.
+
+Versioning shall communicate the compatibility impact of changes.
+
+The exact versioning scheme shall be defined by FI360 engineering
+standards, but version changes should distinguish between:
+
+- Major changes
+- Minor compatible changes
+- Patch or corrective changes
+
+### 11.9 API and Contract Versioning
+
+Module versions and API/event contract versions are related but shall
+not be treated as identical.
+
+A module may internally change without changing its public contract.
+
+Conversely, a public contract may require version management even when
+the module itself remains on the same major release.
+
+Contract versioning shall follow the rules defined in Section 10.
+
+### 11.10 Backward Compatibility
+
+Changes shall preserve backward compatibility where practical.
+
+Before introducing a potentially breaking change, the module owner shall
+evaluate:
+
+- Existing consumers
+- Existing integrations
+- Migration requirements
+- Deprecation period
+- Compatibility options
+- Rollback requirements
+
+### 11.11 Deprecation
+
+A contract, feature, or module may be marked as deprecated when it is
+scheduled for replacement or retirement.
+
+Deprecation shall provide appropriate information including:
+
+- Reason for deprecation
+- Replacement capability where available
+- Affected consumers
+- Migration guidance
+- Expected retirement date
+
+Deprecated capabilities should remain available for an appropriate
+transition period unless security or operational risk requires earlier
+removal.
+
+### 11.12 Module Retirement
+
+A module may be retired when its business or technical responsibility is
+no longer required.
+
+Retirement shall address:
+
+- Active consumers
+- Public contracts
+- Data retention
+- Data migration
+- Data archival
+- External integrations
+- Configuration
+- Infrastructure
+- Security credentials
+- Monitoring
+- Documentation
+
+No module shall be retired without identifying and resolving its
+remaining dependencies.
+
+### 11.13 Database Lifecycle
+
+Database schemas shall evolve through controlled migrations.
+
+Database changes shall be:
+
+- Version controlled
+- Repeatable
+- Tested
+- Documented
+- Reviewed
+
+Database migration changes shall remain within the ownership boundary of
+the module owning the affected data.
+
+### 11.14 Configuration Lifecycle
+
+Configuration changes shall follow controlled change management.
+
+Configuration should have:
+
+- Defined ownership
+- Validation
+- Versioning where required
+- Environment separation
+- Auditability for sensitive changes
+
+### 11.15 Dependency Lifecycle
+
+Dependencies shall be monitored throughout the module lifecycle.
+
+This includes:
+
+- Platform dependencies
+- Libraries
+- External services
+- APIs
+- Events
+- Infrastructure
+
+Deprecated or vulnerable dependencies shall be replaced or mitigated.
+
+### 11.16 Release Compatibility
+
+Before a release, the module owner shall evaluate whether the release
+affects:
+
+- Public APIs
+- Events
+- Webhooks
+- Database schemas
+- Consumers
+- Security policies
+- Configuration
+- Operational behavior
+
+Required compatibility and migration measures shall be completed before
+release.
+
+### 11.17 Release Documentation
+
+Each production release shall provide appropriate documentation.
+
+Release documentation should include:
+
+- Version
+- Changes
+- New capabilities
+- Fixed issues
+- Breaking changes
+- Migration instructions
+- Configuration changes
+- Dependency changes
+- Known limitations
+
+### 11.18 Rollback and Recovery
+
+Production releases shall have an appropriate recovery strategy.
+
+Depending on the module, this may include:
+
+- Application rollback
+- Database rollback or forward-fix migration
+- Configuration rollback
+- Message recovery
+- Event replay
+- Data recovery
+
+Rollback strategies shall be tested where practical.
+
+### 11.19 Lifecycle Governance
+
+Significant lifecycle transitions shall be governed through FI360
+engineering and architecture processes.
+
+The level of governance shall be proportional to the impact and risk of
+the module or change.
+
+### 11.20 Lifecycle Acceptance Criteria
+
+A module shall have a controlled lifecycle when:
+
+1. Its current lifecycle stage is known.
+2. Its owner is identified.
+3. Its responsibilities are documented.
+4. Its dependencies are documented.
+5. Its public contracts are documented.
+6. Its version is identified.
+7. Its testing requirements are defined.
+8. Its deployment process is documented.
+9. Its deprecation strategy is understood.
+10. Its retirement requirements can be determined.
+
 ## 12. Extension and Plug-in Strategy
+
+FI360 shall support controlled extension of platform and business
+capabilities without requiring unnecessary modification of existing
+modules.
+
+Extensions shall preserve module boundaries, security, data ownership,
+contract stability, and operational governance.
+
+### 12.1 Extension Principle
+
+An extension is a capability added to FI360 without taking ownership of
+the responsibilities of an existing module.
+
+Extensions may be implemented through:
+
+- New modules
+- Module capabilities
+- Public APIs
+- Events
+- Webhooks
+- Approved plug-ins
+- Platform extensions
+- External integrations
+
+The selected extension mechanism shall depend on the business and
+technical requirements.
+
+### 12.2 Extension Criteria
+
+A capability should be implemented as an extension when:
+
+- It provides additional functionality to an existing capability.
+- It can be isolated from the core responsibility.
+- It has a clearly defined interface.
+- It does not require uncontrolled modification of another module.
+- Its lifecycle can be managed independently where appropriate.
+
+### 12.3 New Module vs Extension
+
+A new capability shall be evaluated to determine whether it should be:
+
+1. Added to an existing module.
+2. Implemented as a separate module.
+3. Implemented as a Platform capability.
+4. Implemented as an external integration.
+5. Implemented as an approved extension or plug-in.
+
+The decision shall consider:
+
+- Business ownership
+- Data ownership
+- Security
+- Dependencies
+- Deployment requirements
+- Expected consumers
+- Lifecycle
+- Operational complexity
+
+### 12.4 Plug-in Architecture
+
+Where a plug-in model is appropriate, the host module shall define a
+stable plug-in contract.
+
+A plug-in contract shall specify:
+
+- Capabilities provided
+- Inputs
+- Outputs
+- Lifecycle behavior
+- Configuration
+- Security requirements
+- Error handling
+- Version compatibility
+- Resource requirements
+
+Plug-ins shall not bypass the host module's security or data ownership
+rules.
+
+### 12.5 Extension Contracts
+
+Extensions shall communicate with the host system through explicit
+contracts.
+
+Extensions shall not depend on undocumented internal classes,
+database structures, or private implementation details.
+
+Contract changes shall follow the FI360 contract versioning rules.
+
+### 12.6 Extension Isolation
+
+An extension shall be isolated from unrelated modules.
+
+Failure of an optional extension should not automatically cause the
+host module or unrelated modules to fail.
+
+Where appropriate, extensions shall use:
+
+- Timeouts
+- Circuit breakers
+- Queues
+- Retry policies
+- Failure isolation
+- Graceful degradation
+
+### 12.7 Extension Security
+
+All extensions shall comply with FI360 security requirements.
+
+An extension shall have explicitly defined:
+
+- Identity
+- Permissions
+- Access scope
+- Credentials
+- Data access
+- Network access
+- Audit requirements
+
+Extensions shall follow the principle of least privilege.
+
+### 12.8 Extension Data
+
+An extension shall not directly modify another module's internal data
+unless the architecture explicitly defines that data as extension-owned.
+
+Where an extension requires business information, it shall use approved
+APIs, events, or other contracts.
+
+Extension-owned data shall have clearly defined ownership and lifecycle.
+
+### 12.9 Extension Configuration
+
+Extensions shall have clearly defined configuration.
+
+Configuration shall support:
+
+- Environment separation
+- Validation
+- Secure values
+- Feature enablement
+- Feature disablement
+- Version compatibility
+
+Configuration shall not be hard-coded into the extension.
+
+### 12.10 Extension Lifecycle
+
+Extensions shall follow an appropriate lifecycle:
+
+1. Proposed
+2. Approved
+3. Installed
+4. Configured
+5. Enabled
+6. Updated
+7. Disabled
+8. Removed
+
+Lifecycle requirements shall be appropriate to the extension's risk.
+
+### 12.11 Extension Version Compatibility
+
+Extensions shall declare their compatibility with the host module or
+Platform capability.
+
+Compatibility information may include:
+
+- Minimum supported host version
+- Maximum supported host version
+- Contract version
+- Required Platform capabilities
+- Required configuration
+
+Incompatible extensions shall not be enabled in production.
+
+### 12.12 Extension Discovery
+
+Where a plug-in model is used, FI360 may provide mechanisms for
+discovering available extensions.
+
+Discovery information may include:
+
+- Extension name
+- Version
+- Owner
+- Capabilities
+- Compatibility
+- Security requirements
+- Status
+
+Extensions shall not become available for production use without
+appropriate approval.
+
+### 12.13 Extension Approval
+
+Extensions shall undergo appropriate review before production use.
+
+Review should consider:
+
+- Business purpose
+- Architecture
+- Security
+- Data access
+- Dependencies
+- Performance
+- Reliability
+- Licensing where applicable
+- Operational support
+- Compatibility
+
+### 12.14 Extension Observability
+
+Extensions shall provide appropriate observability.
+
+This should allow FI360 to determine:
+
+- Whether the extension is enabled
+- Whether it is healthy
+- Which operations it performs
+- Whether failures occur
+- How much resources it consumes
+- Which version is running
+
+### 12.15 Extension Resource Controls
+
+Extensions shall not consume unlimited platform resources.
+
+Where applicable, resource limits shall be defined for:
+
+- CPU
+- Memory
+- Storage
+- Network access
+- Request rate
+- Execution time
+
+Resource requirements shall be appropriate to the deployment model.
+
+### 12.16 Extension Failure Handling
+
+Extension failures shall be handled according to the importance of the
+extension.
+
+An optional extension should normally fail independently without
+preventing unrelated core functionality.
+
+A mandatory extension shall have explicitly documented availability and
+recovery requirements.
+
+### 12.17 Extension Removal
+
+Extensions shall be removable without corrupting the host module or its
+owned data.
+
+Removal procedures shall address:
+
+- Active configuration
+- Dependencies
+- Extension-owned data
+- Contracts
+- Credentials
+- Infrastructure
+- Monitoring
+- Documentation
+
+### 12.18 External Integrations as Extensions
+
+Approved external integrations may be treated as extensions where they
+provide optional or replaceable capabilities.
+
+External integrations shall follow FI360 integration, security, and
+contract standards.
+
+### 12.19 Avoiding Over-Extension
+
+Not every new capability should become a plug-in.
+
+Plug-ins shall be used only when they provide a clear architectural
+benefit.
+
+Unnecessary plug-in architecture may introduce:
+
+- Operational complexity
+- Version compatibility problems
+- Security risks
+- Testing complexity
+- Debugging difficulty
+
+The simplest architecture that satisfies the requirements should be
+preferred.
+
+### 12.20 Extension Acceptance Criteria
+
+An extension shall be considered production-ready when:
+
+1. Its purpose is clearly defined.
+2. Its owner is identified.
+3. Its host module or Platform capability is identified.
+4. Its contract is documented.
+5. Its data ownership is defined.
+6. Its security requirements are defined.
+7. Its compatibility requirements are defined.
+8. Its configuration is documented.
+9. Its failure behavior is defined.
+10. Its observability is available.
+11. Its lifecycle is defined.
+12. Its removal process is understood.
 
 ## 13. Configuration and Feature Flags
 

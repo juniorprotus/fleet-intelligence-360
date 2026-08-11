@@ -1554,6 +1554,328 @@ A dependency shall be considered acceptable when:
 
 ## 8. Shared Platform Services
 
+The FI360 Platform Foundation shall provide common technical and
+cross-cutting capabilities required by multiple FI360 modules.
+
+Platform services shall enable business modules without taking ownership
+of business logic that belongs within those modules.
+
+### 8.1 Purpose of Platform Services
+
+Platform services exist to provide capabilities that are:
+
+- Common across multiple modules
+- Technically reusable
+- Centrally governed
+- Security-sensitive
+- Operationally important
+- Better managed consistently across FI360
+
+Platform services shall reduce unnecessary duplication while preserving
+business module independence.
+
+### 8.2 Platform Service Categories
+
+The FI360 Platform Foundation may provide the following categories of
+shared services:
+
+- Identity and Access Management
+- Authentication
+- Authorization
+- Configuration Management
+- API and Integration Infrastructure
+- Event and Messaging Infrastructure
+- Audit Logging
+- Observability
+- Notification Infrastructure
+- Security Infrastructure
+- Common Technical Utilities
+- Infrastructure Standards
+
+The exact implementation of each service shall be determined through
+separate architecture decisions.
+
+### 8.3 Identity and Access Management
+
+The Platform shall provide common identity and access capabilities where
+required by multiple modules.
+
+These capabilities may include:
+
+- User identity
+- Authentication
+- Authorization
+- Roles
+- Permissions
+- Service identities
+- Token management
+- Access policies
+
+Business modules shall enforce their own business-level authorization
+requirements using approved Platform identity capabilities.
+
+### 8.4 Configuration Management
+
+The Platform shall provide standardized mechanisms for managing
+configuration.
+
+Configuration management shall support:
+
+- Environment-specific configuration
+- Secure configuration
+- Feature flags where appropriate
+- Configuration validation
+- Configuration versioning where required
+- Controlled configuration changes
+
+Sensitive configuration values shall not be stored directly in source
+code.
+
+### 8.5 API Infrastructure
+
+The Platform may provide common infrastructure supporting APIs.
+
+This may include:
+
+- API routing
+- API authentication
+- API authorization
+- Request validation
+- Rate limiting
+- API version management
+- API documentation
+- API observability
+
+Business modules shall remain responsible for their own business API
+contracts and business logic.
+
+### 8.6 Event and Messaging Infrastructure
+
+The Platform may provide shared infrastructure for asynchronous
+communication.
+
+This may include:
+
+- Event transport
+- Message delivery
+- Queue management
+- Topic management
+- Retry processing
+- Dead-letter handling
+- Consumer management
+- Message observability
+
+Business modules shall own the business events they publish.
+
+### 8.7 Audit Logging
+
+The Platform shall provide standardized audit capabilities for
+security-sensitive and business-significant operations where required.
+
+Audit capabilities may include:
+
+- Actor identification
+- Action
+- Resource
+- Timestamp
+- Outcome
+- Source
+- Correlation identifier
+
+Business modules shall identify the operations that require auditing
+according to FI360 audit requirements.
+
+### 8.8 Observability
+
+The Platform shall provide common observability standards and
+capabilities.
+
+Observability may include:
+
+- Application logs
+- Metrics
+- Distributed tracing
+- Health checks
+- Correlation identifiers
+- Operational dashboards
+- Alerts
+
+Modules shall emit information according to FI360 observability
+standards.
+
+### 8.9 Notification Infrastructure
+
+The Platform may provide common infrastructure for delivering
+notifications.
+
+Notification mechanisms may include:
+
+- Email
+- In-application notifications
+- Webhooks
+- Other approved channels
+
+Business modules shall determine when a business notification is
+required, while the Platform may provide the technical delivery
+mechanism.
+
+### 8.10 Security Services
+
+The Platform shall provide common security capabilities where
+centralization improves consistency and control.
+
+These may include:
+
+- Secret management
+- Encryption services
+- Security policy enforcement
+- Credential management
+- Security monitoring
+- Common security libraries
+
+Business modules shall remain responsible for implementing security
+requirements specific to their business capabilities.
+
+### 8.11 Common Technical Utilities
+
+Shared technical utilities may be provided when they solve genuinely
+common technical problems.
+
+Examples may include:
+
+- Validation utilities
+- Logging libraries
+- Error handling utilities
+- Correlation ID handling
+- Date/time utilities
+- Common serialization utilities
+
+Shared utilities shall remain technical in nature and shall not contain
+business rules belonging to individual modules.
+
+### 8.12 Platform Service Boundaries
+
+Each Platform service shall have a clearly defined responsibility.
+
+A Platform service shall not become a general-purpose location for
+business logic that does not belong to the Platform.
+
+For example:
+
+Identity management belongs in the Platform.
+
+Vehicle maintenance business rules belong in the Workshop module.
+
+### 8.13 Platform Service Dependencies
+
+Platform services may depend on approved infrastructure and other
+Platform services where required.
+
+Dependencies shall remain explicit and documented.
+
+Platform services shall avoid unnecessary dependencies on business
+modules.
+
+### 8.14 Platform Availability
+
+Critical Platform services shall have defined availability and
+reliability requirements.
+
+The architecture shall identify which Platform services are:
+
+- Critical
+- Important
+- Optional
+
+Failure of an optional Platform capability should not unnecessarily
+prevent core business operations.
+
+### 8.15 Platform Service Security
+
+Platform services shall enforce appropriate security controls.
+
+These may include:
+
+- Authentication
+- Authorization
+- Encryption
+- Access control
+- Auditability
+- Secret protection
+- Least privilege
+
+Platform services shall not expose unnecessary administrative or
+internal capabilities to business modules.
+
+### 8.16 Platform Service Observability
+
+Platform services shall provide appropriate operational visibility.
+
+Observability shall support:
+
+- Availability monitoring
+- Performance monitoring
+- Error detection
+- Dependency monitoring
+- Security monitoring
+- Capacity monitoring
+
+### 8.17 Platform Service Versioning
+
+Platform service interfaces shall support controlled evolution.
+
+Changes shall consider:
+
+- Existing consumers
+- Backward compatibility
+- Migration requirements
+- Deprecation
+- Versioning
+
+### 8.18 Business Logic Boundary
+
+The Platform Foundation shall not become a centralized business-logic
+layer.
+
+Business logic shall remain within the module that owns the associated
+business capability.
+
+For example:
+
+Platform:
+- Authentication
+- Configuration
+- Audit
+- Messaging
+
+Fleet:
+- Vehicle management
+- Fleet rules
+- Vehicle lifecycle
+
+Workshop:
+- Maintenance management
+- Work orders
+- Maintenance rules
+
+Fuel:
+- Fuel transactions
+- Fuel rules
+- Fuel-related workflows
+
+### 8.19 Platform Service Acceptance Criteria
+
+A capability should be considered a Platform service when:
+
+1. Multiple modules require the capability.
+2. The capability is primarily technical or cross-cutting.
+3. Centralized governance provides a clear benefit.
+4. Centralization does not create unnecessary module coupling.
+5. The service has a clearly defined responsibility.
+6. Security and operational requirements can be centrally governed.
+7. The service has documented interfaces.
+8. The service does not absorb business logic belonging to modules.
+
 ## 9. Data Ownership
 
 ## 10. API and Event Contracts

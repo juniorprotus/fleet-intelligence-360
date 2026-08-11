@@ -909,6 +909,349 @@ A module shall be considered sufficiently connectable when:
 
 ## 6. Inter-Module Communication
 
+FI360 modules shall communicate through explicitly defined and governed
+integration mechanisms.
+
+Communication between modules shall preserve module ownership,
+encapsulation, security, reliability, and independent evolution.
+
+The primary FI360 communication mechanisms shall be:
+
+1. Synchronous APIs
+2. Asynchronous Events
+3. Webhooks
+4. Approved Messaging Infrastructure
+
+The appropriate mechanism shall be selected according to the business
+and technical requirements of each integration.
+
+### 6.1 Communication Principles
+
+Inter-module communication shall follow these principles:
+
+- Communication shall occur through approved contracts.
+- Internal implementation shall never be used as a communication
+  interface.
+- Modules shall exchange only the data required for the operation.
+- Contracts shall be documented and versioned where appropriate.
+- Authentication and authorization shall be enforced.
+- Communication shall be observable and traceable.
+- Failures shall be handled explicitly.
+- Communication mechanisms shall minimize unnecessary coupling.
+
+### 6.2 Synchronous API Communication
+
+Synchronous APIs shall be used when a requesting module requires an
+immediate response.
+
+Typical use cases include:
+
+- Retrieving information
+- Validating information
+- Creating a transaction
+- Updating an approved resource
+- Executing an operation that requires immediate confirmation
+
+A synchronous API interaction shall generally follow:
+
+Requesting Module
+→ API Contract
+→ Owning Module
+→ Response
+
+API contracts shall define:
+
+- Endpoint
+- HTTP method
+- Request structure
+- Response structure
+- Validation rules
+- Authentication
+- Authorization
+- Error responses
+- Version
+- Timeout expectations
+
+### 6.3 Asynchronous Event Communication
+
+Events shall be used when a module needs to communicate that something
+has occurred without requiring the consumer to respond immediately.
+
+Examples include:
+
+- VehicleCreated
+- VehicleUpdated
+- MaintenanceCompleted
+- FuelTransactionRecorded
+- UserAccessChanged
+
+Events shall represent meaningful business occurrences.
+
+Events shall not expose unnecessary internal implementation details.
+
+A typical event flow shall be:
+
+Producing Module
+→ Event Contract
+→ Messaging Infrastructure
+→ Consuming Module(s)
+
+### 6.4 Event Consumers
+
+A module consuming an event shall process the event according to the
+published contract.
+
+Consumers shall:
+
+- Validate received events
+- Handle duplicate delivery where applicable
+- Handle failures
+- Record appropriate observability information
+- Avoid modifying the producer's data directly
+
+Consumers shall not assume undocumented behavior from the producer.
+
+### 6.5 Event Producers
+
+The module that owns the business capability shall own the events
+representing significant changes to that capability.
+
+The producer shall be responsible for:
+
+- Event definition
+- Event schema
+- Event documentation
+- Event versioning
+- Compatibility
+- Publication rules
+
+### 6.6 Webhook Communication
+
+Webhooks shall be used where an approved consumer needs to receive
+notifications about defined events.
+
+Webhook communication shall define:
+
+- Event type
+- Payload
+- Authentication
+- Signature/integrity requirements
+- Delivery behavior
+- Retry behavior
+- Timeout behavior
+- Failure handling
+- Idempotency
+- Versioning
+
+Webhook delivery shall not expose internal services or databases.
+
+### 6.7 Messaging Infrastructure
+
+FI360 may use approved messaging infrastructure to support asynchronous
+communication.
+
+The selected messaging technology shall be determined during the
+platform implementation and architecture process.
+
+Messaging infrastructure may provide:
+
+- Message delivery
+- Event distribution
+- Retry processing
+- Dead-letter handling
+- Ordering where required
+- Persistence where required
+- Consumer management
+
+The messaging infrastructure shall remain an implementation detail
+behind defined FI360 integration contracts where practical.
+
+### 6.8 Communication Selection
+
+The communication mechanism shall be selected based on the operation.
+
+Use synchronous APIs when:
+
+- An immediate response is required.
+- The operation requires direct confirmation.
+- The caller cannot continue without the result.
+
+Use asynchronous events when:
+
+- Immediate response is not required.
+- Multiple consumers may be interested in a business occurrence.
+- Loose coupling is preferred.
+- Processing can occur independently.
+
+Use webhooks when:
+
+- An external or approved consumer needs notification.
+- Event-driven notification is appropriate.
+- The consumer controls the receiving endpoint.
+
+### 6.9 Request and Response Standards
+
+Synchronous APIs shall follow standardized request and response
+structures.
+
+Requests should provide:
+
+- Correlation identifier where appropriate
+- Authentication information
+- Required business data
+- Validation-compatible fields
+
+Responses should provide:
+
+- Appropriate status
+- Response data
+- Error information where applicable
+- Correlation identifier where appropriate
+
+Exact API standards shall be defined under the FI360 API architecture.
+
+### 6.10 Event Standards
+
+FI360 events shall use standardized event structures.
+
+An event should contain appropriate metadata such as:
+
+- Event identifier
+- Event type
+- Event version
+- Event timestamp
+- Producer/module identifier
+- Correlation identifier
+- Causation identifier where applicable
+- Payload
+
+The exact event schema shall be defined under the FI360 integration
+contract architecture.
+
+### 6.11 Correlation and Traceability
+
+Cross-module communication shall support traceability.
+
+A correlation identifier should be propagated across related API calls,
+events, and processing operations.
+
+This shall allow FI360 to determine:
+
+- Where an operation originated
+- Which modules participated
+- Which contracts were used
+- Where an error occurred
+- Which retries occurred
+
+### 6.12 Idempotency
+
+Operations that may be retried or delivered multiple times shall
+support idempotent processing where appropriate.
+
+This is particularly important for:
+
+- Events
+- Webhooks
+- External integrations
+- Retryable API operations
+
+The same logical operation shall not unintentionally produce duplicate
+business effects.
+
+### 6.13 Error Handling
+
+Communication failures shall be handled explicitly.
+
+Depending on the communication mechanism, appropriate approaches may
+include:
+
+- Validation errors
+- Authentication errors
+- Authorization errors
+- Timeout handling
+- Retry policies
+- Circuit breakers
+- Dead-letter queues
+- Failure notifications
+- Graceful degradation
+
+Error behavior shall be documented as part of the relevant contract.
+
+### 6.14 Communication Security
+
+All inter-module communication shall comply with FI360 security
+requirements.
+
+Communication shall address:
+
+- Authentication
+- Authorization
+- Transport encryption
+- Credential protection
+- Message integrity
+- Access control
+- Audit requirements
+
+Security requirements shall be defined under the FI360 Security &
+Identity Architecture.
+
+### 6.15 Communication Observability
+
+Communication shall produce sufficient information for operational
+monitoring and troubleshooting.
+
+Observability should include:
+
+- Request/event identifiers
+- Correlation identifiers
+- Producer
+- Consumer
+- Contract version
+- Processing status
+- Error information
+- Retry information
+- Processing duration
+
+### 6.16 Communication Governance
+
+Every inter-module communication mechanism shall have:
+
+- An identified owner
+- A defined contract
+- Documented consumers
+- Documented producers
+- Versioning rules
+- Security requirements
+- Observability requirements
+- Change-management rules
+
+### 6.17 Prohibited Communication Patterns
+
+The following communication patterns are prohibited:
+
+- Direct access to another module's database
+- Direct modification of another module's data
+- Dependency on another module's private classes
+- Dependency on undocumented interfaces
+- Uncontrolled shared state
+- Undocumented cross-module dependencies
+
+### 6.18 Communication Acceptance Criteria
+
+An inter-module communication mechanism shall be considered acceptable
+when:
+
+1. The communication purpose is clearly defined.
+2. The owning module is identified.
+3. The contract is documented.
+4. Authentication and authorization are defined.
+5. Error behavior is defined.
+6. Versioning requirements are defined.
+7. Observability is available.
+8. Retry/idempotency requirements are understood.
+9. Data exchanged is explicitly defined.
+10. Internal implementation remains encapsulated.
+
 ## 7. Module Dependencies
 
 ## 8. Shared Platform Services

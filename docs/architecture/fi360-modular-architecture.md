@@ -1254,6 +1254,304 @@ when:
 
 ## 7. Module Dependencies
 
+FI360 modules shall use explicit, controlled, and documented
+dependencies.
+
+Dependencies shall support the standalone-but-connectable architecture
+and shall not create unnecessary coupling between modules.
+
+A dependency exists when one module requires another component, service,
+contract, or capability to perform its responsibilities.
+
+### 7.1 Dependency Principles
+
+FI360 dependencies shall follow these principles:
+
+- Dependencies shall be explicit.
+- Dependencies shall have a clear owner.
+- Dependencies shall be documented.
+- Dependencies shall use approved interfaces.
+- Dependencies shall be versioned where appropriate.
+- Dependencies shall be minimized.
+- Internal implementation shall not be treated as a dependency interface.
+- Circular dependencies shall be avoided.
+- Dependencies shall be evaluated for availability and failure impact.
+
+### 7.2 Approved Dependency Types
+
+A FI360 module may depend on:
+
+1. Approved Platform services
+2. Public APIs
+3. Public event contracts
+4. Approved webhooks
+5. Approved shared technical libraries
+6. Approved infrastructure services
+7. Approved external services
+
+All dependencies shall comply with FI360 security and architecture
+standards.
+
+### 7.3 Platform Dependencies
+
+Business modules may depend on approved FI360 Platform capabilities.
+
+Examples include:
+
+- Identity and Access Management
+- Authentication
+- Authorization
+- Configuration
+- Audit logging
+- Observability
+- API infrastructure
+- Event infrastructure
+- Notification services
+
+Platform dependencies shall be stable, documented, and governed.
+
+### 7.4 Module-to-Module Dependencies
+
+A module may depend on another module only through an approved public
+contract.
+
+For example:
+
+Fleet
+→ Vehicle Information API
+→ Workshop
+
+is permitted when the API contract is explicitly defined.
+
+The following is prohibited:
+
+Fleet
+→ Workshop internal service
+→ Workshop database
+
+### 7.5 Contract Dependency
+
+A module shall depend on the contract rather than the implementation
+of another module.
+
+For example:
+
+Consumer
+→ Vehicle API Contract
+
+is acceptable.
+
+Consumer
+→ Workshop internal Java/Python/Node class
+
+is not acceptable.
+
+### 7.6 Data Dependencies
+
+Direct database dependencies between business modules are prohibited.
+
+A module shall not:
+
+- Read another module's internal database tables
+- Write another module's internal database tables
+- Modify another module's database records
+- Depend on another module's database schema
+- Create foreign keys directly into another module's private database
+  structures
+
+Where cross-module data is required, an approved API, event, or other
+integration contract shall be used.
+
+### 7.7 Shared Library Dependencies
+
+Shared technical libraries may be used where they provide genuinely
+common technical functionality.
+
+Examples may include:
+
+- Logging utilities
+- Common validation utilities
+- Security utilities
+- Technical communication libraries
+
+Shared libraries shall not contain business logic belonging to a
+specific module.
+
+A shared library shall not become a mechanism for bypassing module
+boundaries.
+
+### 7.8 Dependency Direction
+
+Where practical, dependencies should follow a controlled direction:
+
+Business Modules
+→ Platform Services
+→ Infrastructure
+
+Business modules should not depend on implementation details of other
+business modules.
+
+Where module-to-module communication is required, it shall occur through
+approved contracts.
+
+### 7.9 Circular Dependencies
+
+Circular dependencies shall be avoided.
+
+An architecture such as:
+
+Module A
+→ Module B
+→ Module A
+
+shall not be introduced without an explicit architecture decision.
+
+Where two modules require information from each other, appropriate
+solutions may include:
+
+- API contracts
+- Events
+- Shared reference data
+- Asynchronous processing
+- A platform-level capability
+- Redesign of module responsibilities
+
+### 7.10 Runtime Dependencies
+
+Runtime dependencies shall be explicitly identified.
+
+For each critical runtime dependency, FI360 shall understand:
+
+- Purpose
+- Owner
+- Availability requirement
+- Failure behavior
+- Timeout
+- Retry policy
+- Security requirements
+- Monitoring requirements
+
+A runtime dependency shall not be introduced without considering its
+effect on module availability.
+
+### 7.11 Optional Dependencies
+
+Where possible, optional capabilities should not prevent a module from
+performing its core responsibilities.
+
+For example, a non-critical notification service should not necessarily
+prevent a core business transaction from completing.
+
+The architecture shall distinguish between:
+
+- Mandatory dependencies
+- Optional dependencies
+- Degraded-mode dependencies
+
+### 7.12 Dependency Failure
+
+Modules shall be designed to handle dependency failures appropriately.
+
+Depending on the dependency, appropriate mechanisms may include:
+
+- Timeouts
+- Retries
+- Circuit breakers
+- Caching
+- Queuing
+- Fallback behavior
+- Graceful degradation
+- Failure notifications
+
+The selected approach shall be appropriate to the business operation.
+
+### 7.13 Dependency Versioning
+
+Dependencies on APIs, events, libraries, and external services shall
+support controlled versioning.
+
+Breaking changes shall not be introduced without an appropriate
+migration or compatibility strategy.
+
+### 7.14 Dependency Documentation
+
+Each module shall document its significant dependencies.
+
+Documentation should identify:
+
+- Dependency name
+- Dependency type
+- Purpose
+- Owner
+- Version
+- Required/optional status
+- Communication mechanism
+- Availability requirement
+- Security requirements
+- Failure behavior
+
+### 7.15 Dependency Security
+
+Dependencies shall be evaluated for security.
+
+This shall include consideration of:
+
+- Authentication
+- Authorization
+- Credential management
+- Transport security
+- Data exposure
+- Access scope
+- Dependency vulnerabilities
+
+Unapproved dependencies shall not be introduced into production
+systems.
+
+### 7.16 External Dependencies
+
+External services shall be treated as controlled dependencies.
+
+External dependencies shall have:
+
+- An identified owner
+- Defined integration contract
+- Security requirements
+- Availability expectations
+- Failure handling
+- Monitoring
+- Version management
+
+### 7.17 Dependency Governance
+
+New significant dependencies shall be reviewed as part of FI360
+architecture governance.
+
+The review shall consider:
+
+1. Why the dependency is required.
+2. Whether the dependency can be avoided.
+3. Whether an existing Platform capability can satisfy the requirement.
+4. Whether the dependency creates tight coupling.
+5. What happens if the dependency becomes unavailable.
+6. Whether the dependency exposes internal implementation.
+7. Whether the dependency introduces security risks.
+8. Whether the dependency affects independent deployment.
+
+### 7.18 Dependency Acceptance Criteria
+
+A dependency shall be considered acceptable when:
+
+1. Its purpose is clearly defined.
+2. Its owner is known.
+3. Its interface is documented.
+4. Its security requirements are defined.
+5. Its availability requirements are understood.
+6. Its failure behavior is defined.
+7. Its versioning strategy is defined.
+8. Its impact on independent deployment is understood.
+9. It does not bypass module boundaries.
+10. It does not create unnecessary coupling.
+
 ## 8. Shared Platform Services
 
 ## 9. Data Ownership

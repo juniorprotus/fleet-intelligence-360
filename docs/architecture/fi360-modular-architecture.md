@@ -617,6 +617,296 @@ A module shall be considered sufficiently standalone when:
 
 ## 5. Connectable Module Architecture
 
+FI360 modules shall be capable of connecting to other FI360 modules and
+approved external systems through explicitly defined integration
+contracts.
+
+Connectivity shall preserve module ownership, encapsulation, security,
+and independent evolution.
+
+A module shall expose only the capabilities required for legitimate
+integration.
+
+### 5.1 Definition of a Connectable Module
+
+A connectable FI360 module is a standalone module that can communicate
+with other modules through approved and governed interfaces.
+
+Connectivity may be provided through:
+
+- Synchronous APIs
+- Asynchronous events
+- Webhooks
+- Messaging
+- Approved integration services
+
+The internal implementation of a module shall never be treated as an
+integration interface.
+
+### 5.2 Contract-Based Connectivity
+
+All module-to-module communication shall be based on explicit contracts.
+
+A contract shall define, where applicable:
+
+- Interface purpose
+- Request structure
+- Response structure
+- Event structure
+- Required fields
+- Optional fields
+- Validation rules
+- Authentication requirements
+- Authorization requirements
+- Error behavior
+- Versioning
+- Compatibility requirements
+
+Contracts shall be documented and governed.
+
+### 5.3 Synchronous Connectivity
+
+Synchronous communication shall be used when the requesting module
+requires an immediate response.
+
+Examples include:
+
+- Retrieving approved information
+- Validating a business condition
+- Submitting a transaction
+- Requesting an operation from another module
+
+Synchronous interfaces shall define appropriate:
+
+- Timeouts
+- Error handling
+- Authentication
+- Authorization
+- Retry behavior
+- Rate limits
+- Versioning
+
+### 5.4 Asynchronous Connectivity
+
+Asynchronous communication shall be used where an immediate response
+is not required or where loose coupling is preferred.
+
+Examples include:
+
+- Business events
+- Status changes
+- Notifications
+- Background processing
+- Integration workflows
+
+Events shall contain sufficient information for consumers to process
+the event according to the published contract.
+
+### 5.5 Webhook Connectivity
+
+Webhooks may be used to notify approved consumers when defined events
+occur.
+
+Webhook contracts shall define:
+
+- Event type
+- Payload structure
+- Authentication
+- Delivery behavior
+- Retry behavior
+- Failure handling
+- Idempotency requirements
+- Versioning
+- Security requirements
+
+Webhook consumers shall not be given access to the producer's internal
+implementation.
+
+### 5.6 Event-Based Connectivity
+
+FI360 modules may publish business events when significant state changes
+occur.
+
+Examples include:
+
+- Vehicle registered
+- Vehicle status changed
+- Maintenance completed
+- Fuel transaction recorded
+- User access changed
+
+Events shall represent meaningful business occurrences rather than
+exposing internal implementation details.
+
+### 5.7 Producer and Consumer Responsibilities
+
+The module publishing a contract shall be responsible for maintaining
+the contract.
+
+Consumers shall be responsible for consuming the contract according to
+its published specification.
+
+A producer shall not assume knowledge of a consumer's internal
+implementation.
+
+Consumers shall not modify or reinterpret a producer's contract without
+an approved change.
+
+### 5.8 Loose Coupling
+
+Connectivity shall minimize direct coupling between modules.
+
+A consuming module should depend on the contract rather than the
+implementation of the producing module.
+
+For example:
+
+Fleet → Vehicle Information API Contract → another module
+
+is acceptable.
+
+Fleet → Workshop internal database
+
+is not acceptable.
+
+### 5.9 Data Exchange
+
+Modules shall exchange only the data required to perform the intended
+operation.
+
+A module shall not expose its entire internal data model merely to
+support another module.
+
+Data exchanged through contracts shall be explicitly defined and
+validated.
+
+### 5.10 Contract Versioning
+
+Public contracts shall support controlled evolution.
+
+Changes shall be evaluated for:
+
+- Backward compatibility
+- Consumer impact
+- Migration requirements
+- Deprecation
+- Version management
+
+Breaking changes shall require an explicit versioning or migration
+strategy.
+
+### 5.11 Idempotency
+
+Operations that may be delivered or retried multiple times shall
+support idempotent processing where appropriate.
+
+This is particularly important for:
+
+- Webhooks
+- Events
+- Payment-related operations
+- External integrations
+- Retryable API requests
+
+A repeated message shall not unintentionally create duplicate business
+effects.
+
+### 5.12 Reliability
+
+Module connectivity shall account for network and service failures.
+
+Depending on the integration type, appropriate mechanisms may include:
+
+- Timeouts
+- Retries
+- Circuit breakers
+- Dead-letter queues
+- Message persistence
+- Failure notifications
+- Graceful degradation
+
+The appropriate mechanism shall be determined by the integration
+requirements.
+
+### 5.13 Security
+
+All module connectivity shall comply with FI360 security requirements.
+
+Connectivity shall address:
+
+- Authentication
+- Authorization
+- Transport security
+- Credential management
+- Message integrity
+- Access control
+- Auditability
+
+Security requirements shall be defined before production integration.
+
+### 5.14 Observability
+
+Module integrations shall provide sufficient observability to determine:
+
+- Which module initiated an operation
+- Which module received it
+- Which contract was used
+- Whether processing succeeded
+- Whether processing failed
+- Where failures occurred
+- Whether retries occurred
+
+Correlation identifiers should be used to trace operations across
+module boundaries.
+
+### 5.15 External System Connectivity
+
+External systems shall connect to FI360 through approved integration
+boundaries.
+
+External systems shall not gain direct access to internal module
+implementation or internal databases.
+
+External integrations shall be documented and governed separately from
+internal module communication where appropriate.
+
+### 5.16 Connectivity Failure Isolation
+
+Failure of a connected module or external system shall not automatically
+cause unrelated modules to fail.
+
+Integration mechanisms shall use appropriate resilience patterns to
+prevent uncontrolled cascading failures.
+
+### 5.17 Contract Ownership
+
+Every public interface shall have a clearly identified owning module or
+platform service.
+
+The owner shall be responsible for:
+
+- Contract documentation
+- Versioning
+- Compatibility
+- Change management
+- Deprecation
+- Consumer communication
+
+### 5.18 Connectability Acceptance Criteria
+
+A module shall be considered sufficiently connectable when:
+
+1. Its public interfaces are clearly defined.
+2. Its integration contracts are documented.
+3. Its authentication and authorization requirements are defined.
+4. Its APIs and/or events have clear ownership.
+5. Its contracts support controlled versioning.
+6. Its data exchange is explicitly defined.
+7. Its failure behavior is understood.
+8. Its integrations are observable.
+9. Its connectivity does not expose internal implementation.
+10. Its integration dependencies are documented.
+
 ## 6. Inter-Module Communication
 
 ## 7. Module Dependencies

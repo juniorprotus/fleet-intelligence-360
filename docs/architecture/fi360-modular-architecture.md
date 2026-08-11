@@ -400,6 +400,221 @@ principles before implementation.
 
 ## 4. Standalone Module Architecture
 
+FI360 business modules shall be designed as independently maintainable
+and deployable units while remaining capable of participating in the
+overall FI360 ecosystem.
+
+Standalone architecture does not mean that a module has no dependencies.
+It means that dependencies are explicit, controlled, and limited to
+approved platform capabilities and integration contracts.
+
+### 4.1 Definition of a Standalone Module
+
+A standalone FI360 module is a module that:
+
+- Has a clearly defined business responsibility
+- Owns its business logic
+- Owns its business data
+- Has defined public interfaces
+- Controls its internal implementation
+- Has its own configuration requirements
+- Can be developed and tested independently
+- Can be deployed independently where operationally appropriate
+- Does not require direct access to another module's internal resources
+
+### 4.2 Independent Business Responsibility
+
+Each module shall have a clearly defined business capability.
+
+The module shall contain the business rules and workflows associated
+with that capability.
+
+Business logic shall not be distributed unnecessarily across multiple
+modules.
+
+For example, the Fleet module shall own Fleet-specific business rules
+rather than relying on the Workshop module to implement Fleet business
+logic.
+
+### 4.3 Internal Encapsulation
+
+A module shall encapsulate its internal implementation.
+
+The following shall be considered internal unless explicitly exposed:
+
+- Internal classes
+- Internal services
+- Internal database structures
+- Internal configuration
+- Internal workflows
+- Internal implementation algorithms
+
+Other modules shall not depend directly on these internal components.
+
+### 4.4 Module-Owned Data
+
+A standalone module shall own the data required to operate its business
+capability.
+
+The module shall control:
+
+- Data models
+- Data validation
+- Data persistence
+- Data lifecycle
+- Data access rules
+- Data migration requirements
+
+Other modules shall not directly modify the module's internal data.
+
+### 4.5 Module-Owned Business Logic
+
+Business logic shall remain within the module that owns the associated
+business capability.
+
+A module shall not delegate core business rules to another module simply
+to avoid implementing them locally.
+
+Cross-module operations shall use approved contracts.
+
+### 4.6 Configuration Independence
+
+A module shall have clearly defined configuration requirements.
+
+Configuration shall be separated from application logic and shall
+support appropriate environments such as:
+
+- Development
+- Testing
+- Staging
+- Production
+
+Environment-specific values shall not be hard-coded into the module.
+
+### 4.7 Deployment Independence
+
+A module should be capable of being built, tested, and deployed without
+requiring unrelated modules to be redeployed.
+
+Where a module has a required runtime dependency, that dependency shall
+be explicitly documented.
+
+Deployment dependencies shall be minimized and governed.
+
+### 4.8 Independent Testing
+
+A standalone module shall be testable independently.
+
+Testing should include:
+
+- Unit testing
+- Module-level integration testing
+- Contract testing
+- Security testing
+- Configuration testing
+- Data validation testing
+
+A module should not require the complete FI360 platform to execute its
+basic unit and module-level tests.
+
+### 4.9 Module Failure Isolation
+
+The failure of one module should not automatically cause unrelated
+modules to fail.
+
+The architecture shall use appropriate mechanisms such as:
+
+- Timeouts
+- Retry policies
+- Circuit breakers
+- Asynchronous processing
+- Failure queues
+- Graceful degradation
+
+Where applicable, these mechanisms shall prevent cascading failures.
+
+### 4.10 Independent Versioning
+
+Modules shall support controlled version evolution.
+
+A change to one module shall not require unnecessary changes to other
+modules.
+
+Public APIs, events, and other integration contracts shall be versioned
+according to FI360 contract-management rules.
+
+### 4.11 Dependency Control
+
+A standalone module may depend on approved:
+
+- Platform services
+- Infrastructure services
+- Shared technical libraries
+- Public module contracts
+- External services
+
+Dependencies shall be documented and shall not expose another module's
+internal implementation.
+
+### 4.12 Module Packaging
+
+Each module shall have a clearly identifiable application boundary.
+
+Where appropriate, the module shall have its own:
+
+- Source code structure
+- Build configuration
+- Test suite
+- Configuration
+- Deployment configuration
+- Documentation
+- Version identifier
+
+The exact packaging approach shall be determined by the implementation
+technology selected for FI360.
+
+### 4.13 Module Health
+
+Each independently deployable module shall provide mechanisms for
+determining its operational health.
+
+Health information may include:
+
+- Application availability
+- Dependency availability
+- Database connectivity
+- Configuration validity
+- Resource availability
+
+Health mechanisms shall integrate with FI360 observability standards.
+
+### 4.14 Module Startup and Shutdown
+
+Modules shall have controlled startup and shutdown behavior.
+
+Startup shall validate required configuration and critical dependencies.
+
+Shutdown shall allow active operations to complete or terminate safely
+according to the module's operational requirements.
+
+### 4.15 Standalone Module Acceptance Criteria
+
+A module shall be considered sufficiently standalone when:
+
+1. Its business responsibility is clearly defined.
+2. Its internal implementation is encapsulated.
+3. Its business data is owned by the module.
+4. Its public interfaces are documented.
+5. Its dependencies are explicitly identified.
+6. It can be tested independently.
+7. It can be deployed independently where appropriate.
+8. Failure of the module does not unnecessarily cascade to unrelated
+   modules.
+9. Changes to the module do not require unnecessary changes to unrelated
+   modules.
+10. Its security, configuration, and observability requirements are
+    defined.
+
 ## 5. Connectable Module Architecture
 
 ## 6. Inter-Module Communication

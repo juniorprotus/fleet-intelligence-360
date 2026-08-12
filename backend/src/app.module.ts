@@ -1,0 +1,34 @@
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { PrismaModule } from './prisma/prisma.module';
+import { TyreModule } from './tyre/tyre.module';
+import { AuthModule } from './auth/auth.module';
+import { VehicleModule } from './vehicle/vehicle.module';
+import { BudgetModule } from './budget/budget.module';
+import { AlertModule } from './alert/alert.module';
+import { DefectModule } from './defect/defect.module';
+import { AuditModule } from './audit/audit.module';
+import { UserModule } from './user/user.module';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
+    PrismaModule,
+    AuthModule,
+    UserModule,
+    TyreModule,
+    VehicleModule,
+    BudgetModule,
+    AlertModule,
+    DefectModule,
+    AuditModule,
+  ],
+  controllers: [AppController],
+  providers: [AppService],
+})
+export class AppModule {}

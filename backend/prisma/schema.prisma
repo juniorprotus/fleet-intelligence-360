@@ -1,0 +1,578 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// FI360 PLATFORM — WORKSHOP ENTITY
+// First-class workshop within Org → Region → Depot → Workshop
+// Region and Depot are currently plain strings (not entities).
+// ============================================================
+
+/// FI360 Workshop entity. Represents a physical workshop location
+/// within the Org → Region → Depot → Workshop hierarchy.
+model Workshop {
+  id              String         @id @default(uuid()) @map("workshop_id")
+  code            String         @unique                                    // e.g. "WS-NBI-01"
+  name            String                                                     // e.g. "Nairobi Main Workshop"
+  region          String?                                                    // matches Vehicle/User.region string
+  depot           String?                                                    // matches Vehicle/User.depot string
+  address         String?
+  managerId       Int?           @map("manager_id")                         // references User.id (workshop manager)
+  workshopStatus  WorkshopStatus @default(ACTIVE) @map("workshop_status")
+  isActive        Boolean        @default(true) @map("is_active")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+  createdBy       String?        @map("created_by")
+  updatedBy       String?        @map("updated_by")
+
+  // Relations
+  vehicles        Vehicle[]
+  users           User[]
+
+  @@map("workshops")
+  @@index([region])
+  @@index([depot])
+  @@index([workshopStatus])
+}
+
+// ============================================================
+// FI360 PLATFORM — VEHICLE MASTER
+// Central vehicle entity shared across all FI360 modules
+// ============================================================
+
+/// FI360 central Vehicle Master. Authoritative vehicle reference
+/// for Tyre, Fuel, Workshop, Driver, Asset Lifecycle, Finance modules.
+/// Vehicle.workshopId is the CURRENT workshop assignment only,
+/// not a historical record. Future versions may add assignment history.
+model Vehicle {
+  id                String        @id @default(uuid()) @map("vehicle_id")
+  registrationNumber String       @unique @map("registration_number")
+  fleetNumber       String?       @map("fleet_number")
+  vehicleClass      String?       @map("vehicle_class")         // e.g. Heavy Truck, Rigid, LCV
+  make              String?
+  model             String?
+  depot             String?
+  region            String?
+  department        String?
+  workshopId        String?       @map("workshop_id")            // current workshop assignment only
+  workshop          Workshop?     @relation(fields: [workshopId], references: [id])
+  vehicleStatus     VehicleStatus @default(ACTIVE) @map("vehicle_status")
+  expectedTyres     Int?          @default(10) @map("expected_tyres")
+  currentOdometer   Int?          @map("current_odometer")
+  acquisitionDate   DateTime?     @map("acquisition_date")
+  disposalDate      DateTime?     @map("disposal_date")
+  isActive          Boolean       @default(true) @map("is_active")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+  createdBy         String?       @map("created_by")
+  updatedBy         String?       @map("updated_by")
+
+  // Relations to tyre module
+  tyreFitments      TyreFitment[]
+  tyreInspections   TyreInspection[]
+  tyreDefects       TyreDefect[]
+
+  @@map("vehicles")
+  @@index([region])
+  @@index([depot])
+  @@index([workshopId])
+  @@index([vehicleClass])
+  @@index([vehicleStatus])
+}
+
+// ============================================================
+// FI360 PLATFORM — BUDGET MASTER
+// Shared budget tracking across all FI360 modules
+// ============================================================
+
+/// FI360 budget master. Tracks planned vs actual expenditure
+/// per period, cost centre, department and module.
+model Budget {
+  id                Int           @id @default(autoincrement())
+  periodLabel       String        @map("period_label")           // e.g. "2025-Q1", "2025-FY"
+  periodStart       DateTime      @map("period_start")
+  periodEnd         DateTime      @map("period_end")
+  organisationUnit  String?       @map("organisation_unit")
+  department        String?
+  costCentre        String?       @map("cost_centre")
+  vehicleClass      String?       @map("vehicle_class")
+  budgetCategory    BudgetCategory @map("budget_category")       // TYRES, FUEL, WORKSHOP, etc.
+  budgetAmount      Decimal       @map("budget_amount") @db.Decimal(14, 2)
+  actualExpenditure Decimal       @default(0) @map("actual_expenditure") @db.Decimal(14, 2)
+  varianceAmount    Decimal?      @map("variance_amount") @db.Decimal(14, 2)
+  variancePercent   Decimal?      @map("variance_percent") @db.Decimal(6, 2)
+  budgetStatus      BudgetStatus  @default(ACTIVE) @map("budget_status")
+  notes             String?
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+  createdBy         String?       @map("created_by")
+  updatedBy         String?       @map("updated_by")
+
+  @@map("budgets")
+  @@index([periodLabel])
+  @@index([budgetCategory])
+  @@index([budgetStatus])
+}
+
+// ============================================================
+// TYRE MODULE - Core Domain Tables
+// Based on FI360 Tyre Database and Data Dictionary v1.0
+// ============================================================
+
+/// Tyre master record - the core entity of the Tyre module.
+/// Each record represents a unique physical tyre in the fleet.
+/// The tyreIdentifier field holds the FI360 Tyre ID (e.g. TYR-000001)
+/// which remains associated with the physical tyre for its entire lifecycle.
+/// Duplicate FI360 Tyre IDs are prevented by the @unique constraint.
+model Tyre {
+  id                  Int       @id @default(autoincrement())
+  tyreIdentifier      String    @unique @map("tyre_identifier")          // FI360 Tyre ID e.g. TYR-000001
+  serialNumber        String?   @map("serial_number")
+  companyBrandNumber  String?   @map("company_brand_number")              // Internal company fleet brand stamp e.g. BN-9021
+  brand               String
+  model               String
+  size                String                                              // e.g. "315/80R22.5"
+  tyreType            TyreType  @default(NEW) @map("tyre_type")
+  construction        String?                                             // e.g. "Radial", "Bias"
+  loadIndex           Int?      @map("load_index")
+  speedRating         String?   @map("speed_rating")
+  pattern             String?                                             // tread pattern name
+  plyRating           String?   @map("ply_rating")
+  dotCode             String?   @map("dot_code")                          // DOT manufacturing code
+  manufacturer        String?                                             // tyre manufacturer name
+  purchaseDate        DateTime? @map("purchase_date")
+  purchaseCost        Decimal?  @map("purchase_cost") @db.Decimal(12, 2)
+  purchaseOrderNumber String?   @map("purchase_order_number")
+  currency            String?   @default("KES")                           // ISO currency code
+  warrantyMonths      Int?      @map("warranty_months")
+  expectedServiceLife Int?      @map("expected_service_life_km")          // in kilometres
+  supplierId          Int?      @map("supplier_id")
+  supplier            TyreSupplier? @relation(fields: [supplierId], references: [id])
+  currentStatus       TyreStatus @default(IN_STOCK) @map("current_status")
+  currentPositionId   Int?      @map("current_position_id")
+  currentVehicleId    String?   @map("current_vehicle_id")
+  currentOdometer     Int?      @map("current_odometer")
+  originalTreadDepth  Decimal?  @map("original_tread_depth") @db.Decimal(5, 2)
+  currentTreadDepth   Decimal?  @map("current_tread_depth") @db.Decimal(5, 2)
+  minimumTreadDepth   Decimal?  @default(3.0) @map("minimum_tread_depth") @db.Decimal(5, 2)
+  initialPressure     Decimal?  @map("initial_pressure") @db.Decimal(5, 2)
+  casingCondition     String?   @map("casing_condition")                  // e.g. "Good", "Damaged"
+  retreadCount        Int       @default(0) @map("retread_count")
+  repairCount         Int       @default(0) @map("repair_count")
+  notes               String?
+  isActive            Boolean   @default(true) @map("is_active")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  createdBy           String?   @map("created_by")
+  updatedBy           String?   @map("updated_by")
+
+  // Relations
+  fitments            TyreFitment[]
+  inspections         TyreInspection[]
+  movements           TyreMovement[]
+  alerts              TyreAlert[]
+  defects             TyreDefect[]
+
+  @@map("tyres")
+  @@index([currentStatus])
+  @@index([currentVehicleId])
+  @@index([brand, model])
+  @@index([supplierId])
+}
+
+/// Tyre supplier / vendor information
+model TyreSupplier {
+  id           Int       @id @default(autoincrement())
+  name         String
+  code         String?   @unique
+  contactName  String?   @map("contact_name")
+  contactEmail String?   @map("contact_email")
+  contactPhone String?   @map("contact_phone")
+  address      String?
+  isActive     Boolean   @default(true) @map("is_active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  tyres        Tyre[]
+
+  @@map("tyre_suppliers")
+}
+
+/// Records every fitment and removal of a tyre on a vehicle position.
+/// Supervisor verification uses explicit status (PENDING/VERIFIED/REJECTED),
+/// not just NULL timestamp checks.
+/// Position is described by both a numeric positionId AND structured
+/// axle/side/innerOuter fields for flexible vehicle configurations.
+model TyreFitment {
+  id                    Int       @id @default(autoincrement())
+  tyreId                Int       @map("tyre_id")
+  tyre                  Tyre      @relation(fields: [tyreId], references: [id])
+  vehicleId             String    @map("vehicle_id")
+  vehicle               Vehicle?  @relation(fields: [vehicleId], references: [id])
+  positionId            Int       @map("position_id")                          // axle position code (legacy numeric)
+  positionCode          String?   @map("position_code")                        // e.g. "AX1-L", "AX2-R-OUT"
+  axle                  Int?                                                   // axle number (1, 2, 3...)
+  side                  String?                                                // "L" or "R"
+  innerOuter            String?   @map("inner_outer")                          // "INNER", "OUTER", or null for single
+  fitmentDate           DateTime  @map("fitment_date")
+  fitmentOdometer       Int?      @map("fitment_odometer")
+  fitmentTreadDepth     Decimal?  @map("fitment_tread_depth") @db.Decimal(5, 2)
+  removalDate           DateTime? @map("removal_date")
+  removalOdometer       Int?      @map("removal_odometer")
+  removalTreadDepth     Decimal?  @map("removal_tread_depth") @db.Decimal(5, 2)
+  removalReason         String?   @map("removal_reason")
+  fittedBy              String?   @map("fitted_by")                            // technician who fitted
+  removedBy             String?   @map("removed_by")                           // technician who removed
+  supervisorVerifiedBy  String?   @map("supervisor_verified_by")               // supervisor who verified (≠ fittedBy)
+  supervisorVerifiedAt  DateTime? @map("supervisor_verified_at")
+  verificationStatus    String?   @default("PENDING") @map("verification_status") // PENDING, VERIFIED, REJECTED
+  notes                 String?
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  @@map("tyre_fitments")
+  @@index([tyreId])
+  @@index([vehicleId])
+  @@index([fitmentDate])
+  @@index([verificationStatus])
+}
+
+/// Tyre inspection / tread measurement record.
+/// Supervisor verification uses explicit status
+/// (PENDING/VERIFIED/REJECTED/REINSPECTION_REQUIRED).
+model TyreInspection {
+  id                    Int       @id @default(autoincrement())
+  tyreId                Int       @map("tyre_id")
+  tyre                  Tyre      @relation(fields: [tyreId], references: [id])
+  inspectionDate        DateTime  @map("inspection_date")
+  vehicleId             String?   @map("vehicle_id")
+  vehicle               Vehicle?  @relation(fields: [vehicleId], references: [id])
+  positionId            Int?      @map("position_id")
+  odometer              Int?
+  treadDepthLeft        Decimal?  @map("tread_depth_left") @db.Decimal(5, 2)
+  treadDepthCenter      Decimal?  @map("tread_depth_center") @db.Decimal(5, 2)
+  treadDepthRight       Decimal?  @map("tread_depth_right") @db.Decimal(5, 2)
+  averageTreadDepth     Decimal?  @map("average_tread_depth") @db.Decimal(5, 2)
+  pressure              Decimal?  @db.Decimal(5, 2)
+  condition             TyreCondition? @default(GOOD)
+  wearPattern           String?   @map("wear_pattern")                         // e.g. "Even", "Centre", "Edge", "Cupping"
+  sidewallCondition     String?   @map("sidewall_condition")                   // e.g. "Good", "Cracked", "Bulge"
+  valveCondition        String?   @map("valve_condition")                      // e.g. "Good", "Leaking", "Damaged"
+  rimCondition          String?   @map("rim_condition")                        // e.g. "Good", "Bent", "Corroded"
+  damageType            String?   @map("damage_type")
+  damageDescription     String?   @map("damage_description")
+  recommendation        String?
+  inspectedBy           String?   @map("inspected_by")                         // technician who inspected
+  supervisorVerifiedBy  String?   @map("supervisor_verified_by")               // supervisor who verified (≠ inspectedBy)
+  supervisorVerifiedAt  DateTime? @map("supervisor_verified_at")
+  verificationStatus    String?   @default("PENDING") @map("verification_status") // PENDING, VERIFIED, REJECTED, REINSPECTION_REQUIRED
+  notes                 String?
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  @@map("tyre_inspections")
+  @@index([tyreId])
+  @@index([inspectionDate])
+  @@index([vehicleId])
+  @@index([verificationStatus])
+}
+
+/// Tracks tyre movement / status change events (lifecycle history).
+/// This is an APPEND-ONLY record. Historical entries must NEVER be deleted.
+/// Distinguishes between performedBy (technician) and supervisorId (verifier).
+/// These MUST be different people for segregation of duties.
+///
+/// TyreMovementType = HISTORICAL EVENT (what happened)
+/// TyreStatus = CURRENT STATE (where the tyre is now)
+/// These are NOT interchangeable.
+model TyreMovement {
+  id                  Int              @id @default(autoincrement())
+  tyreId              Int              @map("tyre_id")
+  tyre                Tyre             @relation(fields: [tyreId], references: [id])
+  movementType        TyreMovementType @map("movement_type")
+  movementDate        DateTime         @map("movement_date")
+  fromStatus          TyreStatus?      @map("from_status")
+  toStatus            TyreStatus       @map("to_status")
+  fromVehicleId       String?          @map("from_vehicle_id")
+  toVehicleId         String?          @map("to_vehicle_id")
+  fromPosition        Int?             @map("from_position")
+  toPosition          Int?             @map("to_position")
+  fromLocation        String?          @map("from_location")                   // e.g. workshop, depot, store
+  toLocation          String?          @map("to_location")
+  odometer            Int?
+  reason              String?
+  performedBy         String?          @map("performed_by")                    // technician who did the work
+  supervisorId        String?          @map("supervisor_id")                   // supervisor who verified (≠ performedBy)
+  verifiedAt          DateTime?        @map("verified_at")
+  verificationStatus  String?          @map("verification_status")             // PENDING, VERIFIED, REJECTED
+  notes               String?
+  createdAt           DateTime         @default(now()) @map("created_at")
+
+  @@map("tyre_movements")
+  @@index([tyreId])
+  @@index([movementDate])
+  @@index([movementType])
+}
+
+// ============================================================
+// TYRE INTELLIGENCE — ALERTS & DEFECTS
+// ============================================================
+
+/// System-generated or rule-based tyre exceptions and alerts.
+/// Alert contains region/depot/workshop context for drill-down routing.
+/// Full drill-down chain: Alert → Region → Depot → Workshop → Vehicle → Position → Tyre → Event
+/// Vehicle/Tyre/Position links exist via vehicleId, tyreId, positionId fields.
+model TyreAlert {
+  id                Int           @id @default(autoincrement())
+  alertType         AlertType     @map("alert_type")
+  severity          AlertSeverity @default(MEDIUM)
+  tyreId            Int?          @map("tyre_id")
+  tyre              Tyre?         @relation(fields: [tyreId], references: [id])
+  vehicleId         String?       @map("vehicle_id")
+  positionId        Int?          @map("position_id")
+  workshopId        String?       @map("workshop_id")                        // for scope-based alert routing
+  region            String?                                                  // for drill-down context
+  depot             String?                                                  // for drill-down context
+  message           String
+  detail            String?
+  recommendedAction String?       @map("recommended_action")
+  status            AlertStatus   @default(OPEN)
+  acknowledgedBy    String?       @map("acknowledged_by")
+  acknowledgedAt    DateTime?     @map("acknowledged_at")
+  resolvedBy        String?       @map("resolved_by")
+  resolvedAt        DateTime?     @map("resolved_at")
+  resolutionNote    String?       @map("resolution_note")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  @@map("tyre_alerts")
+  @@index([alertType])
+  @@index([severity])
+  @@index([status])
+  @@index([tyreId])
+  @@index([vehicleId])
+  @@index([workshopId])
+}
+
+/// Driver or technician reported tyre defect/issue
+model TyreDefect {
+  id              Int           @id @default(autoincrement())
+  vehicleId       String        @map("vehicle_id")
+  vehicle         Vehicle       @relation(fields: [vehicleId], references: [id])
+  tyreId          Int?          @map("tyre_id")
+  tyre            Tyre?         @relation(fields: [tyreId], references: [id])
+  positionId      Int?          @map("position_id")
+  defectType      String        @map("defect_type")
+  description     String?
+  severity        AlertSeverity @default(MEDIUM)
+  status          DefectStatus  @default(OPEN)
+  reportedBy      String        @map("reported_by")
+  reportedAt      DateTime      @default(now()) @map("reported_at")
+  assignedTo      String?       @map("assigned_to")
+  assignedAt      DateTime?     @map("assigned_at")
+  resolvedBy      String?       @map("resolved_by")
+  resolvedAt      DateTime?     @map("resolved_at")
+  resolutionNote  String?       @map("resolution_note")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  @@map("tyre_defects")
+  @@index([vehicleId])
+  @@index([status])
+  @@index([severity])
+}
+
+/// FI360 platform audit log - immutable record of critical actions.
+/// Captures user, timestamp, action, entity, before/after values, and reason.
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  module      String                                   // TYRE, VEHICLE, BUDGET, etc.
+  action      String                                   // CREATE, UPDATE, DELETE, etc.
+  entityType  String   @map("entity_type")
+  entityId    String   @map("entity_id")
+  userId      String?  @map("user_id")
+  userEmail   String?  @map("user_email")
+  beforeValue Json?    @map("before_value")
+  afterValue  Json?    @map("after_value")
+  reason      String?                                  // reason for the action where applicable
+  ipAddress   String?  @map("ip_address")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("audit_logs")
+  @@index([module])
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// ============================================================
+// PLATFORM / AUTH - Shared across all modules
+// ============================================================
+
+/// FI360 platform user.
+/// User.workshopId is the current workshop assignment.
+/// Future versions may support multiple/temporary/historical assignments.
+model User {
+  id                Int       @id @default(autoincrement())
+  email             String    @unique
+  password          String
+  firstName         String?   @map("first_name")
+  lastName          String?   @map("last_name")
+  role              UserRole  @default(DRIVER)
+  department        String?
+  region            String?
+  depot             String?
+  branch            String?
+  workshopId        String?   @map("workshop_id")
+  workshop          Workshop? @relation(fields: [workshopId], references: [id])
+  assignedVehicleId String?   @map("assigned_vehicle_id")
+  isActive          Boolean   @default(true) @map("is_active")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  @@map("users")
+  @@index([workshopId])
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum VehicleStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+  DISPOSED
+  SOLD
+}
+
+enum WorkshopStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+}
+
+enum BudgetCategory {
+  TYRES
+  FUEL
+  WORKSHOP
+  DRIVER
+  FLEET_FINANCIAL
+  OTHER
+}
+
+enum BudgetStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+  OVER_BUDGET
+}
+
+enum AlertType {
+  LOW_TREAD
+  HIGH_PRESSURE
+  LOW_PRESSURE
+  INSPECTION_OVERDUE
+  UNAUTHORIZED_MOVEMENT
+  BUDGET_EXCEEDED
+  ROTATION_OVERDUE
+  REPLACEMENT_DUE
+  PREMATURE_FAILURE
+  SAFETY_CRITICAL
+  STOCK_LOW
+  REPEATED_PRESSURE_LOSS
+}
+
+enum AlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+  DISMISSED
+}
+
+enum DefectStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  REJECTED
+  CLOSED
+}
+
+enum TyreType {
+  NEW
+  USED
+  RETREAD
+  REMOULD
+}
+
+enum TyreStatus {
+  IN_STOCK
+  INSPECTED
+  FITTED
+  IN_SERVICE
+  REMOVED
+  SENT_FOR_RETREAD
+  IN_RETREAD
+  RETURNED_RETREAD
+  SENT_FOR_REPAIR
+  IN_REPAIR
+  RETURNED_REPAIR
+  SCRAP
+  DISPOSED
+  SOLD
+  TRANSFERRED
+  LOST
+}
+
+enum TyreCondition {
+  GOOD
+  FAIR
+  POOR
+  DAMAGED
+  UNSERVICEABLE
+}
+
+enum TyreMovementType {
+  REGISTRATION
+  RECEIPT
+  FITMENT
+  REMOVAL
+  ROTATION
+  TRANSFER
+  SENT_RETREAD
+  RECEIVED_RETREAD
+  SENT_REPAIR
+  RECEIVED_REPAIR
+  REPAIR_COMPLETE
+  SCRAP
+  DISPOSE
+  SALE
+  ADJUSTMENT
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  CEO
+  FLEET_MANAGER
+  WORKSHOP_MANAGER
+  TYRE_SUPERVISOR
+  TYRE_TECHNICIAN
+  FINANCE_MANAGER
+  DRIVER
+  AUDITOR
+  READ_ONLY
+}

@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FI360 — Fleet Intelligence 360</title>
+    <meta name="description" content="FI360 Fleet Intelligence 360: role-aware fleet, tyre, finance and compliance management platform." />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <div class="app-container">
+
+      <!-- ═══════════════════════════════════════════════
+           SIDEBAR
+      ═══════════════════════════════════════════════ -->
+      <nav class="sidebar" id="sidebar">
+        <div class="logo">
+          <img src="/logo.png" alt="FI360 Logo" class="sidebar-logo">
+          <div class="logo-text">
+            <span class="logo-title">FI360</span>
+            <span class="logo-sub">Fleet Intelligence 360</span>
+          </div>
+        </div>
+
+        <!-- Dynamic nav items injected by JS based on role -->
+        <ul class="nav-links" id="nav-links"></ul>
+
+        <div class="sidebar-footer">
+          <!-- Login form (pre-auth) -->
+          <div id="login-form-container">
+            <label class="form-label mb-1">Quick Role Switcher</label>
+            <select id="quick-role-select" class="form-select mb-2">
+              <option value="admin@fi360.com">System Admin</option>
+              <option value="ceo@fi360.com">CEO / Executive</option>
+              <option value="fleet.manager@fi360.com">Fleet Manager</option>
+              <option value="supervisor@fi360.com">Tyre Supervisor</option>
+              <option value="technician@fi360.com">Tyre Technician</option>
+              <option value="finance.manager@fi360.com">Finance Manager</option>
+              <option value="driver@fi360.com">Driver</option>
+              <option value="auditor@fi360.com">Auditor</option>
+            </select>
+            <form id="login-form">
+              <input type="email" id="email" placeholder="Email" value="admin@fi360.com" required>
+              <input type="password" id="password" placeholder="Password" value="Pinkypinky@40" required>
+              <button type="submit" class="btn primary mt-2" id="login-btn">Sign In</button>
+            </form>
+            <div id="auth-error" class="error-text"></div>
+          </div>
+
+          <!-- User info (post-auth) -->
+          <div id="user-info" class="hidden">
+            <div class="user-profile-mini">
+              <div class="user-avatar" id="user-avatar">SA</div>
+              <div class="user-meta">
+                <span class="user-display-name" id="user-name">Loading...</span>
+                <span class="role-badge" id="user-role-badge">ROLE</span>
+              </div>
+            </div>
+            <div class="user-scope-info" id="user-scope-info"></div>
+            <button id="logout-btn" class="btn small outline mt-2">Sign Out</button>
+          </div>
+        </div>
+      </nav>
+
+      <!-- ═══════════════════════════════════════════════
+           MAIN CONTENT AREA
+      ═══════════════════════════════════════════════ -->
+      <main class="main-content">
+
+        <!-- Top Header Bar -->
+        <header class="header">
+          <div class="header-left">
+            <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle sidebar">☰</button>
+            <div>
+              <h1 id="page-title">Dashboard</h1>
+              <p class="page-subtitle" id="page-subtitle"></p>
+            </div>
+          </div>
+          <div class="header-actions" id="header-actions">
+            <!-- Injected dynamically per role -->
+          </div>
+        </header>
+
+        <!-- ───────────────────────────────────────────
+             VIEWS: each role gets a dedicated section
+        ─────────────────────────────────────────────── -->
+        <div class="content-area">
+          <div id="loading" class="loading-overlay hidden">
+            <div class="spinner"></div>
+          </div>
+
+          <!-- Active scope/filter badge -->
+          <div id="active-filter-bar" class="active-filter-bar hidden">
+            <span>Filtered: <strong id="active-filter-label"></strong></span>
+            <button id="btn-clear-filter" class="btn small text-only">✕ Clear</button>
+          </div>
+
+          <!-- ─────────────────────────────────────────
+               DASHBOARD-SUPER-ADMIN
+          ──────────────────────────────────────────── -->
+          <div id="dashboard-super-admin" class="view hidden">
+            <div class="kpi-grid" id="admin-kpi-grid">
+              <div class="kpi-card kpi-primary">
+                <div class="kpi-icon">USR</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Total Users</p>
+                  <p class="kpi-value" id="admin-total-users">--</p>
+                  <p class="kpi-sub">Platform Accounts</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-success">
+                <div class="kpi-icon">ACT</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Active Users</p>
+                  <p class="kpi-value" id="admin-active-users">--</p>
+                  <p class="kpi-sub">Currently enabled</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-warning">
+                <div class="kpi-icon">INA</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Inactive Users</p>
+                  <p class="kpi-value" id="admin-inactive-users">--</p>
+                  <p class="kpi-sub">Disabled accounts</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-info">
+                <div class="kpi-icon">ROL</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Roles in Use</p>
+                  <p class="kpi-value" id="admin-roles-count">--</p>
+                  <p class="kpi-sub">Distinct role types</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="section-grid mt-4">
+              <div class="card table-card">
+                <div class="card-header">
+                  <h3>User Accounts &amp; Data Scope</h3>
+                  <button class="btn small primary" id="btn-admin-add-user">+ New User</button>
+                </div>
+                <div class="table-container">
+                  <table id="admin-users-table">
+                    <thead>
+                      <tr>
+                        <th>User</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Scope Level</th>
+                        <th>Region / Depot</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody><tr><td colspan="7" class="text-center muted">Loading users...</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="card">
+                <h3 class="card-title">Role Distribution</h3>
+                <div class="chart-container" style="height:220px;">
+                  <canvas id="adminRoleChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─────────────────────────────────────────
+               DASHBOARD-CEO (Executive Intelligence)
+          ──────────────────────────────────────────── -->
+          <div id="dashboard-ceo" class="view hidden">
+            <div class="kpi-grid">
+              <div class="kpi-card kpi-primary clickable" id="ceo-kpi-fleet">
+                <div class="kpi-icon">FLT</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Fleet Size</p>
+                  <p class="kpi-value" id="ceo-fleet-total">--</p>
+                  <p class="kpi-sub">Registered vehicles</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-success clickable" id="ceo-kpi-available">
+                <div class="kpi-icon">AVL</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Fleet Availability</p>
+                  <p class="kpi-value" id="ceo-fleet-available">--</p>
+                  <p class="kpi-sub kpi-sub-pct" id="ceo-avail-pct">--% operational</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-warning clickable" id="ceo-kpi-alerts">
+                <div class="kpi-icon">ALR</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Open Alerts</p>
+                  <p class="kpi-value" id="ceo-open-alerts">--</p>
+                  <p class="kpi-sub">Requires attention</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-info clickable" id="ceo-kpi-budget">
+                <div class="kpi-icon">BGT</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Budget Utilisation</p>
+                  <p class="kpi-value" id="ceo-budget-pct">--</p>
+                  <p class="kpi-sub">of annual budget used</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-danger clickable" id="ceo-kpi-tyres">
+                <div class="kpi-icon">TYR</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Tyres In Service</p>
+                  <p class="kpi-value" id="ceo-tyres-fitted">--</p>
+                  <p class="kpi-sub">Currently fitted</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-purple clickable" id="ceo-kpi-defects">
+                <div class="kpi-icon">DEF</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Open Defects</p>
+                  <p class="kpi-value" id="ceo-open-defects">--</p>
+                  <p class="kpi-sub">Pending resolution</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="charts-row mt-4">
+              <div class="card chart-card flex-2">
+                <h3>Fleet Distribution by Region</h3>
+                <div class="chart-container" style="height:240px;">
+                  <canvas id="ceoFleetRegionChart"></canvas>
+                </div>
+              </div>
+              <div class="card chart-card flex-1">
+                <h3>Tyre Status Overview</h3>
+                <div class="chart-container" style="height:240px;">
+                  <canvas id="ceoTyreStatusChart"></canvas>
+                </div>
+              </div>
+              <div class="card chart-card flex-1">
+                <h3>Alert Severity Breakdown</h3>
+                <div class="chart-container" style="height:240px;">
+                  <canvas id="ceoAlertChart"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <div class="section-grid mt-4">
+              <div class="card table-card">
+                <div class="card-header">
+                  <h3>Top Risk Alerts</h3>
+                  <a href="#" class="link-action" id="ceo-see-all-alerts">See all →</a>
+                </div>
+                <div class="table-container">
+                  <table id="ceo-alerts-table">
+                    <thead>
+                      <tr><th>Severity</th><th>Type</th><th>Vehicle/Tyre</th><th>Message</th><th>Status</th></tr>
+                    </thead>
+                    <tbody><tr><td colspan="5" class="text-center muted">Loading...</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="card table-card">
+                <div class="card-header">
+                  <h3>Budget vs. Actual</h3>
+                  <a href="#" class="link-action" id="ceo-see-budgets">Full report →</a>
+                </div>
+                <div class="table-container">
+                  <table id="ceo-budget-table">
+                    <thead>
+                      <tr><th>Category</th><th>Budget</th><th>Actual</th><th>Variance</th><th>Status</th></tr>
+                    </thead>
+                    <tbody><tr><td colspan="5" class="text-center muted">Loading...</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─────────────────────────────────────────
+               DASHBOARD-FLEET-MANAGER (Fleet Ops)
+          ──────────────────────────────────────────── -->
+          <div id="dashboard-fleet-manager" class="view hidden">
+            <div class="kpi-grid">
+              <div class="kpi-card kpi-primary" id="card-fm-fleet" data-kpi="assign-vehicle">
+                <div class="kpi-icon-svg svg-blue">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-5l-3-4h-4v10Z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
+                </div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Total Managed Fleet</p>
+                  <p class="kpi-value kpi-value-lg" id="fm-fleet-total">--</p>
+                  <p class="kpi-sub" id="fm-scope-label">Vehicles in scope</p>
+                </div>
+              </div>
+
+              <div class="kpi-card kpi-success" id="card-fm-tyres" data-kpi="view-tyres">
+                <div class="kpi-icon-svg svg-green">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v5M12 16v5M3 12h5M16 12h5"/></svg>
+                </div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Active Tyre Inventory</p>
+                  <p class="kpi-value kpi-value-lg" id="fm-tyre-total">--</p>
+                  <p class="kpi-sub">All operational statuses</p>
+                </div>
+              </div>
+
+              <div class="kpi-card kpi-warning" id="card-fm-alerts">
+                <div class="kpi-icon-svg svg-amber">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Critical Risk Alerts</p>
+                  <p class="kpi-value kpi-value-lg text-amber" id="fm-critical-alerts">--</p>
+                  <p class="kpi-sub">High &amp; Critical severity</p>
+                </div>
+              </div>
+
+              <div class="kpi-card kpi-info" id="card-fm-retread" data-kpi="view-retread">
+                <div class="kpi-icon-svg svg-cyan">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6"/><path d="M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                </div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Tyres at Retread</p>
+                  <p class="kpi-value kpi-value-lg" id="fm-retread">--</p>
+                  <p class="kpi-sub">Plant processing</p>
+                </div>
+              </div>
+
+              <div class="kpi-card kpi-danger" id="card-fm-defects" data-kpi="view-defects">
+                <div class="kpi-icon-svg svg-rose">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                </div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Open Defect Logs</p>
+                  <p class="kpi-value kpi-value-lg text-red" id="fm-open-defects">--</p>
+                  <p class="kpi-sub">Requiring action</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="charts-row mt-4">
+              <div class="card chart-card flex-1">
+                <h3>Vehicle Status Distribution</h3>
+                <div class="chart-container" style="height:220px;">
+                  <canvas id="fmVehicleStatusChart"></canvas>
+                </div>
+              </div>
+              <div class="card chart-card flex-1">
+                <h3>Tyre Inventory Status</h3>
+                <div class="chart-container" style="height:220px;">
+                  <canvas id="fmTyreStatusChart"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tabbed sub-views -->
+            <div class="card mt-4">
+              <div class="tab-bar">
+                <button class="tab-btn active" data-tab="fm-vehicles">Vehicles</button>
+                <button class="tab-btn" data-tab="fm-tyres">Tyres</button>
+                <button class="tab-btn" data-tab="fm-fitments">Fitments</button>
+                <button class="tab-btn" data-tab="fm-inspections">Inspections</button>
+                <button class="tab-btn" data-tab="fm-alerts">Alerts</button>
+                <button class="tab-btn" data-tab="fm-defects">Defects</button>
+              </div>
+
+              <div id="fm-vehicles" class="tab-panel">
+                <div class="panel-actions">
+                  <button class="btn small primary" id="btn-fm-add-vehicle">+ Add Vehicle</button>
+                </div>
+                <div class="table-container">
+                  <table id="fm-vehicles-table">
+                    <thead><tr><th>Registration</th><th>Fleet #</th><th>Class</th><th>Make/Model</th><th>Region</th><th>Depot</th><th>Status</th><th>Tyres</th></tr></thead>
+                    <tbody><tr><td colspan="8" class="text-center muted">Loading...</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+              <div id="fm-tyres" class="tab-panel hidden">
+                <div class="panel-actions">
+                  <button class="btn small primary" id="btn-fm-add-tyre">+ Add Tyre</button>
+                </div>
+                <div class="table-container">
+                  <table id="fm-tyres-table">
+                    <thead><tr><th>FI360 ID</th><th>Company Brand #</th><th>Brand/Model</th><th>Size</th><th>Purchase Cost</th><th>Status</th><th>Tread (mm)</th><th>Vehicle</th></tr></thead>
+                    <tbody><tr><td colspan="6" class="text-center muted">Loading...</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+              <div id="fm-fitments" class="tab-panel hidden">
+                <div class="table-container">
+                  <table id="fm-fitments-table">
+                    <thead><tr><th>Tyre ID</th><th>Vehicle</th><th>Position</th><th>Fitted Date</th><th>Odometer</th><th>Fitted By</th></tr></thead>
+                    <tbody><tr><td colspan="6" class="text-center muted">Loading...</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+              <div id="fm-inspections" class="tab-panel hidden">
+                <div class="table-container">
+                  <table id="fm-inspections-table">
+                    <thead><tr><th>Tyre</th><th>Date</th><th>Avg Tread</th><th>Pressure</th><th>Condition</th><th>Inspected By</th></tr></thead>
+                    <tbody><tr><td colspan="6" class="text-center muted">Loading...</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+              <div id="fm-alerts" class="tab-panel hidden">
+                <div class="table-container">
+                  <table id="fm-alerts-table">
+                    <thead><tr><th>Severity</th><th>Type</th><th>Vehicle/Tyre</th><th>Message</th><th>Status</th><th>Action</th></tr></thead>
+                    <tbody><tr><td colspan="6" class="text-center muted">Loading...</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+              <div id="fm-defects" class="tab-panel hidden">
+                <div class="table-container">
+                  <table id="fm-defects-table">
+                    <thead><tr><th>Vehicle</th><th>Tyre</th><th>Defect Type</th><th>Severity</th><th>Status</th><th>Reported By</th></tr></thead>
+                    <tbody><tr><td colspan="6" class="text-center muted">Loading...</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─────────────────────────────────────────
+               DASHBOARD-TYRE-SUPERVISOR (Tyre Control Center)
+          ──────────────────────────────────────────── -->
+          <div id="dashboard-tyre-supervisor" class="view hidden">
+            <!-- AI Advisory Banner -->
+            <div class="ai-banner">
+              <div>
+                <span class="ai-badge">AI ADVISORY</span>
+                <span id="sup-ai-text">High failure risk detected on Front Right axle of vehicle KDA-124B due to abnormal shoulder wear. Recommend immediate inspection &amp; rotation.</span>
+              </div>
+              <div class="ai-banner-actions">
+                <button class="btn small primary" onclick="window.handleAiRecommendation('ACCEPT')">Accept</button>
+                <button class="btn small outline" onclick="window.handleAiRecommendation('DEFER')">Defer</button>
+                <button class="btn small danger" onclick="window.handleAiRecommendation('REJECT')">Reject</button>
+              </div>
+            </div>
+
+            <!-- 15 Core KPI Cards (Clickable) -->
+            <h3 class="mb-2">Operational KPIs</h3>
+            <div class="kpi-grid">
+              <div class="kpi-card kpi-primary clickable" id="sup-kpi-cmp" data-kpi="kpi-cmp">
+                <div class="kpi-icon">CMP</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Inspection Compliance</p>
+                  <p class="kpi-value" id="sup-val-cmp">--%</p>
+                  <p class="kpi-sub">Target: 95.0%</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-success clickable" id="sup-kpi-prs" data-kpi="kpi-prs">
+                <div class="kpi-icon">PRS</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Pressure Compliance</p>
+                  <p class="kpi-value" id="sup-val-prs">--%</p>
+                  <p class="kpi-sub">Target: 95.0%</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-info clickable" id="sup-kpi-trd" data-kpi="kpi-trd">
+                <div class="kpi-icon">TRD</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Tread Inspection</p>
+                  <p class="kpi-value" id="sup-val-trd">--%</p>
+                  <p class="kpi-sub">Target: 98.0%</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-danger clickable" id="sup-kpi-flr" data-kpi="kpi-flr">
+                <div class="kpi-icon">FLR</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Tyre Failure Rate</p>
+                  <p class="kpi-value" id="sup-val-flr">--%</p>
+                  <p class="kpi-sub">Target: &lt; 2.0%</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-warning clickable" id="sup-kpi-pfr" data-kpi="kpi-pfr">
+                <div class="kpi-icon">PFR</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Premature Failure</p>
+                  <p class="kpi-value" id="sup-val-pfr">--%</p>
+                  <p class="kpi-sub">Target: &lt; 1.0%</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-purple clickable" id="sup-kpi-lif" data-kpi="kpi-lif">
+                <div class="kpi-icon">LIF</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Average Tyre Life</p>
+                  <p class="kpi-value" id="sup-val-lif">-- km</p>
+                  <p class="kpi-sub">Target: 80,000 km</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-success clickable" id="sup-kpi-cpk" data-kpi="kpi-cpk">
+                <div class="kpi-icon">CPK</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Tyre Cost / KM</p>
+                  <p class="kpi-value" id="sup-val-cpk">-- KES</p>
+                  <p class="kpi-sub">Target: &lt; 0.50 KES</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-primary clickable" id="sup-kpi-rot" data-kpi="kpi-rot">
+                <div class="kpi-icon">ROT</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Rotation Compliance</p>
+                  <p class="kpi-value" id="sup-val-rot">--%</p>
+                  <p class="kpi-sub">Target: 90.0%</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-warning clickable" id="sup-kpi-dow" data-kpi="kpi-dow">
+                <div class="kpi-icon">DOW</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Tyre Downtime</p>
+                  <p class="kpi-value" id="sup-val-dow">-- hrs</p>
+                  <p class="kpi-sub">Target: &lt; 20.0 hrs</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-danger clickable" id="sup-kpi-bac" data-kpi="kpi-bac">
+                <div class="kpi-icon">BAC</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Replacement Backlog</p>
+                  <p class="kpi-value" id="sup-val-bac">--</p>
+                  <p class="kpi-sub">Tyres awaiting action</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-danger clickable" id="sup-kpi-saf" data-kpi="kpi-saf">
+                <div class="kpi-icon">SAF</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Safety Critical Tyres</p>
+                  <p class="kpi-value" id="sup-val-saf">--</p>
+                  <p class="kpi-sub">Immediate hazard</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-info clickable" id="sup-kpi-job" data-kpi="kpi-job">
+                <div class="kpi-icon">JOB</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Job Completion</p>
+                  <p class="kpi-value" id="sup-val-job">--%</p>
+                  <p class="kpi-sub">Target: 95.0%</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-success clickable" id="sup-kpi-rew" data-kpi="kpi-rew">
+                <div class="kpi-icon">REW</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Rework Rate</p>
+                  <p class="kpi-value" id="sup-val-rew">--%</p>
+                  <p class="kpi-sub">Target: &lt; 2.0%</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-primary clickable" id="sup-kpi-stk" data-kpi="kpi-stk">
+                <div class="kpi-icon">STK</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Stock Accuracy</p>
+                  <p class="kpi-value" id="sup-val-stk">--%</p>
+                  <p class="kpi-sub">Target: 99.0%</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-purple clickable" id="sup-kpi-reg" data-kpi="kpi-reg">
+                <div class="kpi-icon">REG</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Registration Accuracy</p>
+                  <p class="kpi-value" id="sup-val-reg">--%</p>
+                  <p class="kpi-sub">Target: 99.0%</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Secondary Operational Status Counters -->
+            <h3 class="mt-4 mb-2">Operational Status Counters</h3>
+            <div class="kpi-grid">
+              <div class="kpi-card kpi-info clickable" id="sup-cnt-due" data-cnt="due">
+                <div class="kpi-icon">DUE</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Inspections Due</p>
+                  <p class="kpi-value" id="sup-num-due">--</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-warning clickable" id="sup-cnt-ovr" data-cnt="ovr">
+                <div class="kpi-icon">OVR</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Inspections Overdue</p>
+                  <p class="kpi-value" id="sup-num-ovr">--</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-primary clickable" id="sup-cnt-opn" data-cnt="opn">
+                <div class="kpi-icon">OPN</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Open Tyre Jobs</p>
+                  <p class="kpi-value" id="sup-num-opn">--</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-danger clickable" id="sup-cnt-rep" data-cnt="rep">
+                <div class="kpi-icon">REP</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Awaiting Replacement</p>
+                  <p class="kpi-value" id="sup-num-rep">--</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-warning clickable" id="sup-cnt-rpr" data-cnt="rpr">
+                <div class="kpi-icon">RPR</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Awaiting Repair</p>
+                  <p class="kpi-value" id="sup-num-rpr">--</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-danger clickable" id="sup-cnt-scd" data-cnt="scd">
+                <div class="kpi-icon">SCD</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Safety Critical Defects</p>
+                  <p class="kpi-value" id="sup-num-scd">--</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-success clickable" id="sup-cnt-stk" data-cnt="stk">
+                <div class="kpi-icon">STK</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Tyres In Stock</p>
+                  <p class="kpi-value" id="sup-num-stk">--</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-info clickable" id="sup-cnt-unr" data-cnt="unr">
+                <div class="kpi-icon">UNR</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Unregistered Tyres</p>
+                  <p class="kpi-value" id="sup-num-unr">0</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-success clickable" id="sup-cnt-var" data-cnt="var">
+                <div class="kpi-icon">VAR</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Stock Variance</p>
+                  <p class="kpi-value" id="sup-num-var">0</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-warning clickable" id="sup-cnt-app" data-cnt="app">
+                <div class="kpi-icon">APP</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Approaching Replacement</p>
+                  <p class="kpi-value" id="sup-num-app">--</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tabbed Control Panels -->
+            <div class="card mt-4">
+              <div class="tab-bar">
+                <button class="tab-btn active" data-tab="sup-tab-tyres">Master Tyre Inventory</button>
+                <button class="tab-btn" data-tab="sup-tab-verifications">Supervisor Verification Queue</button>
+                <button class="tab-btn" data-tab="sup-tab-defects">Defects &amp; Escalations</button>
+                <button class="tab-btn" data-tab="sup-tab-movements">Digital Thread (History)</button>
+              </div>
+
+              <!-- Tab 1: Master Tyre Inventory -->
+              <div id="sup-tab-tyres" class="tab-panel">
+                <div class="panel-actions">
+                  <button class="btn small primary" id="btn-sup-register-tyre">+ Register New Tyre</button>
+                </div>
+                <div class="table-container">
+                  <table id="sup-tyres-table">
+                    <thead>
+                      <tr>
+                        <th>FI360 Tyre ID</th>
+                        <th>Company Brand #</th>
+                        <th>Brand / Model</th>
+                        <th>Size</th>
+                        <th>Purchase Cost</th>
+                        <th>Serial #</th>
+                        <th>Status</th>
+                        <th>Tread (mm)</th>
+                        <th>Vehicle</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody><tr><td colspan="8" class="text-center muted">Loading tyres...</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Tab 2: Verification Queue -->
+              <div id="sup-tab-verifications" class="tab-panel hidden">
+                <div class="table-container">
+                  <table id="sup-verifications-table">
+                    <thead>
+                      <tr>
+                        <th>Type</th>
+                        <th>Tyre / Vehicle</th>
+                        <th>Date</th>
+                        <th>Performer</th>
+                        <th>Details</th>
+                        <th>Status</th>
+                        <th>Verification Action</th>
+                      </tr>
+                    </thead>
+                    <tbody><tr><td colspan="7" class="text-center muted">Loading verification queue...</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Tab 3: Defects & Escalations -->
+              <div id="sup-tab-defects" class="tab-panel hidden">
+                <div class="table-container">
+                  <table id="sup-defects-table">
+                    <thead>
+                      <tr>
+                        <th>Vehicle</th>
+                        <th>Defect Type</th>
+                        <th>Severity</th>
+                        <th>Reported By</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody><tr><td colspan="6" class="text-center muted">Loading defects...</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Tab 4: Digital Thread / Movement History -->
+              <div id="sup-tab-movements" class="tab-panel hidden">
+                <div class="table-container">
+                  <table id="sup-movements-table">
+                    <thead>
+                      <tr>
+                        <th>Tyre ID</th>
+                        <th>Movement Event</th>
+                        <th>Date/Time</th>
+                        <th>From → To Status</th>
+                        <th>Vehicle / Position</th>
+                        <th>Technician</th>
+                        <th>Supervisor</th>
+                      </tr>
+                    </thead>
+                    <tbody><tr><td colspan="7" class="text-center muted">Loading digital thread...</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─────────────────────────────────────────
+               DASHBOARD-TECHNICIAN (Workshop Ops)
+          ──────────────────────────────────────────── -->
+          <div id="dashboard-technician" class="view hidden">
+            <div class="kpi-grid">
+              <div class="kpi-card kpi-primary">
+                <div class="kpi-icon">TYR</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Total Tyres</p>
+                  <p class="kpi-value" id="tech-total-tyres">--</p>
+                  <p class="kpi-sub">In system</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-success">
+                <div class="kpi-icon">STK</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">In Stock</p>
+                  <p class="kpi-value" id="tech-instock">--</p>
+                  <p class="kpi-sub">Ready to fit</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-warning">
+                <div class="kpi-icon">FIT</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Fitted</p>
+                  <p class="kpi-value" id="tech-fitted">--</p>
+                  <p class="kpi-sub">On vehicles</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-info">
+                <div class="kpi-icon">RET</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">In Retread</p>
+                  <p class="kpi-value" id="tech-retread">--</p>
+                  <p class="kpi-sub">At retread shop</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-danger">
+                <div class="kpi-icon">SCR</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Scrapped</p>
+                  <p class="kpi-value" id="tech-scrapped">--</p>
+                  <p class="kpi-sub">End of life</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="card mt-4">
+              <div class="tab-bar">
+                <button class="tab-btn active" data-tab="tech-tyre-list">Tyre Inventory</button>
+                <button class="tab-btn" data-tab="tech-fitments">Fitment Log</button>
+                <button class="tab-btn" data-tab="tech-inspections">Inspections</button>
+                <button class="tab-btn" data-tab="tech-alerts">Tyre Alerts</button>
+              </div>
+              <div id="tech-tyre-list" class="tab-panel">
+                <div class="panel-actions">
+                  <button class="btn small primary" id="btn-tech-add-tyre">+ Register Tyre</button>
+                  <button class="btn small secondary" id="btn-tech-inspect">+ Record Inspection</button>
+                </div>
+                <div class="table-container">
+                  <table id="tech-tyres-table">
+                    <thead><tr><th>Identifier</th><th>Brand/Model</th><th>Size</th><th>Status</th><th>Tread (mm)</th><th>Vehicle</th><th>Actions</th></tr></thead>
+                    <tbody><tr><td colspan="7" class="text-center muted">Loading...</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+              <div id="tech-fitments" class="tab-panel hidden">
+                <div class="panel-actions">
+                  <button class="btn small primary" id="btn-tech-fit-tyre">+ Fit Tyre</button>
+                </div>
+                <div class="table-container">
+                  <table id="tech-fitments-table">
+                    <thead><tr><th>Tyre ID</th><th>Vehicle</th><th>Position</th><th>Fitted Date</th><th>Odometer</th><th>Fitted By</th></tr></thead>
+                    <tbody><tr><td colspan="6" class="text-center muted">Loading...</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+              <div id="tech-inspections" class="tab-panel hidden">
+                <div class="table-container">
+                  <table id="tech-inspections-table">
+                    <thead><tr><th>Tyre</th><th>Date</th><th>Tread L/C/R</th><th>Pressure</th><th>Condition</th><th>Inspector</th></tr></thead>
+                    <tbody><tr><td colspan="6" class="text-center muted">Loading...</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+              <div id="tech-alerts" class="tab-panel hidden">
+                <div class="table-container">
+                  <table id="tech-alerts-table">
+                    <thead><tr><th>Severity</th><th>Type</th><th>Tyre/Vehicle</th><th>Message</th><th>Status</th></tr></thead>
+                    <tbody><tr><td colspan="5" class="text-center muted">Loading...</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─────────────────────────────────────────
+               DASHBOARD-FINANCE (Financial Intelligence)
+          ──────────────────────────────────────────── -->
+          <div id="dashboard-finance" class="view hidden">
+            <div class="kpi-grid">
+              <div class="kpi-card kpi-primary" id="fin-total-budgets" data-kpi="view-budgets">
+                <div class="kpi-icon">BGT</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Total Budgets</p>
+                  <p class="kpi-value" id="fin-total-budgets">--</p>
+                  <p class="kpi-sub">Budget lines</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-success">
+                <div class="kpi-icon">UND</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Under Budget</p>
+                  <p class="kpi-value" id="fin-under-budget">--</p>
+                  <p class="kpi-sub">Lines with positive variance</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-danger">
+                <div class="kpi-icon">OVR</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Over Budget</p>
+                  <p class="kpi-value" id="fin-over-budget">--</p>
+                  <p class="kpi-sub">Lines exceeding allocation</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-info">
+                <div class="kpi-icon">ALL</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Total Allocated</p>
+                  <p class="kpi-value" id="fin-total-allocated">--</p>
+                  <p class="kpi-sub">Sum of all budgets</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="card mt-4">
+              <h3>Budget vs. Actual Expenditure</h3>
+              <div class="chart-container" style="height:280px;">
+                <canvas id="finBudgetChart"></canvas>
+              </div>
+            </div>
+
+            <div class="card table-card mt-4">
+              <div class="card-header">
+                <h3>Budget Allocation Master</h3>
+                <button class="btn small primary" id="btn-fin-add-budget">+ New Budget</button>
+              </div>
+              <div class="table-container">
+                <table id="fin-budgets-table">
+                  <thead>
+                    <tr><th>Period</th><th>Category</th><th>Organisation</th><th>Budget</th><th>Actual</th><th>Variance</th><th>Status</th></tr>
+                  </thead>
+                  <tbody><tr><td colspan="7" class="text-center muted">Loading...</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─────────────────────────────────────────
+               DASHBOARD-DRIVER (My Vehicle View)
+          ──────────────────────────────────────────── -->
+          <div id="dashboard-driver" class="view hidden">
+            <div class="driver-hero">
+              <div class="driver-vehicle-card card" data-kpi="view-vehicle">
+                <div class="vehicle-icon">VEH</div>
+                <div class="vehicle-details">
+                  <h2 id="driver-vehicle-reg">My Vehicle</h2>
+                  <p class="muted" id="driver-vehicle-details">Loading vehicle details...</p>
+                </div>
+                <div class="vehicle-status-badge" id="driver-vehicle-status">--</div>
+              </div>
+            </div>
+
+            <div class="kpi-grid mt-4">
+              <div class="kpi-card kpi-success">
+                <div class="kpi-icon">TYR</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Fitted Tyres</p>
+                  <p class="kpi-value" id="driver-tyres-count">--</p>
+                  <p class="kpi-sub">On my vehicle</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-warning">
+                <div class="kpi-icon">ALR</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Open Alerts</p>
+                  <p class="kpi-value" id="driver-alerts-count">--</p>
+                  <p class="kpi-sub">My vehicle alerts</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-danger">
+                <div class="kpi-icon">🔴</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">My Defects</p>
+                  <p class="kpi-value" id="driver-defects-count">--</p>
+                  <p class="kpi-sub">Reported defects</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="section-grid mt-4">
+              <div class="card table-card">
+                <div class="card-header">
+                  <h3>My Vehicle Tyres</h3>
+                </div>
+                <div class="table-container">
+                  <table id="driver-tyres-table">
+                    <thead><tr><th>Position</th><th>Identifier</th><th>Brand/Model</th><th>Tread (mm)</th><th>Condition</th></tr></thead>
+                    <tbody><tr><td colspan="5" class="text-center muted">Loading tyres...</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="card table-card">
+                <div class="card-header">
+                  <h3>Report a Defect</h3>
+                </div>
+                <div class="defect-form-mini" id="driver-defect-form-container">
+                  <p class="muted small">Login to report defects</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─────────────────────────────────────────
+               DASHBOARD-AUDITOR (Compliance View)
+          ──────────────────────────────────────────── -->
+          <div id="dashboard-auditor" class="view hidden">
+            <div class="kpi-grid">
+              <div class="kpi-card kpi-primary">
+                <div class="kpi-icon">📋</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Audit Log Entries</p>
+                  <p class="kpi-value" id="aud-log-count">--</p>
+                  <p class="kpi-sub">Total platform events</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-info">
+                <div class="kpi-icon">👥</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Registered Users</p>
+                  <p class="kpi-value" id="aud-user-count">--</p>
+                  <p class="kpi-sub">Platform accounts</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-success">
+                <div class="kpi-icon">🛞</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Tyre Records</p>
+                  <p class="kpi-value" id="aud-tyre-count">--</p>
+                  <p class="kpi-sub">In system</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-warning">
+                <div class="kpi-icon">🚛</div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Fleet Size</p>
+                  <p class="kpi-value" id="aud-fleet-count">--</p>
+                  <p class="kpi-sub">Registered vehicles</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="card mt-4">
+              <div class="tab-bar">
+                <button class="tab-btn active" data-tab="aud-users">Users</button>
+                <button class="tab-btn" data-tab="aud-tyres">Tyres</button>
+                <button class="tab-btn" data-tab="aud-vehicles">Vehicles</button>
+              </div>
+              <div id="aud-users" class="tab-panel">
+                <div class="table-container">
+                  <table id="aud-users-table">
+                    <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Scope</th><th>Status</th></tr></thead>
+                    <tbody><tr><td colspan="5" class="text-center muted">Loading...</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+              <div id="aud-tyres" class="tab-panel hidden">
+                <div class="table-container">
+                  <table id="aud-tyres-table">
+                    <thead><tr><th>Identifier</th><th>Brand/Model</th><th>Size</th><th>Status</th><th>Tread (mm)</th></tr></thead>
+                    <tbody><tr><td colspan="5" class="text-center muted">Loading...</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+              <div id="aud-vehicles" class="tab-panel hidden">
+                <div class="table-container">
+                  <table id="aud-vehicles-table">
+                    <thead><tr><th>Registration</th><th>Fleet #</th><th>Class</th><th>Region</th><th>Depot</th><th>Status</th></tr></thead>
+                    <tbody><tr><td colspan="6" class="text-center muted">Loading...</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- .content-area -->
+      </main>
+    </div><!-- .app-container -->
+
+    <!-- ═══════════════════════════════════════════════
+         MODALS
+    ═══════════════════════════════════════════════ -->
+
+    <!-- Add Tyre Modal -->
+    <div id="add-tyre-modal" class="modal hidden">
+      <div class="modal-content card">
+        <div class="modal-header">
+          <h2>Register New Tyre</h2>
+          <button class="close-modal" id="close-tyre-modal" aria-label="Close">✕</button>
+        </div>
+        <form id="add-tyre-form">
+          <div class="form-group">
+            <label for="tyreIdentifier">Identifier (Barcode/RFID/Serial)</label>
+            <input type="text" id="tyreIdentifier" placeholder="TYR-2024-001" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="brand">Brand</label>
+              <input type="text" id="brand" placeholder="Bridgestone" required>
+            </div>
+            <div class="form-group">
+              <label for="model">Model</label>
+              <input type="text" id="model" placeholder="R168" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="size">Size</label>
+            <input type="text" id="size" placeholder="315/80R22.5" required>
+          </div>
+          <!-- Manager & Tyre Supervisor Restricted Inputs -->
+          <div id="manager-financial-fields" class="form-row" style="background: rgba(51, 65, 85, 0.4); padding: 0.75rem; border-radius: 6px; border: 1px dashed var(--panel-border); margin-bottom: 1rem;">
+            <div class="form-group" style="flex:1;">
+              <label for="companyBrandNumber">Company Brand # <span class="small text-amber">🔒 (Mgr / Supervisor)</span></label>
+              <input type="text" id="companyBrandNumber" placeholder="BN-9021">
+            </div>
+            <div class="form-group" style="flex:1;">
+              <label for="purchaseCost">Purchase Cost (KES) <span class="small text-amber">🔒 (Mgr / Supervisor)</span></label>
+              <input type="number" id="purchaseCost" step="100" placeholder="48000">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="originalTreadDepth">Original Tread Depth (mm)</label>
+            <input type="number" id="originalTreadDepth" step="0.1" placeholder="16.0" required>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn secondary" id="cancel-tyre-modal">Cancel</button>
+            <button type="submit" class="btn primary">Save Tyre</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Add Vehicle Modal -->
+    <div id="add-vehicle-modal" class="modal hidden">
+      <div class="modal-content card">
+        <div class="modal-header">
+          <h2>Register New Vehicle</h2>
+          <button class="close-modal" id="close-vehicle-modal" aria-label="Close">✕</button>
+        </div>
+        <form id="add-vehicle-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="registrationNumber">Registration</label>
+              <input type="text" id="registrationNumber" placeholder="KDA123A" required>
+            </div>
+            <div class="form-group">
+              <label for="fleetNumber">Fleet Number</label>
+              <input type="text" id="fleetNumber" placeholder="FLT-001">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="vehicleClassSelect">Vehicle Class &amp; Axle Layout</label>
+              <select id="vehicleClassSelect" class="form-select" required>
+                <option value="6x4 Prime Mover / Tractor" data-tyres="10">🚛 6x4 Prime Mover / Tractor Head (10 Tyres) — Kenya Corridor Freight</option>
+                <option value="3-Axle Semi-Trailer / Flatbed" data-tyres="12">📦 3-Axle Semi-Trailer / Container Flatbed (12 Tyres) — Kenya Corridor Std</option>
+                <option value="6x4 Heavy Rigid / Tipper (FVZ)" data-tyres="10">🚚 6x4 Heavy Rigid / Tipper (10 Tyres) — e.g. Isuzu FVZ, Scania</option>
+                <option value="6-Wheel Medium Truck (FRR/FSR)" data-tyres="6">🚛 6-Wheel Medium Truck (6 Tyres) — e.g. Isuzu FRR/FSR, Hino 500</option>
+                <option value="6-Wheel Light Truck (NQR/Canter)" data-tyres="6">🚚 6-Wheel Light Commercial (6 Tyres) — e.g. Isuzu NQR, Canter</option>
+                <option value="Intercity Passenger Bus / Coach" data-tyres="6">🚌 Intercity Passenger Bus / Coach (6 Tyres) — e.g. Scania F330</option>
+                <option value="3-Axle Long Coach / Tag Axle" data-tyres="10">🚌 3-Axle Long Coach / Tag Axle Bus (10 Tyres)</option>
+                <option value="4x2 Light Commercial / Pickup / Matatu" data-tyres="4">🚗 4x2 Light Commercial / Pickup / Matatu (4 Tyres) — e.g. Hilux, D-Max</option>
+                <option value="2-Axle Tandem Semi-Trailer" data-tyres="8">📦 2-Axle Tandem Semi-Trailer (8 Tyres)</option>
+                <option value="8x4 Heavy Tipper / Dump Truck" data-tyres="12">🏗️ 8x4 Heavy Tipper / Dump Truck (12 Tyres)</option>
+                <option value="Multi-Axle Heavy Lowbed / Road Train" data-tyres="16">🚜 Multi-Axle Heavy Lowbed / Special Hauler (16-24 Tyres)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="make">Make</label>
+              <input type="text" id="make" placeholder="Scania / Isuzu">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="vehicleModel">Model</label>
+              <input type="text" id="vehicleModel" placeholder="R560">
+            </div>
+            <div class="form-group">
+              <label for="region">Region</label>
+              <input type="text" id="region" placeholder="Nairobi">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="depot">Depot</label>
+              <input type="text" id="depot" placeholder="Nairobi Main Depot">
+            </div>
+            <div class="form-group">
+              <label for="expectedTyres">Tyre Capacity (Expected Tyres)</label>
+              <input type="number" id="expectedTyres" min="2" max="32" value="10" placeholder="10" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="vehicleStatus">Operational Status</label>
+            <select id="vehicleStatus" class="form-select">
+              <option value="ACTIVE">🟢 ACTIVE — In Operational Service</option>
+              <option value="MAINTENANCE">🟡 MAINTENANCE — Workshop Service</option>
+              <option value="GROUNDED">🔴 GROUNDED — Safety / Breakdown Risk</option>
+              <option value="INACTIVE">⚪ INACTIVE — Out of Service</option>
+            </select>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn secondary" id="cancel-vehicle-modal">Cancel</button>
+            <button type="submit" class="btn primary">Register Vehicle</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Create User Modal -->
+    <div id="add-user-modal" class="modal hidden">
+      <div class="modal-content card">
+        <div class="modal-header">
+          <h2>Create User Account</h2>
+          <button class="close-modal" id="close-user-modal" aria-label="Close">✕</button>
+        </div>
+        <form id="add-user-form">
+          <div class="form-group">
+            <label for="userEmailInput">Email Address</label>
+            <input type="email" id="userEmailInput" placeholder="user@fi360.com" required>
+          </div>
+          <div class="form-group">
+            <label for="userPasswordInput">Initial Password</label>
+            <input type="password" id="userPasswordInput" value="Pinkypinky@40" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="userFirstName">First Name</label>
+              <input type="text" id="userFirstName" placeholder="Jane">
+            </div>
+            <div class="form-group">
+              <label for="userLastName">Last Name</label>
+              <input type="text" id="userLastName" placeholder="Smith">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="userRoleSelect">Platform Role</label>
+            <select id="userRoleSelect" class="form-select" required>
+              <option value="SUPER_ADMIN">⚙️ SUPER_ADMIN — System Administration</option>
+              <option value="CEO">👔 CEO — Executive Intelligence</option>
+              <option value="FLEET_MANAGER">🚛 FLEET_MANAGER — Fleet Operations</option>
+              <option value="TYRE_TECHNICIAN">🔧 TYRE_TECHNICIAN — Workshop &amp; Tyres</option>
+              <option value="FINANCE_MANAGER">💰 FINANCE_MANAGER — Financial Intelligence</option>
+              <option value="DRIVER">🚗 DRIVER — My Vehicle View</option>
+              <option value="AUDITOR">📋 AUDITOR — Compliance &amp; Audit</option>
+              <option value="READ_ONLY">👁️ READ_ONLY — Minimal Read Access</option>
+            </select>
+          </div>
+          <div class="form-row" id="scope-fields">
+            <div class="form-group">
+              <label for="userRegion">Region (FLEET_MANAGER scope)</label>
+              <input type="text" id="userRegion" placeholder="Nairobi">
+            </div>
+            <div class="form-group">
+              <label for="userDepot">Depot (TECHNICIAN scope)</label>
+              <input type="text" id="userDepot" placeholder="Nairobi Main Workshop">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="userDepartment">Department</label>
+            <input type="text" id="userDepartment" placeholder="Operations">
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn secondary" id="cancel-user-modal">Cancel</button>
+            <button type="submit" class="btn primary">Create User</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Record Inspection Modal -->
+    <div id="inspection-modal" class="modal hidden">
+      <div class="modal-content card">
+        <div class="modal-header">
+          <h2>Record Tyre Inspection</h2>
+          <button class="close-modal" id="close-inspection-modal" aria-label="Close">✕</button>
+        </div>
+        <form id="inspection-form">
+          <div class="form-group">
+            <label for="inspTyreIdentifier">Tyre Identifier / Serial</label>
+            <input type="text" id="inspTyreIdentifier" placeholder="TYR-2024-001" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="inspDate">Inspection Date</label>
+              <input type="date" id="inspDate" required>
+            </div>
+            <div class="form-group">
+              <label for="inspPressure">Pressure (PSI)</label>
+              <input type="number" id="inspPressure" step="1" placeholder="110">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="inspTreadLeft">Tread Left (mm)</label>
+              <input type="number" id="inspTreadLeft" step="0.1" placeholder="12.0">
+            </div>
+            <div class="form-group">
+              <label for="inspTreadCenter">Tread Center (mm)</label>
+              <input type="number" id="inspTreadCenter" step="0.1" placeholder="11.5">
+            </div>
+            <div class="form-group">
+              <label for="inspTreadRight">Tread Right (mm)</label>
+              <input type="number" id="inspTreadRight" step="0.1" placeholder="12.0">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="inspCondition">Overall Condition</label>
+            <select id="inspCondition" class="form-select" required>
+              <option value="GOOD">GOOD — Normal wear, ready for service</option>
+              <option value="WARNING">WARNING — Accelerated wear or minor cuts</option>
+              <option value="CRITICAL">CRITICAL — Immediate replacement needed</option>
+              <option value="POOR">POOR — Scrapped or retread candidate</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="inspNotes">Inspection Notes / Recommendations</label>
+            <textarea id="inspNotes" rows="2" placeholder="e.g. Uneven wear detected on outer shoulder, align axle"></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn secondary" id="cancel-inspection-modal">Cancel</button>
+            <button type="submit" class="btn primary">Save Inspection</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Fit Tyre Modal -->
+    <div id="fitment-modal" class="modal hidden">
+      <div class="modal-content card">
+        <div class="modal-header">
+          <h2>Fit Tyre to Vehicle</h2>
+          <button class="close-modal" id="close-fitment-modal" aria-label="Close">&#x2715;</button>
+        </div>
+        <form id="fitment-form">
+          <div class="form-group">
+            <label for="fitTyreIdentifier">Tyre Identifier</label>
+            <input type="text" id="fitTyreIdentifier" placeholder="TYR-2024-001" required>
+          </div>
+          <div class="form-group">
+            <label for="fitVehicleId">Vehicle Registration / ID</label>
+            <input type="text" id="fitVehicleId" placeholder="KDA123A" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="fitPositionId">Axle Position ID</label>
+              <input type="number" id="fitPositionId" value="1" min="1" required>
+            </div>
+            <div class="form-group">
+              <label for="fitOdometer">Odometer at Fitment (km)</label>
+              <input type="number" id="fitOdometer" placeholder="150000">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="fitDate">Fitment Date</label>
+            <input type="date" id="fitDate" required>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn secondary" id="cancel-fitment-modal">Cancel</button>
+            <button type="submit" class="btn primary">Record Fitment</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Assign Vehicle to Driver Modal -->
+    <div id="assign-vehicle-modal" class="modal hidden">
+      <div class="modal-content card">
+        <div class="modal-header">
+          <h2>Assign Vehicle to Driver</h2>
+          <button class="close-modal" id="close-assign-vehicle-modal" aria-label="Close">&#x2715;</button>
+        </div>
+        <form id="assign-vehicle-form">
+          <div class="form-group">
+            <label for="av-vehicle-select">Vehicle</label>
+            <select id="av-vehicle-select" class="form-select" required>
+              <option value="">-- Select Vehicle --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="av-driver-select">Driver</label>
+            <select id="av-driver-select" class="form-select" required>
+              <option value="">-- Select Driver --</option>
+            </select>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn secondary" id="cancel-assign-vehicle">Cancel</button>
+            <button type="submit" class="btn primary">Assign Vehicle</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- KPI Drill-Down Detail Panel -->
+    <div id="kpi-drill-modal" class="modal hidden">
+      <div class="modal-content card" style="max-width:1100px; width: 95%;">
+        <div class="modal-header">
+          <h2 id="kpi-drill-title">Detail View</h2>
+          <button class="close-modal" id="close-kpi-drill-modal" aria-label="Close">&#x2715;</button>
+        </div>
+        <div id="kpi-drill-body" class="kpi-drill-body">
+          <!-- Dynamic content loaded here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast hidden"></div>
+
+    <!-- Splash Screen -->
+    <div id="splash-screen" class="splash-screen hidden">
+      <div class="splash-content">
+        <img src="/logo.png" alt="FI360 Logo" class="splash-logo">
+        <div class="splash-spinner"></div>
+        <p class="splash-label">Loading your workspace...</p>
+      </div>
+    </div>
+
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>

@@ -361,10 +361,14 @@ async function loadFleetManagerDashboard() {
   const alertList = alerts?.data || alerts || [];
   const defectList = defects?.data || defects || [];
 
+  const activeTyreAlerts = alertList.filter(a => a.status !== 'RESOLVED' && ['CRITICAL', 'HIGH'].includes(a.severity));
+  const openCriticalDefects = defectList.filter(d => d.status === 'OPEN' && ['CRITICAL', 'HIGH'].includes(d.severity));
+  const totalCriticalRisks = activeTyreAlerts.length + openCriticalDefects.length;
+
   setText('fm-fleet-total', vehicleList.length);
   setText('fm-scope-label', `${currentUser.region || 'All regions'}`);
   setText('fm-tyre-total', tyreSummary?.totalTyres ?? '--');
-  setText('fm-critical-alerts', alertList.filter(a => ['CRITICAL','HIGH'].includes(a.severity)).length);
+  setText('fm-critical-alerts', totalCriticalRisks);
   setText('fm-retread', tyreSummary?.byStatus?.inRetread ?? '--');
   setText('fm-open-defects', defectList.filter(d => d.status === 'OPEN').length);
 
@@ -1570,17 +1574,21 @@ window.openKPIDrillModal = async function(kpiKey, title) {
   if (titleEl) titleEl.textContent = `${title} — Analytical Operational Drill-Down`;
 
   // Fetch real database records to enrich drill-down views
-  const [tyresRes, vehiclesRes, fitmentsRes, inspectionsRes] = await Promise.all([
+  const [tyresRes, vehiclesRes, fitmentsRes, inspectionsRes, alertsRes, defectsRes] = await Promise.all([
     apiFetch('/api/v1/tyres?limit=100').catch(() => null),
     apiFetch('/api/v1/vehicles').catch(() => null),
     apiFetch('/api/v1/tyres/fitments/all').catch(() => null),
     apiFetch('/api/v1/tyres/inspections/all').catch(() => null),
+    apiFetch('/api/v1/alerts').catch(() => null),
+    apiFetch('/api/v1/defects').catch(() => null),
   ]);
 
   const tyres = tyresRes?.data || tyresRes || [];
   const vehicles = vehiclesRes?.data || vehiclesRes || [];
   const fitments = fitmentsRes?.data || fitmentsRes || [];
   const inspections = inspectionsRes?.data || inspectionsRes || [];
+  const alertsList = alertsRes?.data || alertsRes || [];
+  const defectsList = defectsRes?.data || defectsRes || [];
 
   const getVehicleReg = (vId) => {
     if (!vId) return '—';
@@ -2055,8 +2063,8 @@ window.openKPIDrillModal = async function(kpiKey, title) {
       </div>
     `;
 
-  // ─── 8. DOWNTIME & REPAIR BACKLOG / DEFECTS (dow, bac, rep, rpr, saf, scd, opn) 
-  } else if (kpiKey.includes('dow') || kpiKey.includes('bac') || kpiKey.includes('rep') || kpiKey.includes('rpr') || kpiKey.includes('saf') || kpiKey.includes('scd') || kpiKey.includes('opn')) {
+  // ─── 8. DOWNTIME, CRITICAL ALERTS & REPAIR BACKLOG (dow, bac, rep, rpr, saf, scd, opn, alert, alt, rsk, risk) 
+  } else if (kpiKey.includes('dow') || kpiKey.includes('bac') || kpiKey.includes('rep') || kpiKey.includes('rpr') || kpiKey.includes('saf') || kpiKey.includes('scd') || kpiKey.includes('opn') || kpiKey.includes('alert') || kpiKey.includes('alt') || kpiKey.includes('rsk') || kpiKey.includes('risk') || kpiKey.includes('card-fm-alerts')) {
     contentHtml = `
       <div class="kpi-grid mb-3" style="grid-template-columns: repeat(4, 1fr);">
         <div class="kpi-card kpi-danger"><div class="kpi-body"><p class="kpi-label">Safety Hazards</p><p class="kpi-value">1 Vehicle Grounded</p></div></div>

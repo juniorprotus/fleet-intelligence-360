@@ -1158,7 +1158,7 @@ function closeModal(id) {
 // Stores cached data from last dashboard load for drill-down views
 let _drillCache = {};
 
-function initKPIDrillListeners() {
+window.initKPIDrillListeners = function initKPIDrillListeners() {
   // Handle elements with data-kpi attribute (Fleet Manager KPIs, charts)
   document.querySelectorAll('[data-kpi]').forEach(el => {
     el.style.cursor = 'pointer';

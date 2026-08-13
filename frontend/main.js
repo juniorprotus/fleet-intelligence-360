@@ -1000,11 +1000,30 @@ function statusBadge(isActive) {
 }
 
 function statusBadge2(status) {
+  const s = (status || 'UNKNOWN').toUpperCase();
   const map = {
-    ACTIVE: 'success', OPEN: 'danger', RESOLVED: 'muted', ACKNOWLEDGED: 'warning',
-    INACTIVE: 'muted', MAINTENANCE: 'warning', CLOSED: 'muted',
+    ACTIVE: '<span class="badge-code text-green">ACTIVE</span>',
+    OPERATIONAL: '<span class="badge-code text-green">OPERATIONAL</span>',
+    OPEN: '<span class="badge-code text-amber">OPEN</span>',
+    ESCALATED: '<span class="badge-code text-red">ESCALATED</span>',
+    OVERDUE: '<span class="badge-code text-red">OVERDUE</span>',
+    RESOLVED: '<span class="badge-code text-green">RESOLVED</span>',
+    ACKNOWLEDGED: '<span class="badge-code text-blue">ACKNOWLEDGED</span>',
+    CANCELLED: '<span class="badge-code text-muted">CANCELLED</span>',
+    DISMISSED: '<span class="badge-code text-muted">DISMISSED</span>',
+    IN_SERVICE: '<span class="badge-code text-green">IN SERVICE</span>',
+    IN_STOCK: '<span class="badge-code text-blue">IN STOCK</span>',
+    IN_RETREAD: '<span class="badge-code text-amber">IN RETREAD</span>',
+    SCRAP: '<span class="badge-code text-red">SCRAP</span>',
+    SCRAPPED: '<span class="badge-code text-red">SCRAPPED</span>',
+    GROUNDED: '<span class="badge-code text-red">GROUNDED</span>',
+    MAINTENANCE: '<span class="badge-code text-amber">MAINTENANCE</span>',
+    INACTIVE: '<span class="badge-code text-muted">INACTIVE</span>',
+    CLOSED: '<span class="badge-code text-muted">CLOSED</span>',
+    FITTED: '<span class="badge-code text-green">FITTED</span>',
+    SUCCESS: '<span class="badge-code text-green">SUCCESS</span>',
   };
-  return `<span class="badge ${map[status] || 'muted'}">${status || '--'}</span>`;
+  return map[s] || `<span class="badge-code">${s}</span>`;
 }
 
 function severityBadge(sev) {
@@ -1597,41 +1616,6 @@ window.initKPIDrillListeners = function() {
     });
   });
 };
-
-// ─── Drill-Down Helper Utilities ─────────────────────────────────────────────
-function statusBadge2(status) {
-  const s = (status || 'UNKNOWN').toUpperCase();
-  const map = {
-    ACTIVE: '<span class="badge-code text-green">ACTIVE</span>',
-    OPERATIONAL: '<span class="badge-code text-green">OPERATIONAL</span>',
-    OPEN: '<span class="badge-code text-amber">OPEN</span>',
-    ESCALATED: '<span class="badge-code text-red">ESCALATED</span>',
-    OVERDUE: '<span class="badge-code text-red">OVERDUE</span>',
-    RESOLVED: '<span class="badge-code text-green">RESOLVED</span>',
-    ACKNOWLEDGED: '<span class="badge-code text-blue">ACKNOWLEDGED</span>',
-    CANCELLED: '<span class="badge-code text-muted">CANCELLED</span>',
-    DISMISSED: '<span class="badge-code text-muted">DISMISSED</span>',
-    IN_SERVICE: '<span class="badge-code text-green">IN SERVICE</span>',
-    IN_STOCK: '<span class="badge-code text-blue">IN STOCK</span>',
-    IN_RETREAD: '<span class="badge-code text-amber">IN RETREAD</span>',
-    SCRAP: '<span class="badge-code text-red">SCRAP</span>',
-    GROUNDED: '<span class="badge-code text-red">GROUNDED</span>',
-    MAINTENANCE: '<span class="badge-code text-amber">MAINTENANCE</span>',
-    INACTIVE: '<span class="badge-code text-muted">INACTIVE</span>',
-    FITTED: '<span class="badge-code text-green">FITTED</span>',
-  };
-  return map[s] || `<span class="badge-code">${s}</span>`;
-}
-
-function getCapacityForClass(vehicleClass) {
-  const cls = (vehicleClass || '').toLowerCase();
-  if (cls.includes('truck') || cls.includes('prime') || cls.includes('heavy')) return 18;
-  if (cls.includes('bus') || cls.includes('coach')) return 10;
-  if (cls.includes('trailer')) return 8;
-  if (cls.includes('van') || cls.includes('light')) return 4;
-  if (cls.includes('pickup')) return 4;
-  return 6;
-}
 
 window.openKPIDrillModal = async function(kpiKey, title) {
 

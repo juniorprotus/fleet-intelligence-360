@@ -200,30 +200,40 @@ window.closeModal = function(id) {
   if (el) el.classList.add('hidden');
 };
 
-window.populatePersonnelDropdown = async function(selectId, defaultVal = null) {
-  const selectEl = document.getElementById(selectId);
-  if (!selectEl) return;
+window.populatePersonnelDatalist = async function(inputId, defaultVal = null) {
+  const inputEl = document.getElementById(inputId);
+  let datalist = document.getElementById('personnel-datalist');
+  if (!datalist) {
+    datalist = document.createElement('datalist');
+    datalist.id = 'personnel-datalist';
+    document.body.appendChild(datalist);
+  }
 
   try {
     const res = await apiFetch('/api/v1/users/personnel').catch(() => null)
              || await apiFetch('/api/v1/users').catch(() => null);
     const users = res?.data || res || [];
 
-    selectEl.innerHTML = '<option value="">-- Search &amp; Select Registered Personnel --</option>';
+    datalist.innerHTML = '';
 
     users.forEach(u => {
       const fullName = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email;
-      const label = `${fullName} (${u.email} — ${u.role || 'STAFF'})`;
-      const isSelected = (defaultVal && (u.email === defaultVal || u.id === defaultVal || fullName === defaultVal)) ||
-                         (!defaultVal && currentUser && (u.email === currentUser.email || u.id === currentUser.id));
       const opt = document.createElement('option');
       opt.value = fullName;
-      opt.textContent = label;
-      if (isSelected) opt.selected = true;
-      selectEl.appendChild(opt);
+      opt.label = `${fullName} (${u.email} — ${u.role || 'STAFF'})`;
+      datalist.appendChild(opt);
     });
+
+    if (inputEl && (!inputEl.value || defaultVal)) {
+      if (defaultVal) {
+        inputEl.value = defaultVal;
+      } else if (currentUser) {
+        const currentName = [currentUser.firstName, currentUser.lastName].filter(Boolean).join(' ') || currentUser.email;
+        inputEl.value = currentName;
+      }
+    }
   } catch (err) {
-    console.warn('Failed to load registered personnel dropdown:', err);
+    console.warn('Failed to load registered personnel datalist:', err);
   }
 };
 
@@ -231,7 +241,7 @@ window.openInspectionModal = async function(identifier = '') {
   document.getElementById('inspTyreIdentifier').value = identifier;
   document.getElementById('inspDate').value = new Date().toISOString().split('T')[0];
 
-  await window.populatePersonnelDropdown('inspInspectedBy');
+  await window.populatePersonnelDatalist('inspInspectedBy');
 
   if (identifier) {
     const tyreRes = await apiFetch('/api/v1/tyres?limit=100').catch(() => null);
@@ -259,7 +269,7 @@ window.openInspectionModal = async function(identifier = '') {
 window.openFitmentModal = async function(identifier = '') {
   document.getElementById('fitTyreIdentifier').value = identifier;
   document.getElementById('fitDate').value = new Date().toISOString().split('T')[0];
-  await window.populatePersonnelDropdown('fitFittedBy');
+  await window.populatePersonnelDatalist('fitFittedBy');
   openModal('fitment-modal');
 };
 

@@ -200,9 +200,38 @@ window.closeModal = function(id) {
   if (el) el.classList.add('hidden');
 };
 
+window.populatePersonnelDropdown = async function(selectId, defaultVal = null) {
+  const selectEl = document.getElementById(selectId);
+  if (!selectEl) return;
+
+  try {
+    const res = await apiFetch('/api/v1/users/personnel').catch(() => null)
+             || await apiFetch('/api/v1/users').catch(() => null);
+    const users = res?.data || res || [];
+
+    selectEl.innerHTML = '<option value="">-- Search &amp; Select Registered Personnel --</option>';
+
+    users.forEach(u => {
+      const fullName = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email;
+      const label = `${fullName} (${u.email} — ${u.role || 'STAFF'})`;
+      const isSelected = (defaultVal && (u.email === defaultVal || u.id === defaultVal || fullName === defaultVal)) ||
+                         (!defaultVal && currentUser && (u.email === currentUser.email || u.id === currentUser.id));
+      const opt = document.createElement('option');
+      opt.value = fullName;
+      opt.textContent = label;
+      if (isSelected) opt.selected = true;
+      selectEl.appendChild(opt);
+    });
+  } catch (err) {
+    console.warn('Failed to load registered personnel dropdown:', err);
+  }
+};
+
 window.openInspectionModal = async function(identifier = '') {
   document.getElementById('inspTyreIdentifier').value = identifier;
   document.getElementById('inspDate').value = new Date().toISOString().split('T')[0];
+
+  await window.populatePersonnelDropdown('inspInspectedBy');
 
   if (identifier) {
     const tyreRes = await apiFetch('/api/v1/tyres?limit=100').catch(() => null);
@@ -227,9 +256,10 @@ window.openInspectionModal = async function(identifier = '') {
   openModal('inspection-modal');
 };
 
-window.openFitmentModal = function(identifier = '') {
+window.openFitmentModal = async function(identifier = '') {
   document.getElementById('fitTyreIdentifier').value = identifier;
   document.getElementById('fitDate').value = new Date().toISOString().split('T')[0];
+  await window.populatePersonnelDropdown('fitFittedBy');
   openModal('fitment-modal');
 };
 
@@ -1567,6 +1597,7 @@ document.addEventListener('DOMContentLoaded', () => {
         treadDepthCenter: parseFloat(document.getElementById('inspTreadCenter').value) || undefined,
         treadDepthRight: parseFloat(document.getElementById('inspTreadRight').value) || undefined,
         condition: document.getElementById('inspCondition').value,
+        inspectedBy: document.getElementById('inspInspectedBy')?.value || currentUser?.email || 'Technician',
         notes: document.getElementById('inspNotes').value || undefined,
       };
       await apiFetch('/api/v1/tyres/inspections', {
@@ -1590,6 +1621,7 @@ document.addEventListener('DOMContentLoaded', () => {
         vehicleId: document.getElementById('fitVehicleId').value,
         positionId: parseInt(document.getElementById('fitPositionId').value) || 1,
         fitmentOdometer: parseInt(document.getElementById('fitOdometer').value) || undefined,
+        fittedBy: document.getElementById('fitFittedBy')?.value || currentUser?.email || 'Technician',
         fitmentDate: new Date(document.getElementById('fitDate').value).toISOString(),
       };
       await apiFetch('/api/v1/tyres/fitments', {

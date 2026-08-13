@@ -31,6 +31,12 @@ export class UserController {
     return this.userService.create(dto);
   }
 
+  @Get('personnel')
+  @ApiOperation({ summary: 'List registered personnel for fitment and inspection assignment' })
+  async getPersonnel() {
+    return this.userService.findAll({});
+  }
+
   @Get()
   @RequirePermissions(Permission.USERS_READ)
   @ApiOperation({ summary: 'List all registered platform users with filters' })

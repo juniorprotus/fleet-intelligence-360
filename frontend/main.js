@@ -1047,6 +1047,16 @@ function statusBadge2(status) {
   return map[s] || `<span class="badge-code">${s}</span>`;
 }
 
+window.getVehicleReg = function(vId, vehicleList = []) {
+  if (!vId) return '—';
+  if (vId.length <= 12 && !vId.includes('-') && !/^[0-9a-f]{8}-[0-9a-f]{4}/i.test(vId)) {
+    return vId;
+  }
+  const cachedVehicles = window._cachedVehiclesList || vehicleList || [];
+  const found = cachedVehicles.find(v => v.id === vId || v.registrationNumber === vId);
+  return found ? found.registrationNumber : (vId.length > 15 ? `VEH-${vId.substring(0, 6).toUpperCase()}` : vId);
+};
+
 function severityBadge(sev) {
   const map = { CRITICAL: 'danger', HIGH: 'warning-dark', MEDIUM: 'warning', LOW: 'success' };
   return `<span class="badge ${map[sev] || 'muted'}">${sev || '--'}</span>`;

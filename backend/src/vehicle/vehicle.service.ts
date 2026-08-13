@@ -82,9 +82,14 @@ export class VehicleService {
     }));
   }
 
-  async findOne(id: string) {
-    const vehicle = await this.prisma.vehicle.findUnique({
-      where: { id },
+  async findOne(identifier: string) {
+    const vehicle = await this.prisma.vehicle.findFirst({
+      where: {
+        OR: [
+          { id: identifier },
+          { registrationNumber: { equals: identifier, mode: 'insensitive' } },
+        ],
+      },
       include: {
         tyreFitments: {
           include: { tyre: true },
@@ -102,16 +107,12 @@ export class VehicleService {
         },
       },
     });
-    if (!vehicle) throw new NotFoundException(`Vehicle ${id} not found`);
+    if (!vehicle) throw new NotFoundException(`Vehicle "${identifier}" not found by ID or Registration Number`);
     return vehicle;
   }
 
   async findByRegistration(reg: string) {
-    const vehicle = await this.prisma.vehicle.findUnique({
-      where: { registrationNumber: reg },
-    });
-    if (!vehicle) throw new NotFoundException(`Vehicle ${reg} not found`);
-    return vehicle;
+    return this.findOne(reg);
   }
 
   async update(id: string, dto: UpdateVehicleDto, userId?: string) {

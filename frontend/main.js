@@ -363,7 +363,13 @@ async function loadCeoDashboard() {
     setText('ceo-budget-pct', budgetPct);
   }
 
-  const regionData = fleetData?.byRegion || {};
+  const regionData = {};
+  if (Array.isArray(fleetData?.byRegion)) {
+    fleetData.byRegion.forEach(r => {
+      const regName = r.region || 'Unknown';
+      regionData[regName] = r._count?.id || r.count || 0;
+    });
+  }
   renderChart('ceoFleetRegionChart', 'bar', Object.keys(regionData), Object.values(regionData), 'Fleet Distribution');
 
   if (tyreSummary?.byStatus) {

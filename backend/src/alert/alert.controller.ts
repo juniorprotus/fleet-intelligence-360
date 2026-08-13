@@ -6,6 +6,7 @@ import {
   Param,
   Body,
   Query,
+  Req,
   ParseIntPipe,
   UseGuards,
 } from '@nestjs/common';
@@ -48,6 +49,12 @@ export class AlertController {
   @ApiOperation({ summary: 'Get summary of open and critical alerts' })
   async getSummary() {
     return this.alertService.getSummary();
+  }
+
+  @Get('critical-kpi')
+  @ApiOperation({ summary: 'Get Fleet Manager current unresolved critical risk alerts KPI with scope enforcement' })
+  async getCriticalKpi(@Req() req: any) {
+    return this.alertService.getCriticalKpi(req?.user);
   }
 
   @Get(':id')

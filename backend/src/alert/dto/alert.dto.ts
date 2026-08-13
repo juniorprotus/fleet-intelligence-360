@@ -40,6 +40,35 @@ export class CreateAlertDto {
   @IsOptional()
   @IsString()
   recommendedAction?: string;
+
+  @ApiPropertyOptional({ example: 95 })
+  @IsOptional()
+  @IsInt()
+  riskScore?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  dueDate?: Date | string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  workshopId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  region?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  depot?: string;
+
+  @ApiPropertyOptional({ enum: AlertStatus })
+  @IsOptional()
+  @IsEnum(AlertStatus)
+  status?: AlertStatus;
 }
 
 export class AcknowledgeAlertDto {

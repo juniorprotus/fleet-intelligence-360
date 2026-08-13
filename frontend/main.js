@@ -361,16 +361,39 @@ async function loadFleetManagerDashboard() {
   const alertList = alerts?.data || alerts || [];
   const defectList = defects?.data || defects || [];
 
-  const activeTyreAlerts = alertList.filter(a => a.status !== 'RESOLVED' && ['CRITICAL', 'HIGH'].includes(a.severity));
-  const openCriticalDefects = defectList.filter(d => d.status === 'OPEN' && ['CRITICAL', 'HIGH'].includes(d.severity));
-  const totalCriticalRisks = activeTyreAlerts.length + openCriticalDefects.length;
-
   setText('fm-fleet-total', vehicleList.length);
   setText('fm-scope-label', `${currentUser.region || 'All regions'}`);
   setText('fm-tyre-total', tyreSummary?.totalTyres ?? '--');
-  setText('fm-critical-alerts', totalCriticalRisks);
   setText('fm-retread', tyreSummary?.byStatus?.inRetread ?? '--');
   setText('fm-open-defects', defectList.filter(d => d.status === 'OPEN').length);
+
+  // Set initial LOADING State
+  setText('fm-critical-alerts', 'LOADING...');
+  setText('fm-critical-alerts-subtext', 'Fetching risk engine metrics...');
+
+  // Fetch critical KPI from dedicated backend endpoint with scope enforcement
+  const criticalKpi = await apiFetch('/api/v1/alerts/critical-kpi').catch(() => null);
+
+  if (criticalKpi && typeof criticalKpi.count === 'number') {
+    // DATA & ZERO States
+    setText('fm-critical-alerts', criticalKpi.count);
+    const alertsEl = document.getElementById('fm-critical-alerts');
+    if (alertsEl) alertsEl.className = 'kpi-value kpi-value-lg text-amber';
+
+    if (criticalKpi.count > 0) {
+      setText('fm-critical-alerts-subtext', `${criticalKpi.open || 0} Open | ${criticalKpi.escalated || 0} Escalated | ${criticalKpi.overdue || 0} Overdue`);
+    } else {
+      setText('fm-critical-alerts-subtext', 'NO UNRESOLVED CRITICAL RISKS');
+    }
+    setText('fm-critical-alerts-trend', criticalKpi.trendText || 'No change');
+  } else {
+    // ERROR State — MUST NOT silently return a false 0!
+    setText('fm-critical-alerts', 'DATA UNAVAILABLE');
+    const alertsEl = document.getElementById('fm-critical-alerts');
+    if (alertsEl) alertsEl.className = 'kpi-value kpi-value-lg text-red';
+    setText('fm-critical-alerts-subtext', 'Backend risk query error');
+    setText('fm-critical-alerts-trend', 'Check server logs');
+  }
 
   const statusCounts = {};
   vehicleList.forEach(v => { statusCounts[v.status] = (statusCounts[v.status] || 0) + 1; });
@@ -2063,47 +2086,83 @@ window.openKPIDrillModal = async function(kpiKey, title) {
       </div>
     `;
 
-  // ─── 8. DOWNTIME, CRITICAL ALERTS & REPAIR BACKLOG (dow, bac, rep, rpr, saf, scd, opn, alert, alt, rsk, risk) 
-  } else if (kpiKey.includes('dow') || kpiKey.includes('bac') || kpiKey.includes('rep') || kpiKey.includes('rpr') || kpiKey.includes('saf') || kpiKey.includes('scd') || kpiKey.includes('opn') || kpiKey.includes('alert') || kpiKey.includes('alt') || kpiKey.includes('rsk') || kpiKey.includes('risk') || kpiKey.includes('card-fm-alerts')) {
+  // ─── 8. CRITICAL RISK COMMAND CENTRE (alert, alt, rsk, risk, card-fm-alerts, kpi-critical-alerts) ────────
+  } else if (kpiKey.includes('dow') || kpiKey.includes('bac') || kpiKey.includes('rep') || kpiKey.includes('rpr') || kpiKey.includes('saf') || kpiKey.includes('scd') || kpiKey.includes('opn') || kpiKey.includes('alert') || kpiKey.includes('alt') || kpiKey.includes('rsk') || kpiKey.includes('risk') || kpiKey.includes('card-fm-alerts') || kpiKey.includes('kpi-critical-alerts')) {
+    if (titleEl) titleEl.textContent = 'Critical Risk Command Centre — Fleet Manager Operations';
+
+    const criticalKpiData = await apiFetch('/api/v1/alerts/critical-kpi').catch(() => null);
+    const criticalList = criticalKpiData?.criticalAlerts || alertsList.filter(a => a.severity === 'CRITICAL' && a.status !== 'RESOLVED');
+
+    const openCount = criticalKpiData?.open ?? criticalList.filter(a => a.status === 'OPEN').length;
+    const escalatedCount = criticalKpiData?.escalated ?? criticalList.filter(a => a.status === 'ESCALATED').length;
+    const overdueCount = criticalKpiData?.overdue ?? criticalList.filter(a => a.status === 'OVERDUE').length;
+    const totalCount = criticalKpiData?.count ?? criticalList.length;
+
     contentHtml = `
-      <div class="kpi-grid mb-3" style="grid-template-columns: repeat(4, 1fr);">
-        <div class="kpi-card kpi-danger"><div class="kpi-body"><p class="kpi-label">Safety Hazards</p><p class="kpi-value">1 Vehicle Grounded</p></div></div>
-        <div class="kpi-card kpi-warning"><div class="kpi-body"><p class="kpi-label">Awaiting Replacement</p><p class="kpi-value">2 Tyres</p></div></div>
-        <div class="kpi-card kpi-info"><div class="kpi-body"><p class="kpi-label">Awaiting Repair</p><p class="kpi-value">1 Tyre</p></div></div>
-        <div class="kpi-card kpi-primary"><div class="kpi-body"><p class="kpi-label">Active Work Orders</p><p class="kpi-value">4 Open Jobs</p></div></div>
+      <div class="kpi-grid mb-3" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem;">
+        <div class="kpi-card kpi-danger">
+          <div class="kpi-body">
+            <p class="kpi-label">Total Critical Risks</p>
+            <p class="kpi-value">${totalCount}</p>
+          </div>
+        </div>
+        <div class="kpi-card kpi-warning">
+          <div class="kpi-body">
+            <p class="kpi-label">Open Risks</p>
+            <p class="kpi-value">${openCount} Active</p>
+          </div>
+        </div>
+        <div class="kpi-card kpi-info">
+          <div class="kpi-body">
+            <p class="kpi-label">Escalated</p>
+            <p class="kpi-value">${escalatedCount} Escalated</p>
+          </div>
+        </div>
+        <div class="kpi-card kpi-primary">
+          <div class="kpi-body">
+            <p class="kpi-label">Overdue</p>
+            <p class="kpi-value">${overdueCount} Overdue</p>
+          </div>
+        </div>
       </div>
-      <div class="table-container">
-        <table>
+      <div class="table-container" style="max-height: 420px; overflow-y: auto; border: 1px solid var(--panel-border); border-radius: 6px;">
+        <table style="width: 100%; border-collapse: separate; border-spacing: 0;">
           <thead>
             <tr>
-              <th>Tyre ID / Vehicle</th>
-              <th>Event / Defect Category</th>
-              <th>Severity</th>
-              <th>Reported Date</th>
-              <th>Operational Risk</th>
-              <th>Work Order Status</th>
-              <th>Action</th>
+              <th style="position: sticky; top: 0; z-index: 10; background: #1e293b; padding: 0.75rem 0.85rem; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase;">Alert ID</th>
+              <th style="position: sticky; top: 0; z-index: 10; background: #1e293b; padding: 0.75rem 0.85rem; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase;">Risk Score</th>
+              <th style="position: sticky; top: 0; z-index: 10; background: #1e293b; padding: 0.75rem 0.85rem; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase;">Risk Category</th>
+              <th style="position: sticky; top: 0; z-index: 10; background: #1e293b; padding: 0.75rem 0.85rem; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase;">Scope Hierarchy (Region &rarr; Depot)</th>
+              <th style="position: sticky; top: 0; z-index: 10; background: #1e293b; padding: 0.75rem 0.85rem; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase;">Vehicle / Reg</th>
+              <th style="position: sticky; top: 0; z-index: 10; background: #1e293b; padding: 0.75rem 0.85rem; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase;">Component / Tyre ID</th>
+              <th style="position: sticky; top: 0; z-index: 10; background: #1e293b; padding: 0.75rem 0.85rem; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase;">Description / Hazard</th>
+              <th style="position: sticky; top: 0; z-index: 10; background: #1e293b; padding: 0.75rem 0.85rem; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase;">Responsible Person</th>
+              <th style="position: sticky; top: 0; z-index: 10; background: #1e293b; padding: 0.75rem 0.85rem; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase;">Status</th>
+              <th style="position: sticky; top: 0; z-index: 10; background: #1e293b; padding: 0.75rem 0.85rem; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase;">Action</th>
             </tr>
           </thead>
           <tbody>
-            <tr style="border-left: 3px solid var(--danger);">
-              <td><strong>KDE 341J / TYR-000007</strong></td>
-              <td>Sidewall Cut &amp; Exposed Canvas Cord</td>
-              <td><span class="badge-code text-red">CRITICAL HAZARD</span></td>
-              <td>2026-08-11</td>
-              <td>High Blowout Risk — Vehicle Grounded</td>
-              <td>WO-8840 (Pending Fitment)</td>
-              <td><button class="btn tiny danger" onclick="showToast('Vehicle Grounding Notice Confirmed', 'error')">Ground Vehicle</button></td>
-            </tr>
-            <tr style="border-left: 3px solid var(--warning);">
-              <td><strong>KDA-124B / TYR-000003</strong></td>
-              <td>Slow Pressure Leak (Valve Core Corrosion)</td>
-              <td><span class="badge-code text-warning">MEDIUM</span></td>
-              <td>2026-08-12</td>
-              <td>Under-inflation wear risk</td>
-              <td>WO-8842 (In Repair)</td>
-              <td><button class="btn tiny primary" onclick="showToast('Valve core replacement assigned to Bay 3', 'success')">Assign Repair</button></td>
-            </tr>
+            ${criticalList.map(a => {
+              const vehReg = getVehicleReg(a.vehicleId);
+              const tyreIdStr = a.tyreId ? `TYR-${String(a.tyreId).padStart(6, '0')}` : '—';
+              const rScore = a.riskScore || 95;
+              const rCat = a.alertType || 'Tyre Hazard';
+
+              return `
+                <tr style="border-left: 3px solid var(--danger);">
+                  <td><strong>ALT-${String(a.id).padStart(5, '0')}</strong></td>
+                  <td><span class="badge-code text-red">${rScore} / 100</span></td>
+                  <td class="small"><strong>${rCat}</strong></td>
+                  <td class="small muted">${a.region || currentUser?.region || 'Nairobi'} &rarr; ${a.depot || currentUser?.depot || 'Central Depot'}</td>
+                  <td><strong>${vehReg}</strong></td>
+                  <td class="small muted">${tyreIdStr}</td>
+                  <td class="small">${a.message || 'Critical operational threshold alert'}</td>
+                  <td class="small">${currentUser?.name || 'Tyre Supervisor'}</td>
+                  <td>${statusBadge2(a.status)}</td>
+                  <td><button class="btn tiny danger" onclick="showToast('Resolution Work Order issued for ALT-${String(a.id).padStart(5, '0')}', 'success')">Resolve Hazard</button></td>
+                </tr>
+              `;
+            }).join('') || '<tr><td colspan="10" class="text-center muted p-4">NO UNRESOLVED CRITICAL RISKS IN YOUR AUTHORIZED DATA SCOPE</td></tr>'}
           </tbody>
         </table>
       </div>

@@ -333,6 +333,7 @@ model TyreAlert {
   id                Int           @id @default(autoincrement())
   alertType         AlertType     @map("alert_type")
   severity          AlertSeverity @default(MEDIUM)
+  riskScore         Int?          @map("risk_score")                          // 0-100 score: 90-100 CRITICAL, 70-89 HIGH
   tyreId            Int?          @map("tyre_id")
   tyre              Tyre?         @relation(fields: [tyreId], references: [id])
   vehicleId         String?       @map("vehicle_id")
@@ -343,6 +344,7 @@ model TyreAlert {
   message           String
   detail            String?
   recommendedAction String?       @map("recommended_action")
+  dueDate           DateTime?     @map("due_date")                           // target resolution due date
   status            AlertStatus   @default(OPEN)
   acknowledgedBy    String?       @map("acknowledged_by")
   acknowledgedAt    DateTime?     @map("acknowledged_at")
@@ -359,6 +361,8 @@ model TyreAlert {
   @@index([tyreId])
   @@index([vehicleId])
   @@index([workshopId])
+  @@index([region])
+  @@index([depot])
 }
 
 /// Driver or technician reported tyre defect/issue
@@ -500,8 +504,11 @@ enum AlertSeverity {
 enum AlertStatus {
   OPEN
   ACKNOWLEDGED
+  ESCALATED
+  OVERDUE
   RESOLVED
   DISMISSED
+  CANCELLED
 }
 
 enum DefectStatus {

@@ -1165,7 +1165,7 @@ async function handleKPIAction(action) {
       await window.openKPIDrillModal('card-fm-fleet', 'Total Managed Fleet');
       break;
     case 'assign-vehicle':
-      await openAssignVehicleModal();
+      await window.openAssignVehicleModal();
       break;
     case 'view-tyres':
       await openKPIDrillTyres();
@@ -1193,7 +1193,7 @@ async function handleKPIAction(action) {
 
 
 // ─── Assign Vehicle Modal ─────────────────────────────────────────────────────
-async function openAssignVehicleModal() {
+window.openAssignVehicleModal = async function(preselectedVehicleId) {
   try {
     const [vehicles, drivers] = await Promise.all([
       apiFetch('/api/v1/vehicles'),
@@ -1209,6 +1209,9 @@ async function openAssignVehicleModal() {
     if (vSelect) {
       vSelect.innerHTML = '<option value="">-- Select Vehicle --</option>' +
         vehicleList.map(v => `<option value="${v.id}">${v.registrationNumber} (${v.make || ''} ${v.model || ''} - ${v.depot || 'No depot'})</option>`).join('');
+      if (preselectedVehicleId) {
+        vSelect.value = preselectedVehicleId;
+      }
     }
 
     if (dSelect) {
@@ -1899,8 +1902,8 @@ window.openKPIDrillModal = async function(kpiKey, title) {
                 : `<span class="badge-code text-red">⚠️ UNASSIGNED</span>`;
               
               const actionBtn = hasDriver 
-                ? `<button class="btn tiny outline" onclick="window.openAssignDriverModal('${v.id}')">Reassign</button>`
-                : `<button class="btn tiny primary" onclick="window.openAssignDriverModal('${v.id}')">+ Assign Driver</button>`;
+                ? `<button class="btn tiny outline" onclick="window.openAssignVehicleModal('${v.id}')">Reassign</button>`
+                : `<button class="btn tiny primary" onclick="window.openAssignVehicleModal('${v.id}')">+ Assign Driver</button>`;
 
               const wsLabel = v.workshop?.name || (v.workshopId ? `Workshop ${v.workshopId}` : 'Unassigned Workshop');
 

@@ -234,16 +234,35 @@ export class TyreService {
       );
     }
 
+    const positionMap: Record<number, { code: string; axle: number; side: string; innerOuter: string }> = {
+      1: { code: 'Axle 1: Steer Left (1L)', axle: 1, side: 'LEFT', innerOuter: 'SINGLE' },
+      2: { code: 'Axle 1: Steer Right (1R)', axle: 1, side: 'RIGHT', innerOuter: 'SINGLE' },
+      3: { code: 'Axle 2: Drive Outer Left (2OL)', axle: 2, side: 'LEFT', innerOuter: 'OUTER' },
+      4: { code: 'Axle 2: Drive Inner Left (2IL)', axle: 2, side: 'LEFT', innerOuter: 'INNER' },
+      5: { code: 'Axle 2: Drive Inner Right (2IR)', axle: 2, side: 'RIGHT', innerOuter: 'INNER' },
+      6: { code: 'Axle 2: Drive Outer Right (2OR)', axle: 2, side: 'RIGHT', innerOuter: 'OUTER' },
+      7: { code: 'Axle 3: Drive Outer Left (3OL)', axle: 3, side: 'LEFT', innerOuter: 'OUTER' },
+      8: { code: 'Axle 3: Drive Inner Left (3IL)', axle: 3, side: 'LEFT', innerOuter: 'INNER' },
+      9: { code: 'Axle 3: Drive Inner Right (3IR)', axle: 3, side: 'RIGHT', innerOuter: 'INNER' },
+      10: { code: 'Axle 3: Drive Outer Right (3OR)', axle: 3, side: 'RIGHT', innerOuter: 'OUTER' },
+      11: { code: 'Axle 4: Trailer 1 Left (4L1)', axle: 4, side: 'LEFT', innerOuter: 'SINGLE' },
+      12: { code: 'Axle 4: Trailer 1 Right (4R1)', axle: 4, side: 'RIGHT', innerOuter: 'SINGLE' },
+      13: { code: 'Axle 5: Trailer 2 Left (5L2)', axle: 5, side: 'LEFT', innerOuter: 'SINGLE' },
+      14: { code: 'Axle 5: Trailer 2 Right (5R2)', axle: 5, side: 'RIGHT', innerOuter: 'SINGLE' },
+    };
+
+    const posMeta = positionMap[dto.positionId] || { code: `POS-${dto.positionId}`, axle: 1, side: 'LEFT', innerOuter: 'SINGLE' };
+
     // Create fitment record
     const fitment = await this.prisma.tyreFitment.create({
       data: {
         tyreId: resolvedTyreId,
         vehicleId: targetVehicleId,
         positionId: dto.positionId,
-        positionCode: dto.positionCode || `POS-${dto.positionId}`,
-        axle: dto.axle,
-        side: dto.side,
-        innerOuter: dto.innerOuter,
+        positionCode: dto.positionCode || posMeta.code,
+        axle: dto.axle || posMeta.axle,
+        side: dto.side || posMeta.side,
+        innerOuter: dto.innerOuter || posMeta.innerOuter,
         fitmentDate: new Date(dto.fitmentDate),
         fitmentOdometer: dto.fitmentOdometer,
         fitmentTreadDepth: dto.fitmentTreadDepth || tyre.currentTreadDepth,

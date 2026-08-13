@@ -1706,6 +1706,7 @@ window.openKPIDrillModal = async function(kpiKey, title) {
   const titleEl = document.getElementById('kpi-drill-title');
   const bodyEl = document.getElementById('kpi-drill-body');
   if (!modal || !bodyEl) return;
+  let contentHtml = '';
 
   if (titleEl) titleEl.textContent = `${title} — Analytical Operational Drill-Down`;
 

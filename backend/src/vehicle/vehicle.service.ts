@@ -131,7 +131,7 @@ export class VehicleService {
     });
   }
 
-  async getVehicleDistributionKPI(scopeCtx?: DataScopeContext) {
+  async getVehicleDistributionKPI(scopeCtx: DataScopeContext) {
     const scopeFilter = this.dataScopeService.vehicleWhere(scopeCtx);
     const baseWhere = {
       isActive: true,

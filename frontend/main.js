@@ -1543,6 +1543,15 @@ document.addEventListener('DOMContentLoaded', () => {
   ['close-assign-vehicle-modal','cancel-assign-vehicle'].forEach(id => document.getElementById(id)?.addEventListener('click', () => closeModal('assign-vehicle-modal')));
   ['close-kpi-drill-modal'].forEach(id => document.getElementById(id)?.addEventListener('click', () => closeModal('kpi-drill-modal')));
 
+  // Modal open listeners
+  document.getElementById('btn-fm-add-vehicle')?.addEventListener('click', () => openModal('add-vehicle-modal'));
+  document.getElementById('btn-fm-add-tyre')?.addEventListener('click', () => openModal('add-tyre-modal'));
+  document.getElementById('btn-sup-register-tyre')?.addEventListener('click', () => openModal('add-tyre-modal'));
+  document.getElementById('btn-tech-add-tyre')?.addEventListener('click', () => openModal('add-tyre-modal'));
+  document.getElementById('btn-tech-inspect')?.addEventListener('click', () => openModal('inspection-modal'));
+  document.getElementById('btn-tech-fit-tyre')?.addEventListener('click', () => openModal('fitment-modal'));
+  document.getElementById('btn-admin-add-user')?.addEventListener('click', () => openModal('add-user-modal'));
+
   document.querySelectorAll('.modal').forEach(m => {
     m.addEventListener('click', (e) => {
       if (e.target === m) m.classList.add('hidden');

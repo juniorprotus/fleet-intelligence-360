@@ -544,6 +544,46 @@ export class TyreService {
 
     const existingTyre = await this.findOne(resolvedTyreId);
 
+    // Business Rule 1: A tyre CAN ONLY be inspected when fitted on a vehicle
+    const isFitted =
+      (existingTyre.currentStatus === TyreStatus.FITTED ||
+       existingTyre.currentStatus === TyreStatus.IN_SERVICE) &&
+      !!existingTyre.currentVehicleId;
+
+    if (!isFitted) {
+      throw new BadRequestException(
+        `Tyre "${existingTyre.tyreIdentifier}" (Current Status: ${existingTyre.currentStatus || 'UNASSIGNED'}) cannot be inspected. Inspections are strictly permitted only when a tyre is fitted on an active vehicle.`,
+      );
+    }
+
+    // Business Rule 2: Identified by vehicle, axle, and wheel position on vehicle
+    let rawVehicleId = dto.vehicleId || existingTyre.currentVehicleId || undefined;
+    let resolvedVehicleId: string | undefined = undefined;
+
+    if (rawVehicleId) {
+      const vehObj = await this.prisma.vehicle.findFirst({
+        where: {
+          OR: [
+            { id: rawVehicleId },
+            { registrationNumber: rawVehicleId },
+          ],
+        },
+      });
+      if (vehObj) {
+        resolvedVehicleId = vehObj.id;
+      } else {
+        resolvedVehicleId = rawVehicleId;
+      }
+    }
+
+    const positionId = dto.positionId || existingTyre.currentPositionId || undefined;
+
+    if (!positionId) {
+      throw new BadRequestException(
+        `Inspection for tyre "${existingTyre.tyreIdentifier}" requires vehicle axle and wheel position identification (positionId is required).`,
+      );
+    }
+
     // Auto-calculate average tread depth if individual measurements provided
     let avgTread = dto.averageTreadDepth;
     if (!avgTread && dto.treadDepthLeft && dto.treadDepthCenter && dto.treadDepthRight) {
@@ -554,9 +594,9 @@ export class TyreService {
       data: {
         tyreId: resolvedTyreId,
         inspectionDate: new Date(dto.inspectionDate),
-        vehicleId: dto.vehicleId,
-        positionId: dto.positionId,
-        odometer: dto.odometer,
+        vehicleId: resolvedVehicleId,
+        positionId: positionId,
+        odometer: dto.odometer || existingTyre.currentOdometer || undefined,
         treadDepthLeft: dto.treadDepthLeft,
         treadDepthCenter: dto.treadDepthCenter,
         treadDepthRight: dto.treadDepthRight,

@@ -1238,7 +1238,33 @@
         <form id="inspection-form">
           <div class="form-group">
             <label for="inspTyreIdentifier">Tyre Identifier / Serial</label>
-            <input type="text" id="inspTyreIdentifier" placeholder="TYR-2024-001" required>
+            <input type="text" id="inspTyreIdentifier" placeholder="TYR-000001" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="inspVehicleReg">Fitted Vehicle Registration</label>
+              <input type="text" id="inspVehicleReg" placeholder="e.g. KDA-124B" readonly style="background: rgba(30,41,59,0.8); cursor: not-allowed;">
+            </div>
+            <div class="form-group">
+              <label for="inspPositionId">Axle &amp; Wheel Position</label>
+              <select id="inspPositionId" class="form-select" required>
+                <option value="">-- Select Axle &amp; Position --</option>
+                <option value="1">Position 1 — Axle 1: Steer Left (1L)</option>
+                <option value="2">Position 2 — Axle 1: Steer Right (1R)</option>
+                <option value="3">Position 3 — Axle 2: Drive Outer Left (2OL)</option>
+                <option value="4">Position 4 — Axle 2: Drive Inner Left (2IL)</option>
+                <option value="5">Position 5 — Axle 2: Drive Inner Right (2IR)</option>
+                <option value="6">Position 6 — Axle 2: Drive Outer Right (2OR)</option>
+                <option value="7">Position 7 — Axle 3: Drive Outer Left (3OL)</option>
+                <option value="8">Position 8 — Axle 3: Drive Inner Left (3IL)</option>
+                <option value="9">Position 9 — Axle 3: Drive Inner Right (3IR)</option>
+                <option value="10">Position 10 — Axle 3: Drive Outer Right (3OR)</option>
+                <option value="11">Position 11 — Axle 4: Trailer Axle 1 Left (4L1)</option>
+                <option value="12">Position 12 — Axle 4: Trailer Axle 1 Right (4R1)</option>
+                <option value="13">Position 13 — Axle 5: Trailer Axle 2 Left (5L2)</option>
+                <option value="14">Position 14 — Axle 5: Trailer Axle 2 Right (5R2)</option>
+              </select>
+            </div>
           </div>
           <div class="form-row">
             <div class="form-group">

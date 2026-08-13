@@ -200,9 +200,30 @@ window.closeModal = function(id) {
   if (el) el.classList.add('hidden');
 };
 
-window.openInspectionModal = function(identifier = '') {
+window.openInspectionModal = async function(identifier = '') {
   document.getElementById('inspTyreIdentifier').value = identifier;
   document.getElementById('inspDate').value = new Date().toISOString().split('T')[0];
+
+  if (identifier) {
+    const tyreRes = await apiFetch('/api/v1/tyres?limit=100').catch(() => null);
+    const tyresList = tyreRes?.data || tyreRes || [];
+    const tyre = tyresList.find(t => t.tyreIdentifier === identifier || String(t.id) === identifier);
+
+    if (tyre) {
+      const isFitted = (tyre.currentStatus === 'FITTED' || tyre.currentStatus === 'IN_SERVICE') && !!tyre.currentVehicleId;
+      if (!isFitted) {
+        showToast(`Tyre ${identifier} (${tyre.currentStatus || 'UNASSIGNED'}) cannot be inspected. Inspections are strictly permitted only when a tyre is fitted on an active vehicle.`, 'warning');
+        return;
+      }
+
+      const vehicleInput = document.getElementById('inspVehicleReg');
+      if (vehicleInput) vehicleInput.value = tyre.currentVehicleId || '';
+      
+      const posSelect = document.getElementById('inspPositionId');
+      if (posSelect) posSelect.value = tyre.currentPositionId || 1;
+    }
+  }
+
   openModal('inspection-modal');
 };
 
@@ -1528,6 +1549,8 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const payload = {
         tyreIdentifier: document.getElementById('inspTyreIdentifier').value,
+        vehicleId: document.getElementById('inspVehicleReg')?.value || undefined,
+        positionId: parseInt(document.getElementById('inspPositionId')?.value, 10) || undefined,
         inspectionDate: new Date(document.getElementById('inspDate').value).toISOString(),
         pressure: parseFloat(document.getElementById('inspPressure').value) || undefined,
         treadDepthLeft: parseFloat(document.getElementById('inspTreadLeft').value) || undefined,

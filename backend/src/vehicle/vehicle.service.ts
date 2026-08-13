@@ -33,7 +33,7 @@ export class VehicleService {
     vehicleClass?: string;
     status?: string;
   }) {
-    return this.prisma.vehicle.findMany({
+    const vehicles = await this.prisma.vehicle.findMany({
       where: {
         isActive: true,
         ...(filters?.region && { region: filters.region }),
@@ -52,6 +52,34 @@ export class VehicleService {
       },
       orderBy: { registrationNumber: 'asc' },
     });
+
+    // Populate assignedDriver info by querying active DRIVER users
+    const driverUsers = await this.prisma.user.findMany({
+      where: {
+        role: 'DRIVER',
+        assignedVehicleId: { not: null },
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        assignedVehicleId: true,
+      },
+    });
+
+    const driverMap = new Map<string, string>();
+    driverUsers.forEach((d) => {
+      const name = [d.firstName, d.lastName].filter(Boolean).join(' ') || d.email;
+      if (d.assignedVehicleId) {
+        driverMap.set(d.assignedVehicleId, name);
+      }
+    });
+
+    return vehicles.map((v) => ({
+      ...v,
+      assignedDriver: driverMap.get(v.id) || driverMap.get(v.registrationNumber) || null,
+    }));
   }
 
   async findOne(id: string) {

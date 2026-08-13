@@ -1587,7 +1587,12 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       closeModal('assign-vehicle-modal');
       showToast(response.message || 'Vehicle assigned successfully', 'success');
-      loadViewData(currentActiveDashboard());
+      await loadViewData(currentActiveDashboard());
+      
+      const kpiTitle = document.getElementById('kpi-drill-title')?.textContent || '';
+      if (kpiTitle.includes('Fleet') || kpiTitle.includes('Vehicle')) {
+        await window.openKPIDrillModal('card-fm-fleet', 'Total Managed Fleet');
+      }
     } catch (err) {
       showToast(err.message, 'error');
     }

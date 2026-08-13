@@ -1751,7 +1751,7 @@ window.openKPIDrillModal = async function(kpiKey, title) {
       return;
     }
 
-    const vehList = distData.vehiclesList || vehicles || [];
+    const vehList = distData.vehiclesList || [];
     const statusDist = distData.statusDistribution || [];
     const regionDist = distData.regionDistribution || [];
     const depotDist = distData.depotDistribution || [];

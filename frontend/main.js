@@ -1681,7 +1681,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Auto-login
   if (authToken && currentUser) {
     onAuthSuccess();
-  } else {
     document.getElementById('page-subtitle').textContent = 'Sign in to access your role workspace';
   }
 });
@@ -1718,87 +1717,158 @@ window.openKPIDrillModal = async function(kpiKey, title) {
 
   const tyres = tyresRes?.data || tyresRes || [];
   const vehicles = vehiclesRes?.data || vehiclesRes || [];
-  const fitments = fitmentsRes?.data || fitmentsRes || [];
-  const inspections = inspectionsRes?.data || inspectionsRes || [];
-  const alertsList = alertsRes?.data || alertsRes || [];
-  const defectsList = defectsRes?.data || defectsRes || [];
 
-  const getVehicleReg = (vId) => {
-    if (!vId) return '—';
-    const found = vehicles.find(v => v.id === vId || v.registrationNumber === vId);
-    return found ? found.registrationNumber : vId;
-  };
-
-window.openAssignDriverModal = async function(vehicleId = '') {
-  const modal = document.getElementById('assign-vehicle-modal');
-  const vehicleSelect = document.getElementById('av-vehicle-select');
-  const driverSelect = document.getElementById('av-driver-select');
-  if (!modal || !vehicleSelect || !driverSelect) return;
-
-  const [vehiclesRes, driversRes] = await Promise.all([
-    apiFetch('/api/v1/vehicles').catch(() => null),
-    apiFetch('/api/v1/users?role=DRIVER').catch(() => null),
-  ]);
-
-  const vehicles = vehiclesRes?.data || vehiclesRes || [];
-  const drivers = driversRes?.data || driversRes || [];
-
-  vehicleSelect.innerHTML = '<option value="">-- Select Vehicle --</option>' +
-    vehicles.map(v => `<option value="${v.id}" ${v.id === vehicleId || v.registrationNumber === vehicleId ? 'selected' : ''}>${v.registrationNumber} (${v.fleetNumber || v.vehicleClass || 'Vehicle'})</option>`).join('');
-
-  driverSelect.innerHTML = '<option value="">-- Select Driver --</option>' +
-    (drivers.length > 0 ? drivers.map(d => `<option value="${d.email || d.id}">${d.name || d.email} (${d.email})</option>`).join('') : '<option value="driver@fi360.com">Driver John (driver@fi360.com)</option><option value="driver2@fi360.com">Driver Peter (driver2@fi360.com)</option>');
-
-  window.closeModal('kpi-drill-modal');
-  window.openModal('assign-vehicle-modal');
-};
-
-  const scopeHeader = `
-    <div class="muted small mb-3 p-2" style="background: rgba(30,41,59,0.7); border:1px solid var(--panel-border); border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
-      <div>
-        <strong>Data Scope Filter:</strong> Organisation (FI360) &rarr; Region (${currentUser?.region || 'Nairobi'}) &rarr; Depot (${currentUser?.depot || 'Nairobi Main Depot'}) &rarr; Workshop (${currentUser?.workshopId || 'WS-NBI-01'})
-      </div>
-      <span class="badge-code text-green">LIVE VERIFIED DATA</span>
-    </div>
-  `;
-
-  let contentHtml = '';
-
-  // ─── 0-A. TOTAL MANAGED FLEET & DRIVER ASSIGNMENT (card-fm-fleet, fm-fleet, fleet, managed-fleet) ───
+  // ─── 0-A. VEHICLE DISTRIBUTION STATUS KPI & ANALYTICS (card-fm-fleet, fm-fleet, fleet) ───
   if (kpiKey.includes('card-fm-fleet') || kpiKey.includes('fm-fleet') || kpiKey.includes('fleet') || kpiKey.includes('managed-fleet')) {
-    if (titleEl) titleEl.textContent = 'Total Managed Fleet — Vehicle Master & Driver Assignment';
+    if (titleEl) titleEl.textContent = 'Vehicle Distribution Status — Analytical Operational Drill-Down';
 
-    const activeVehicles = vehicles.filter(v => v.vehicleStatus === 'ACTIVE' || v.status === 'ACTIVE').length;
-    const unassignedVehicles = vehicles.filter(v => !v.assignedDriver && !v.driverId && !v.driverEmail).length;
-    const assignedVehicles = vehicles.length - unassignedVehicles;
+    // Fetch scope-enforced distribution KPI analytics from dedicated endpoint
+    const distData = await apiFetch('/api/v1/vehicles/distribution-kpi').catch(() => null);
+
+    if (!distData || typeof distData.totalVehicles !== 'number') {
+      bodyEl.innerHTML = `
+        <div class="card p-4 text-center">
+          <h3 class="text-red mb-2">DATA UNAVAILABLE</h3>
+          <p class="muted">Unable to retrieve vehicle distribution metrics from backend database. Please check system connection or permissions.</p>
+        </div>
+      `;
+      openModal('kpi-drill-modal');
+      return;
+    }
+
+    if (distData.totalVehicles === 0) {
+      bodyEl.innerHTML = `
+        <div class="card p-4 text-center">
+          <h3 class="text-amber mb-2">0 VEHICLES FOUND</h3>
+          <p class="muted">NO VEHICLES FOUND WITHIN YOUR AUTHORIZED SCOPE (${distData.scope?.level || 'REGION'} — ${distData.scope?.region || 'UNASSIGNED'})</p>
+        </div>
+      `;
+      openModal('kpi-drill-modal');
+      return;
+    }
+
+    const vehList = distData.vehiclesList || vehicles || [];
+    const statusDist = distData.statusDistribution || [];
+    const regionDist = distData.regionDistribution || [];
+    const depotDist = distData.depotDistribution || [];
+    const workshopDist = distData.workshopDistribution || [];
+    const classDist = distData.vehicleClassDistribution || [];
 
     contentHtml = `
-      <div class="kpi-grid mb-3" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem;">
+      <div class="kpi-grid mb-3" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem;">
         <div class="kpi-card kpi-primary">
           <div class="kpi-body">
-            <p class="kpi-label">Total Managed Fleet</p>
-            <p class="kpi-value">${vehicles.length} Vehicles</p>
+            <p class="kpi-label">Authorized Fleet</p>
+            <p class="kpi-value">${distData.totalVehicles} Vehicles</p>
           </div>
         </div>
         <div class="kpi-card kpi-success">
           <div class="kpi-body">
-            <p class="kpi-label">Active Operational</p>
-            <p class="kpi-value">${activeVehicles} Operational</p>
+            <p class="kpi-label">Fleet Availability</p>
+            <p class="kpi-value">${distData.availabilityPercentage}%</p>
           </div>
         </div>
         <div class="kpi-card kpi-info">
           <div class="kpi-body">
-            <p class="kpi-label">Drivers Assigned</p>
-            <p class="kpi-value">${assignedVehicles} Assigned</p>
+            <p class="kpi-label">Operational / Active</p>
+            <p class="kpi-value">${distData.operationalCount} Active</p>
+          </div>
+        </div>
+        <div class="kpi-card kpi-warning">
+          <div class="kpi-body">
+            <p class="kpi-label">Maintenance</p>
+            <p class="kpi-value">${distData.maintenanceCount} In Service</p>
           </div>
         </div>
         <div class="kpi-card kpi-danger">
           <div class="kpi-body">
-            <p class="kpi-label">Unassigned Drivers</p>
-            <p class="kpi-value">${unassignedVehicles} Pending</p>
+            <p class="kpi-label">Grounded / Inactive</p>
+            <p class="kpi-value">${distData.groundedCount + distData.inactiveCount} Grounded</p>
           </div>
         </div>
       </div>
+
+      <div class="grid-2-col gap-3 mb-3">
+        <!-- Status Distribution Table -->
+        <div class="card p-3">
+          <h4 class="mb-2">Vehicle Status Distribution</h4>
+          <table class="data-table">
+            <thead><tr><th>Status</th><th>Count</th><th>% Fleet</th></tr></thead>
+            <tbody>
+              ${statusDist.map(s => `
+                <tr>
+                  <td>${statusBadge2(s.status)}</td>
+                  <td><strong>${s.count}</strong></td>
+                  <td>${s.percentage}%</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Location Breakdown (Region / Depot / Workshop) -->
+        <div class="card p-3">
+          <h4 class="mb-2">Location Distribution (Region &amp; Depot)</h4>
+          <table class="data-table">
+            <thead><tr><th>Region / Depot</th><th>Vehicles</th><th>% Fleet</th></tr></thead>
+            <tbody>
+              ${regionDist.map(r => `
+                <tr>
+                  <td><strong>${r.region}</strong></td>
+                  <td><strong>${r.count}</strong></td>
+                  <td>${r.percentage}%</td>
+                </tr>
+                ${r.depots.map(d => `
+                  <tr>
+                    <td style="padding-left: 1.5rem;" class="small muted">&rdsh; Depot: ${d.depot}</td>
+                    <td class="small">${d.count}</td>
+                    <td class="small muted">${distData.totalVehicles > 0 ? Number(((d.count / distData.totalVehicles) * 100).toFixed(1)) : 0}%</td>
+                  </tr>
+                `).join('')}
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="grid-2-col gap-3 mb-3">
+        <!-- Workshop Assignment Breakdown -->
+        <div class="card p-3">
+          <h4 class="mb-2">Workshop Distribution</h4>
+          <table class="data-table">
+            <thead><tr><th>Workshop Assignment</th><th>Vehicles</th><th>% Fleet</th></tr></thead>
+            <tbody>
+              ${workshopDist.map(w => `
+                <tr>
+                  <td>${w.workshopName === 'Unassigned Workshop' ? '<span class="badge-code text-amber">Unassigned Workshop</span>' : `<strong>${w.workshopName}</strong>`}</td>
+                  <td><strong>${w.count}</strong></td>
+                  <td>${w.percentage}%</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Vehicle Class Breakdown -->
+        <div class="card p-3">
+          <h4 class="mb-2">Vehicle Class Distribution</h4>
+          <table class="data-table">
+            <thead><tr><th>Vehicle Class</th><th>Vehicles</th><th>% Fleet</th></tr></thead>
+            <tbody>
+              ${classDist.map(c => `
+                <tr>
+                  <td><strong>${c.vehicleClass}</strong></td>
+                  <td><strong>${c.count}</strong></td>
+                  <td>${c.percentage}%</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Vehicle Master List -->
+      <h4 class="mb-2">Authorized Vehicle Master &amp; Driver Assignment</h4>
       <div class="table-container" style="max-height: 400px; overflow-y: auto; border: 1px solid var(--panel-border); border-radius: 6px;">
         <table style="width: 100%; border-collapse: separate; border-spacing: 0;">
           <thead>
@@ -1808,14 +1878,14 @@ window.openAssignDriverModal = async function(vehicleId = '') {
               <th style="position: sticky; top: 0; z-index: 10; background: #1e293b; padding: 0.75rem 0.85rem; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase;">Class</th>
               <th style="position: sticky; top: 0; z-index: 10; background: #1e293b; padding: 0.75rem 0.85rem; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase;">Make / Model</th>
               <th style="position: sticky; top: 0; z-index: 10; background: #1e293b; padding: 0.75rem 0.85rem; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase;">Region / Depot</th>
+              <th style="position: sticky; top: 0; z-index: 10; background: #1e293b; padding: 0.75rem 0.85rem; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase;">Workshop</th>
               <th style="position: sticky; top: 0; z-index: 10; background: #1e293b; padding: 0.75rem 0.85rem; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase;">Status</th>
-              <th style="position: sticky; top: 0; z-index: 10; background: #1e293b; padding: 0.75rem 0.85rem; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase;">Tyre Capacity</th>
               <th style="position: sticky; top: 0; z-index: 10; background: #1e293b; padding: 0.75rem 0.85rem; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase;">Assigned Driver</th>
               <th style="position: sticky; top: 0; z-index: 10; background: #1e293b; padding: 0.75rem 0.85rem; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase;">Driver Action</th>
             </tr>
           </thead>
           <tbody>
-            ${vehicles.map(v => {
+            ${vehList.map(v => {
               const driverName = v.assignedDriver || v.driverName || v.driverEmail || null;
               const hasDriver = !!driverName;
               const driverDisplay = hasDriver 
@@ -1826,6 +1896,8 @@ window.openAssignDriverModal = async function(vehicleId = '') {
                 ? `<button class="btn tiny outline" onclick="window.openAssignDriverModal('${v.id}')">Reassign</button>`
                 : `<button class="btn tiny primary" onclick="window.openAssignDriverModal('${v.id}')">+ Assign Driver</button>`;
 
+              const wsLabel = v.workshop?.name || (v.workshopId ? `Workshop ${v.workshopId}` : 'Unassigned Workshop');
+
               return `
                 <tr>
                   <td><strong>${v.registrationNumber}</strong></td>
@@ -1833,8 +1905,8 @@ window.openAssignDriverModal = async function(vehicleId = '') {
                   <td class="small">${v.vehicleClass || 'Heavy Truck'}</td>
                   <td class="small">${v.make || 'Scania'} ${v.model || 'Prime Mover'}</td>
                   <td class="small muted">${v.region || currentUser?.region || 'Nairobi'} &rarr; ${v.depot || currentUser?.depot || 'Central Depot'}</td>
+                  <td class="small">${wsLabel === 'Unassigned Workshop' ? '<span class="badge-code text-amber">Unassigned</span>' : wsLabel}</td>
                   <td>${statusBadge2(v.vehicleStatus || v.status || 'ACTIVE')}</td>
-                  <td><strong class="text-blue">${v.expectedTyres || getCapacityForClass(v.vehicleClass) || 10} Tyres</strong></td>
                   <td>${driverDisplay}</td>
                   <td>${actionBtn}</td>
                 </tr>

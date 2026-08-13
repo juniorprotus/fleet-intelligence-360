@@ -58,6 +58,14 @@ export class VehicleController {
     });
   }
 
+  @Get('distribution-kpi')
+  @RequirePermissions(Permission.VEHICLE_READ)
+  @ApiOperation({ summary: 'Get scope-enforced Vehicle Distribution Status KPI & Analytics Breakdown' })
+  async getVehicleDistributionKPI(@Request() req) {
+    const scopeCtx = this.dataScopeService.buildContext(req.user);
+    return this.vehicleService.getVehicleDistributionKPI(scopeCtx);
+  }
+
   @Get('breakdown')
   @RequirePermissions(Permission.VEHICLE_READ)
   @ApiOperation({ summary: 'Get fleet breakdown by region, depot, class, and status' })

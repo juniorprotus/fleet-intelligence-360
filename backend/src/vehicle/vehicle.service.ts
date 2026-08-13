@@ -1,12 +1,16 @@
 import { Injectable, NotFoundException, ConflictException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { DataScopeService, DataScopeContext } from '../auth/data-scope.service';
 import { CreateVehicleDto, UpdateVehicleDto } from './dto/vehicle.dto';
 
 @Injectable()
 export class VehicleService {
   private readonly logger = new Logger(VehicleService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly dataScopeService: DataScopeService,
+  ) {}
 
   async create(dto: CreateVehicleDto, userId?: string) {
     const existing = await this.prisma.vehicle.findUnique({
@@ -125,6 +129,163 @@ export class VehicleService {
         updatedBy: userId,
       },
     });
+  }
+
+  async getVehicleDistributionKPI(scopeCtx?: DataScopeContext) {
+    const scopeFilter = this.dataScopeService.vehicleWhere(scopeCtx);
+    const baseWhere = {
+      isActive: true,
+      ...scopeFilter,
+    };
+
+    const vehicles = await this.prisma.vehicle.findMany({
+      where: baseWhere,
+      select: {
+        id: true,
+        registrationNumber: true,
+        fleetNumber: true,
+        vehicleClass: true,
+        make: true,
+        model: true,
+        region: true,
+        depot: true,
+        workshopId: true,
+        workshop: { select: { id: true, name: true, code: true } },
+        vehicleStatus: true,
+        isActive: true,
+      },
+      orderBy: { registrationNumber: 'asc' },
+    });
+
+    const driverUsers = await this.prisma.user.findMany({
+      where: { role: 'DRIVER', assignedVehicleId: { not: null } },
+      select: { id: true, email: true, firstName: true, lastName: true, assignedVehicleId: true },
+    });
+
+    const driverMap = new Map<string, string>();
+    driverUsers.forEach((d) => {
+      const name = [d.firstName, d.lastName].filter(Boolean).join(' ') || d.email;
+      if (d.assignedVehicleId) {
+        driverMap.set(d.assignedVehicleId, name);
+      }
+    });
+
+    const totalVehicles = vehicles.length;
+
+    const statusCounts: Record<string, number> = {
+      ACTIVE: 0,
+      OPERATIONAL: 0,
+      MAINTENANCE: 0,
+      GROUNDED: 0,
+      INACTIVE: 0,
+    };
+
+    vehicles.forEach((v) => {
+      const st = (v.vehicleStatus || 'ACTIVE').toUpperCase();
+      statusCounts[st] = (statusCounts[st] || 0) + 1;
+    });
+
+    const statusDistribution = Object.entries(statusCounts).map(([status, count]) => ({
+      status,
+      count,
+      percentage: totalVehicles > 0 ? Number(((count / totalVehicles) * 100).toFixed(1)) : 0,
+    }));
+
+    const regionCounts: Record<string, { count: number; depots: Record<string, number>; workshops: Record<string, number> }> = {};
+
+    vehicles.forEach((v) => {
+      const reg = v.region || 'Unassigned Region';
+      const dep = v.depot || 'Unassigned Depot';
+      const wsName = v.workshop?.name || (v.workshopId ? `Workshop ${v.workshopId}` : 'Unassigned Workshop');
+
+      if (!regionCounts[reg]) {
+        regionCounts[reg] = { count: 0, depots: {}, workshops: {} };
+      }
+      regionCounts[reg].count += 1;
+      regionCounts[reg].depots[dep] = (regionCounts[reg].depots[dep] || 0) + 1;
+      regionCounts[reg].workshops[wsName] = (regionCounts[reg].workshops[wsName] || 0) + 1;
+    });
+
+    const regionDistribution = Object.entries(regionCounts).map(([region, data]) => ({
+      region,
+      count: data.count,
+      percentage: totalVehicles > 0 ? Number(((data.count / totalVehicles) * 100).toFixed(1)) : 0,
+      depots: Object.entries(data.depots).map(([depot, c]) => ({ depot, count: c })),
+      workshops: Object.entries(data.workshops).map(([workshop, c]) => ({ workshop, count: c })),
+    }));
+
+    const depotCounts: Record<string, number> = {};
+    vehicles.forEach((v) => {
+      const dep = v.depot || 'Unassigned Depot';
+      depotCounts[dep] = (depotCounts[dep] || 0) + 1;
+    });
+
+    const depotDistribution = Object.entries(depotCounts).map(([depot, count]) => ({
+      depot,
+      count,
+      percentage: totalVehicles > 0 ? Number(((count / totalVehicles) * 100).toFixed(1)) : 0,
+    }));
+
+    const workshopCounts: Record<string, { name: string; count: number }> = {};
+    vehicles.forEach((v) => {
+      const wsKey = v.workshopId || 'unassigned';
+      const wsName = v.workshop?.name || (v.workshopId ? `Workshop ${v.workshopId}` : 'Unassigned Workshop');
+
+      if (!workshopCounts[wsKey]) {
+        workshopCounts[wsKey] = { name: wsName, count: 0 };
+      }
+      workshopCounts[wsKey].count += 1;
+    });
+
+    const workshopDistribution = Object.entries(workshopCounts).map(([wsKey, data]) => ({
+      workshopId: wsKey === 'unassigned' ? null : wsKey,
+      workshopName: data.name,
+      count: data.count,
+      percentage: totalVehicles > 0 ? Number(((data.count / totalVehicles) * 100).toFixed(1)) : 0,
+    }));
+
+    const classCounts: Record<string, number> = {};
+    vehicles.forEach((v) => {
+      const cls = v.vehicleClass || 'Unclassified';
+      classCounts[cls] = (classCounts[cls] || 0) + 1;
+    });
+
+    const vehicleClassDistribution = Object.entries(classCounts).map(([vehicleClass, count]) => ({
+      vehicleClass,
+      count,
+      percentage: totalVehicles > 0 ? Number(((count / totalVehicles) * 100).toFixed(1)) : 0,
+    }));
+
+    const operationalCount = (statusCounts['ACTIVE'] || 0) + (statusCounts['OPERATIONAL'] || 0);
+    const availabilityPercentage = totalVehicles > 0 ? Number(((operationalCount / totalVehicles) * 100).toFixed(1)) : 0;
+
+    const sumStatusCounts = Object.values(statusCounts).reduce((a, b) => a + b, 0);
+    const sumRegionCounts = Object.values(regionCounts).reduce((a, b) => a + b.count, 0);
+    const isReconciled = sumStatusCounts === totalVehicles && sumRegionCounts === totalVehicles;
+
+    return {
+      totalVehicles,
+      availabilityPercentage,
+      operationalCount,
+      maintenanceCount: statusCounts['MAINTENANCE'] || 0,
+      groundedCount: statusCounts['GROUNDED'] || 0,
+      inactiveCount: statusCounts['INACTIVE'] || 0,
+      isReconciled,
+      scope: {
+        level: scopeCtx?.scopeLevel || 'ORGANISATION',
+        region: scopeCtx?.region || 'All',
+        depot: scopeCtx?.depot || 'All',
+      },
+      statusDistribution,
+      regionDistribution,
+      depotDistribution,
+      workshopDistribution,
+      vehicleClassDistribution,
+      vehiclesList: vehicles.map((v) => ({
+        ...v,
+        assignedDriver: driverMap.get(v.id) || driverMap.get(v.registrationNumber) || null,
+      })),
+    };
   }
 
   async getFleetBreakdown() {

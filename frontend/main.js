@@ -1723,6 +1723,20 @@ window.initKPIDrillListeners = function() {
 };
 
 window.openKPIDrillModal = async function(kpiKey, title) {
+  // Map CEO dashboard KPIs to their correct specific views
+  if (kpiKey === 'ceo-kpi-fleet') kpiKey = 'card-fm-fleet';
+  else if (kpiKey === 'ceo-kpi-available') kpiKey = 'chart-fm-status';
+  else if (kpiKey === 'ceo-kpi-alerts') kpiKey = 'kpi-critical-alerts';
+  else if (kpiKey === 'ceo-kpi-budget') {
+    await openKPIDrillBudgets();
+    return;
+  } else if (kpiKey === 'ceo-kpi-tyres') {
+    await openKPIDrillTyres();
+    return;
+  } else if (kpiKey === 'ceo-kpi-defects') {
+    await openKPIDrillDefects();
+    return;
+  }
 
   const modal = document.getElementById('kpi-drill-modal');
   const titleEl = document.getElementById('kpi-drill-title');

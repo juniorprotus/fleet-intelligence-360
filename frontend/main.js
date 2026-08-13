@@ -1939,6 +1939,7 @@ window.openKPIDrillModal = async function(kpiKey, title) {
         </table>
       </div>
     `;
+  }
 
   // ─── 0. ACTIVE TYRE INVENTORY & MASTER TYRE DETAIL (kpi-act, inv, stk, fit, tyre)
   } else if (kpiKey.includes('act') || kpiKey.includes('inv') || kpiKey.includes('stk') || kpiKey.includes('fit') || kpiKey.includes('tyre')) {

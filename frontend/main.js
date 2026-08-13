@@ -1619,6 +1619,30 @@ window.openKPIDrillModal = async function(kpiKey, title) {
     return found ? found.registrationNumber : vId;
   };
 
+window.openAssignDriverModal = async function(vehicleId = '') {
+  const modal = document.getElementById('assign-vehicle-modal');
+  const vehicleSelect = document.getElementById('av-vehicle-select');
+  const driverSelect = document.getElementById('av-driver-select');
+  if (!modal || !vehicleSelect || !driverSelect) return;
+
+  const [vehiclesRes, driversRes] = await Promise.all([
+    apiFetch('/api/v1/vehicles').catch(() => null),
+    apiFetch('/api/v1/users?role=DRIVER').catch(() => null),
+  ]);
+
+  const vehicles = vehiclesRes?.data || vehiclesRes || [];
+  const drivers = driversRes?.data || driversRes || [];
+
+  vehicleSelect.innerHTML = '<option value="">-- Select Vehicle --</option>' +
+    vehicles.map(v => `<option value="${v.id}" ${v.id === vehicleId || v.registrationNumber === vehicleId ? 'selected' : ''}>${v.registrationNumber} (${v.fleetNumber || v.vehicleClass || 'Vehicle'})</option>`).join('');
+
+  driverSelect.innerHTML = '<option value="">-- Select Driver --</option>' +
+    (drivers.length > 0 ? drivers.map(d => `<option value="${d.email || d.id}">${d.name || d.email} (${d.email})</option>`).join('') : '<option value="driver@fi360.com">Driver John (driver@fi360.com)</option><option value="driver2@fi360.com">Driver Peter (driver2@fi360.com)</option>');
+
+  window.closeModal('kpi-drill-modal');
+  window.openModal('assign-vehicle-modal');
+};
+
   const scopeHeader = `
     <div class="muted small mb-3 p-2" style="background: rgba(30,41,59,0.7); border:1px solid var(--panel-border); border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
       <div>
@@ -1630,8 +1654,89 @@ window.openKPIDrillModal = async function(kpiKey, title) {
 
   let contentHtml = '';
 
+  // ─── 0-A. TOTAL MANAGED FLEET & DRIVER ASSIGNMENT (card-fm-fleet, fm-fleet, fleet, managed-fleet) ───
+  if (kpiKey.includes('card-fm-fleet') || kpiKey.includes('fm-fleet') || kpiKey.includes('fleet') || kpiKey.includes('managed-fleet')) {
+    if (titleEl) titleEl.textContent = 'Total Managed Fleet — Vehicle Master & Driver Assignment';
+
+    const activeVehicles = vehicles.filter(v => v.vehicleStatus === 'ACTIVE' || v.status === 'ACTIVE').length;
+    const unassignedVehicles = vehicles.filter(v => !v.assignedDriver && !v.driverId && !v.driverEmail).length;
+    const assignedVehicles = vehicles.length - unassignedVehicles;
+
+    contentHtml = `
+      <div class="kpi-grid mb-3" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem;">
+        <div class="kpi-card kpi-primary">
+          <div class="kpi-body">
+            <p class="kpi-label">Total Managed Fleet</p>
+            <p class="kpi-value">${vehicles.length} Vehicles</p>
+          </div>
+        </div>
+        <div class="kpi-card kpi-success">
+          <div class="kpi-body">
+            <p class="kpi-label">Active Operational</p>
+            <p class="kpi-value">${activeVehicles} Operational</p>
+          </div>
+        </div>
+        <div class="kpi-card kpi-info">
+          <div class="kpi-body">
+            <p class="kpi-label">Drivers Assigned</p>
+            <p class="kpi-value">${assignedVehicles} Assigned</p>
+          </div>
+        </div>
+        <div class="kpi-card kpi-danger">
+          <div class="kpi-body">
+            <p class="kpi-label">Unassigned Drivers</p>
+            <p class="kpi-value">${unassignedVehicles} Pending</p>
+          </div>
+        </div>
+      </div>
+      <div class="table-container" style="max-height: 400px; overflow-y: auto; border: 1px solid var(--panel-border); border-radius: 6px;">
+        <table style="width: 100%; border-collapse: separate; border-spacing: 0;">
+          <thead>
+            <tr>
+              <th style="position: sticky; top: 0; z-index: 10; background: #1e293b; padding: 0.75rem 0.85rem; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase;">Registration #</th>
+              <th style="position: sticky; top: 0; z-index: 10; background: #1e293b; padding: 0.75rem 0.85rem; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase;">Fleet #</th>
+              <th style="position: sticky; top: 0; z-index: 10; background: #1e293b; padding: 0.75rem 0.85rem; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase;">Class</th>
+              <th style="position: sticky; top: 0; z-index: 10; background: #1e293b; padding: 0.75rem 0.85rem; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase;">Make / Model</th>
+              <th style="position: sticky; top: 0; z-index: 10; background: #1e293b; padding: 0.75rem 0.85rem; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase;">Region / Depot</th>
+              <th style="position: sticky; top: 0; z-index: 10; background: #1e293b; padding: 0.75rem 0.85rem; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase;">Status</th>
+              <th style="position: sticky; top: 0; z-index: 10; background: #1e293b; padding: 0.75rem 0.85rem; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase;">Tyre Capacity</th>
+              <th style="position: sticky; top: 0; z-index: 10; background: #1e293b; padding: 0.75rem 0.85rem; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase;">Assigned Driver</th>
+              <th style="position: sticky; top: 0; z-index: 10; background: #1e293b; padding: 0.75rem 0.85rem; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase;">Driver Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${vehicles.map(v => {
+              const driverName = v.assignedDriver || v.driverName || v.driverEmail || null;
+              const hasDriver = !!driverName;
+              const driverDisplay = hasDriver 
+                ? `<span class="badge-code text-green">👤 ${driverName}</span>` 
+                : `<span class="badge-code text-red">⚠️ UNASSIGNED</span>`;
+              
+              const actionBtn = hasDriver 
+                ? `<button class="btn tiny outline" onclick="window.openAssignDriverModal('${v.id}')">Reassign</button>`
+                : `<button class="btn tiny primary" onclick="window.openAssignDriverModal('${v.id}')">+ Assign Driver</button>`;
+
+              return `
+                <tr>
+                  <td><strong>${v.registrationNumber}</strong></td>
+                  <td><span class="badge-code">${v.fleetNumber || 'FL-' + v.registrationNumber}</span></td>
+                  <td class="small">${v.vehicleClass || 'Heavy Truck'}</td>
+                  <td class="small">${v.make || 'Scania'} ${v.model || 'Prime Mover'}</td>
+                  <td class="small muted">${v.region || currentUser?.region || 'Nairobi'} &rarr; ${v.depot || currentUser?.depot || 'Central Depot'}</td>
+                  <td>${statusBadge2(v.vehicleStatus || v.status || 'ACTIVE')}</td>
+                  <td><strong class="text-blue">${v.expectedTyres || getCapacityForClass(v.vehicleClass) || 10} Tyres</strong></td>
+                  <td>${driverDisplay}</td>
+                  <td>${actionBtn}</td>
+                </tr>
+              `;
+            }).join('') || '<tr><td colspan="9" class="text-center muted p-3">No vehicles found</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    `;
+
   // ─── 0. ACTIVE TYRE INVENTORY & MASTER TYRE DETAIL (kpi-act, inv, stk, fit, tyre)
-  if (kpiKey.includes('act') || kpiKey.includes('inv') || kpiKey.includes('stk') || kpiKey.includes('fit') || kpiKey.includes('tyre')) {
+  } else if (kpiKey.includes('act') || kpiKey.includes('inv') || kpiKey.includes('stk') || kpiKey.includes('fit') || kpiKey.includes('tyre')) {
     const inStockCount = tyres.filter(t => t.currentStatus === 'IN_STOCK').length;
     const fittedCount = tyres.filter(t => t.currentStatus === 'FITTED' || t.currentStatus === 'IN_SERVICE').length;
     const inRetreadCount = tyres.filter(t => t.currentStatus === 'IN_RETREAD' || t.currentStatus === 'SENT_FOR_RETREAD').length;

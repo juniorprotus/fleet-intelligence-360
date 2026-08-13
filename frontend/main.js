@@ -1596,6 +1596,7 @@ document.addEventListener('DOMContentLoaded', () => {
           model: document.getElementById('vehicleModel').value,
           depot: document.getElementById('depot').value,
           region: document.getElementById('region').value,
+          department: document.getElementById('department')?.value,
           expectedTyres: parseInt(document.getElementById('expectedTyres').value) || 10,
           vehicleStatus: document.getElementById('vehicleStatus')?.value || 'ACTIVE',
         }),

@@ -411,18 +411,21 @@ async function loadCeoDashboard() {
 
 // ─── Fleet Manager Dashboard ──────────────────────────────────────────────────
 async function loadFleetManagerDashboard() {
-  const [tyreSummary, vehicles, alerts, defects] = await Promise.all([
+  const [tyreSummary, vehicles, alerts, defects, distData] = await Promise.all([
     apiFetch('/api/v1/tyres/summary').catch(() => null),
     apiFetch('/api/v1/vehicles').catch(() => null),
     apiFetch('/api/v1/alerts').catch(() => null),
     apiFetch('/api/v1/defects').catch(() => null),
+    apiFetch('/api/v1/vehicles/distribution-kpi').catch(() => null)
   ]);
 
   const vehicleList = vehicles?.data || vehicles || [];
   const alertList = alerts?.data || alerts || [];
   const defectList = defects?.data || defects || [];
 
-  setText('fm-fleet-total', vehicleList.length);
+  const totalFleet = distData?.totalVehicles ?? vehicleList.length;
+
+  setText('fm-fleet-total', totalFleet);
   setText('fm-scope-label', `${currentUser.region || 'All regions'}`);
   setText('fm-tyre-total', tyreSummary?.totalTyres ?? '--');
   setText('fm-retread', tyreSummary?.byStatus?.inRetread ?? '--');
@@ -861,10 +864,11 @@ function renderVehicleTable(selector, list, showTyreCount = true) {
         <td class="small muted">${v.region || '—'}</td>
         <td class="small muted">${v.depot || '—'}</td>
         <td>${badgeHtml}</td>
+        <td class="small">${v.assignedDriver ? `<span class="badge-code text-green">👤 ${v.assignedDriver}</span>` : `<span class="muted text-xs">UNASSIGNED</span>`}</td>
         ${showTyreCount ? `<td class="small text-center">${countBadge}</td>` : ''}
       </tr>
     `;
-  }).join('') || `<tr><td colspan="8" class="muted text-center">No vehicles registered</td></tr>`;
+  }).join('') || `<tr><td colspan="${showTyreCount ? 9 : 8}" class="muted text-center">No vehicles registered</td></tr>`;
 }
 
 function getCapacityForClass(vClass = '', makeModel = '') {

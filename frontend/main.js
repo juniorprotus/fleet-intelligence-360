@@ -1150,7 +1150,7 @@ function initKPIDrillListeners() {
   });
 }
 
-function handleKPIDrillClick(e) {
+window.handleKPIDrillClick = function(e) {
   const action = e.currentTarget.dataset.kpi;
   if (!action) return;
   handleKPIAction(action);
@@ -1158,6 +1158,9 @@ function handleKPIDrillClick(e) {
 
 async function handleKPIAction(action) {
   switch (action) {
+    case 'chart-fm-status':
+      await window.openKPIDrillModal('chart-fm-status', 'Vehicle Status Distribution');
+      break;
     case 'card-fm-fleet':
     case 'fleet':
     case 'managed-fleet':
@@ -1728,8 +1731,14 @@ window.openKPIDrillModal = async function(kpiKey, title) {
   const vehicles = vehiclesRes?.data || vehiclesRes || [];
 
   // ─── 0-A. VEHICLE DISTRIBUTION STATUS KPI & ANALYTICS (card-fm-fleet, fm-fleet, fleet) ───
-  if (kpiKey.includes('card-fm-fleet') || kpiKey.includes('fm-fleet') || kpiKey.includes('fleet') || kpiKey.includes('managed-fleet')) {
-    if (titleEl) titleEl.textContent = 'Vehicle Distribution Status — Analytical Operational Drill-Down';
+  if (kpiKey === 'chart-fm-status' || kpiKey.includes('card-fm-fleet') || kpiKey.includes('fm-fleet') || kpiKey.includes('fleet') || kpiKey.includes('managed-fleet')) {
+    if (titleEl) {
+      if (kpiKey === 'chart-fm-status') {
+        titleEl.textContent = 'Vehicle Distribution Status — Analytical Operational Drill-Down';
+      } else {
+        titleEl.textContent = 'Authorized Vehicle Master & Driver Assignment';
+      }
+    }
 
     // Fetch scope-enforced distribution KPI analytics from dedicated endpoint
     const distData = await apiFetch('/api/v1/vehicles/distribution-kpi').catch(() => null);
@@ -1763,7 +1772,10 @@ window.openKPIDrillModal = async function(kpiKey, title) {
     const workshopDist = distData.workshopDistribution || [];
     const classDist = distData.vehicleClassDistribution || [];
 
-    contentHtml = `
+    contentHtml = '';
+    
+    if (kpiKey === 'chart-fm-status') {
+      contentHtml += `
       <div class="kpi-grid mb-3" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem;">
         <div class="kpi-card kpi-primary">
           <div class="kpi-body">
@@ -1875,7 +1887,9 @@ window.openKPIDrillModal = async function(kpiKey, title) {
           </table>
         </div>
       </div>
-
+      `;
+    } else {
+      contentHtml += `
       <!-- Vehicle Master List -->
       <h4 class="mb-2">Authorized Vehicle Master &amp; Driver Assignment</h4>
       <div class="table-container" style="max-height: 400px; overflow-y: auto; border: 1px solid var(--panel-border); border-radius: 6px;">

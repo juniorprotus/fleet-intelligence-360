@@ -1159,10 +1159,24 @@ function closeModal(id) {
 let _drillCache = {};
 
 function initKPIDrillListeners() {
+  // Handle elements with data-kpi attribute (Fleet Manager KPIs, charts)
   document.querySelectorAll('[data-kpi]').forEach(el => {
     el.style.cursor = 'pointer';
     el.removeEventListener('click', handleKPIDrillClick);
     el.addEventListener('click', handleKPIDrillClick);
+  });
+
+  // Handle clickable KPI cards without data-kpi (fallback to id)
+  document.querySelectorAll('.kpi-card.clickable').forEach(card => {
+    if (card.dataset.kpi) return; // already handled above
+    if (card._drillBound) return; // avoid duplicate listeners
+    card._drillBound = true;
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', () => {
+      const kpiKey = card.dataset.cnt || card.id;
+      const title = card.querySelector('.kpi-label')?.textContent || 'KPI Drill-Down';
+      window.openKPIDrillModal(kpiKey, title);
+    });
   });
 }
 
@@ -1712,15 +1726,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ─── Tyre Supervisor Helpers & Handlers ─────────────────────────────────────
-window.initKPIDrillListeners = function() {
-  document.querySelectorAll('.view .clickable, .kpi-card.clickable').forEach(card => {
-    card.addEventListener('click', () => {
-      const kpiKey = card.dataset.kpi || card.dataset.cnt || card.id;
-      const title = card.querySelector('.kpi-label')?.textContent || 'KPI Drill-Down';
-      window.openKPIDrillModal(kpiKey, title);
-    });
-  });
-};
 
 window.openKPIDrillModal = async function(kpiKey, title) {
   // Map CEO dashboard KPIs to their correct specific views

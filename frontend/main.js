@@ -336,24 +336,34 @@ async function loadAdminDashboard() {
 
 // ─── CEO Dashboard ────────────────────────────────────────────────────────────
 async function loadCeoDashboard() {
-  const [fleetData, tyreSummary, alertSummary, budgets] = await Promise.all([
+  const [fleetData, tyreSummary, alertSummary, budgets, defectSummary] = await Promise.all([
     apiFetch('/api/v1/vehicles/breakdown').catch(() => null),
     apiFetch('/api/v1/tyres/summary').catch(() => null),
     apiFetch('/api/v1/alerts/summary').catch(() => null),
     apiFetch('/api/v1/budgets').catch(() => null),
+    apiFetch('/api/v1/defects/summary').catch(() => null),
   ]);
 
-  const vehicles = fleetData?.vehicles || [];
-  const total = vehicles.length || fleetData?.total || 0;
-  const available = vehicles.filter(v => v.status === 'ACTIVE').length || 0;
+  let total = 0;
+  let available = 0;
+  if (Array.isArray(fleetData?.byStatus)) {
+    fleetData.byStatus.forEach(s => {
+      const cnt = s._count?.id || s.count || 0;
+      total += cnt;
+      if (s.vehicleStatus === 'ACTIVE') {
+        available += cnt;
+      }
+    });
+  }
+
   const pct = total > 0 ? Math.round((available / total) * 100) : 0;
 
-  setText('ceo-fleet-total', total || '--');
-  setText('ceo-fleet-available', available || '--');
+  setText('ceo-fleet-total', total ?? 0);
+  setText('ceo-fleet-available', available ?? 0);
   setText('ceo-avail-pct', `${pct}% operational`);
-  setText('ceo-open-alerts', alertSummary?.open || alertSummary?.total || '--');
-  setText('ceo-tyres-fitted', tyreSummary?.byStatus?.fitted ?? '--');
-  setText('ceo-open-defects', alertSummary?.open || '--');
+  setText('ceo-open-alerts', alertSummary?.open ?? alertSummary?.total ?? 0);
+  setText('ceo-tyres-fitted', tyreSummary?.byStatus?.fitted ?? 0);
+  setText('ceo-open-defects', defectSummary?.open ?? defectSummary?.total ?? 0);
 
   const budgetList = budgets?.data || budgets || [];
   if (budgetList.length) {

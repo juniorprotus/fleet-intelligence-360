@@ -345,7 +345,7 @@ async function loadCeoDashboard() {
       <tr>
         <td>${severityBadge(a.severity)}</td>
         <td class="small">${a.alertType || '--'}</td>
-        <td class="small muted">${a.vehicleId || a.tyreId || '--'}</td>
+        <td class="small muted">${getVehicleReg(a.vehicleId) || a.tyreId || '--'}</td>
         <td class="small">${a.message || '--'}</td>
         <td>${statusBadge2(a.status)}</td>
       </tr>
@@ -501,7 +501,7 @@ async function loadTyreSupervisorDashboard() {
           <td class="small muted">${t.serialNumber || '—'}</td>
           <td>${tyrStatusBadge(t.currentStatus)}</td>
           <td>${t.currentTreadDepth ?? '--'} mm</td>
-          <td class="small muted">${t.currentVehicleId || '—'}</td>
+          <td class="small muted">${getVehicleReg(t.currentVehicleId) || '—'}</td>
           <td>
             <button class="btn tiny primary" onclick="openInspectionModal('${idStr}')">Inspect</button>
             <button class="btn tiny secondary ml-1" onclick="openFitmentModal('${idStr}')">Fit</button>
@@ -525,7 +525,7 @@ async function loadTyreSupervisorDashboard() {
       const isFit = item.type === 'FITMENT';
       const status = item.verificationStatus || 'PENDING';
       const perf = isFit ? (item.fittedBy || 'Technician') : (item.inspectedBy || 'Technician');
-      const target = isFit ? `Tyre #${item.tyreId} → ${item.vehicleId}` : `Tyre #${item.tyreId}`;
+      const target = isFit ? `Tyre #${item.tyreId} → ${getVehicleReg(item.vehicleId)}` : `Tyre #${item.tyreId}`;
       const detail = isFit ? `Position: ${item.positionCode || item.positionId}` : `Tread: ${item.averageTreadDepth || '--'} mm | PSI: ${item.pressure || '--'}`;
       return `
         <tr>
@@ -556,7 +556,7 @@ async function loadTyreSupervisorDashboard() {
           <td><span class="badge-code">REGISTRATION</span></td>
           <td class="small muted">${new Date(t.createdAt).toLocaleString()}</td>
           <td class="small">NEW → ${t.currentStatus}</td>
-          <td class="small muted">${t.currentVehicleId ? `Vehicle: ${t.currentVehicleId}` : 'In Stock'}</td>
+          <td class="small muted">${t.currentVehicleId ? `Vehicle: ${getVehicleReg(t.currentVehicleId)}` : 'In Stock'}</td>
           <td class="small">${t.createdBy || 'System'}</td>
           <td class="small text-green">Verified</td>
         </tr>
@@ -857,7 +857,7 @@ function renderTyreTable(selector, list, showActions = false) {
         <td class="small text-green">${costStr}</td>
         <td>${tyrStatusBadge(t.currentStatus)}</td>
         <td class="small">${t.currentTreadDepth ?? '--'} mm</td>
-        <td class="small muted">${t.currentVehicleId || '—'}</td>
+        <td class="small muted">${getVehicleReg(t.currentVehicleId) || '—'}</td>
         ${showActions ? `
           <td>
             <button class="btn tiny primary" onclick="openInspectionModal('${idStr}')">Inspect</button>
@@ -875,7 +875,7 @@ function renderFitmentsTable(selector, list) {
   tbody.innerHTML = list.map(f => `
     <tr>
       <td class="small"><strong>${f.tyreId || '--'}</strong></td>
-      <td class="small">${f.vehicleId || '--'}</td>
+      <td class="small">${getVehicleReg(f.vehicleId) || '--'}</td>
       <td class="small">Position ${f.positionId || f.axlePosition || '--'}</td>
       <td class="small muted">${formatDate(f.fitmentDate)}</td>
       <td class="small">${f.fitmentOdometer != null ? f.fitmentOdometer.toLocaleString() + ' km' : '--'}</td>
@@ -906,7 +906,7 @@ function renderAlertsTable(selector, list, showAction = false) {
     <tr>
       <td>${severityBadge(a.severity)}</td>
       <td class="small">${a.alertType || '--'}</td>
-      <td class="small muted">${a.vehicleId || a.tyreId || '--'}</td>
+      <td class="small muted">${getVehicleReg(a.vehicleId) || a.tyreId || '--'}</td>
       <td class="small">${a.message || '--'}</td>
       <td>${statusBadge2(a.status)}</td>
       ${showAction ? `<td><button class="btn tiny outline" onclick="acknowledgeAlert(${a.id})">Acknowledge</button></td>` : ''}
@@ -919,7 +919,7 @@ function renderDefectsTable(selector, list) {
   if (!tbody) return;
   tbody.innerHTML = list.map(d => `
     <tr>
-      <td class="small">${d.vehicleId || '--'}</td>
+      <td class="small">${getVehicleReg(d.vehicleId) || '--'}</td>
       <td class="small muted">${d.tyreId || '--'}</td>
       <td class="small">${d.defectType || '--'}</td>
       <td>${severityBadge(d.severity)}</td>
@@ -1213,7 +1213,7 @@ async function openKPIDrillTyres() {
               <td class="small muted">${t.size || '--'}</td>
               <td>${tyrStatusBadge(t.currentStatus)}</td>
               <td class="small">${t.currentTreadDepth ?? '--'} mm</td>
-              <td class="small muted">${t.currentVehicleId || '--'}</td>
+              <td class="small muted">${getVehicleReg(t.currentVehicleId) || '--'}</td>
             </tr>
           `).join('') || '<tr><td colspan="6" class="muted text-center">No tyres</td></tr>'}
         </tbody>
@@ -1246,7 +1246,7 @@ async function openKPIDrillRetread() {
               <td class="small">${t.brand || ''} ${t.model || ''}</td>
               <td class="small muted">${t.size || '--'}</td>
               <td class="small">${t.currentTreadDepth ?? '--'} mm</td>
-              <td class="small muted">${t.currentVehicleId || '--'}</td>
+              <td class="small muted">${getVehicleReg(t.currentVehicleId) || '--'}</td>
             </tr>
           `).join('') || '<tr><td colspan="5" class="muted text-center">No tyres in retread</td></tr>'}
         </tbody>
@@ -1275,7 +1275,7 @@ async function openKPIDrillDefects() {
         <tbody>
           ${defectList.map(d => `
             <tr>
-              <td class="small">${d.vehicleId || '--'}</td>
+              <td class="small">${getVehicleReg(d.vehicleId) || '--'}</td>
               <td class="small">${d.defectType || '--'}</td>
               <td>${severityBadge(d.severity)}</td>
               <td class="small muted">${d.description || '--'}</td>
@@ -1921,7 +1921,7 @@ window.openAssignDriverModal = async function(vehicleId = '') {
             </tr>
             ${tyres.slice(0, 3).map((t, idx) => `
               <tr>
-                <td><strong>${t.currentVehicleId || 'KDA-123A'}</strong></td>
+                <td><strong>${getVehicleReg(t.currentVehicleId) || 'KDA-123A'}</strong></td>
                 <td>${t.tyreIdentifier}</td>
                 <td>AX${idx + 1}-L</td>
                 <td>2026-08-05 (8 days ago)</td>
@@ -2042,7 +2042,7 @@ window.openAssignDriverModal = async function(vehicleId = '') {
             ${tyres.slice(0, 3).map((t, idx) => `
               <tr>
                 <td><strong>${t.tyreIdentifier}</strong></td>
-                <td>${t.currentVehicleId || 'KDA-123A'}</td>
+                <td>${getVehicleReg(t.currentVehicleId) || 'KDA-123A'}</td>
                 <td>${t.size} ${t.brand}</td>
                 <td>${t.originalTreadDepth || 18.0} mm</td>
                 <td><strong class="text-green">${t.currentTreadDepth || 12.5} mm</strong></td>

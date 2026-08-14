@@ -19,7 +19,10 @@
       ═══════════════════════════════════════════════ -->
       <nav class="sidebar" id="sidebar">
         <div class="logo">
-          <img src="/logo.png" alt="FI360 Logo" class="sidebar-logo">
+          <div class="logo-header">
+            <img src="/logo.png" alt="FI360 Logo" class="sidebar-logo">
+            <button id="mobile-nav-close" class="mobile-nav-close" aria-label="Close navigation" title="Close navigation">✕</button>
+          </div>
           <div class="logo-text">
             <span class="logo-title">FI360</span>
             <span class="logo-sub">Fleet Intelligence 360</span>
@@ -66,6 +69,9 @@
         </div>
       </nav>
 
+      <!-- Mobile Navigation Overlay -->
+      <div id="mobile-nav-overlay" class="mobile-nav-overlay" aria-hidden="true"></div>
+
       <!-- ═══════════════════════════════════════════════
            MAIN CONTENT AREA
       ═══════════════════════════════════════════════ -->
@@ -74,7 +80,7 @@
         <!-- Top Header Bar -->
         <header class="header">
           <div class="header-left">
-            <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle sidebar">☰</button>
+            <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Open navigation" title="Open navigation">☰</button>
             <div>
               <h1 id="page-title">Dashboard</h1>
               <p class="page-subtitle" id="page-subtitle"></p>

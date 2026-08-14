@@ -56,7 +56,26 @@ This document defines the authoritative, system-wide UI layout, viewport managem
 
 ---
 
-## 4. Reusable Component Specifications
+## 4. Mobile Navigation Dismissal & Overlay Architecture
+
+For viewports under 768px, mobile navigation MUST adhere strictly to the **Three-Way Dismissal Standard**:
+
+1. **Visible Close Button (`.mobile-nav-close`)**:
+   - Placed at the top-right of `.sidebar-header` / `.logo-header`.
+   - Minimum touch target: `44 × 44 px`.
+   - Element: `<button id="mobile-nav-close" class="mobile-nav-close" aria-label="Close navigation" title="Close navigation">✕</button>`.
+2. **Tap-Outside Backdrop Overlay (`#mobile-nav-overlay`)**:
+   - Element: `<div id="mobile-nav-overlay" class="mobile-nav-overlay" aria-hidden="true"></div>`.
+   - Styling: `position: fixed; inset: 0; z-index: 80; background: rgba(0, 0, 0, 0.45); backdrop-filter: blur(3px);`.
+   - Clicking/tapping backdrop invokes `closeMobileSidebar()`.
+3. **Keyboard `Escape` Key Listener**:
+   - Pressing `Escape` when `sidebar.classList.contains('mobile-open')` closes the drawer and hides the backdrop.
+4. **Auto-Dismiss on Navigation Selection**:
+   - Selecting any item in `.nav-links` automatically invokes `closeMobileSidebar()`, dismisses the drawer, and removes the overlay before rendering the target view.
+
+---
+
+## 5. Reusable Component Specifications
 
 ### 4.1 Page Header Standard
 Every view MUST define a standard header section:

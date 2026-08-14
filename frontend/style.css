@@ -782,21 +782,61 @@ input:focus, textarea:focus, select:focus {
   color: #c084fc;
 }
 
+.logo-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 100%;
+}
+
+.mobile-nav-close {
+  display: none;
+  position: absolute;
+  right: -0.25rem;
+  top: -0.25rem;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--panel-border);
+  color: var(--text-muted);
+  font-size: 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+.mobile-nav-close:hover, .mobile-nav-close:focus {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border-color: #ef4444;
+  outline: none;
+}
+
 /* ============================================================
    RESPONSIVE DESIGN ARCHITECTURE & MEDIA QUERIES
    ============================================================ */
 
 /* Mobile Backdrop Overlay */
-.sidebar-overlay {
-  display: none;
+.mobile-nav-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(4px);
-  z-index: 95;
+  z-index: 80;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(3px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
 }
-.sidebar-overlay.active {
-  display: block;
+.mobile-nav-overlay.active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 /* Laptop / Desktop Optimization (1280px - 1440px) */
@@ -853,6 +893,9 @@ input:focus, textarea:focus, select:focus {
   }
   .sidebar.mobile-open {
     transform: translateX(260px);
+  }
+  .mobile-nav-close {
+    display: flex;
   }
   .main-content {
     width: 100%;

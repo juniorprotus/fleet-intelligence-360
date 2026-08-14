@@ -75,7 +75,27 @@ For viewports under 768px, mobile navigation MUST adhere strictly to the **Three
 
 ---
 
-## 5. Reusable Component Specifications
+## 5. Mobile Responsive & Horizontal Overflow Standard
+
+To prevent unintended side-to-side horizontal movement/scrolling on mobile viewports (320px–430px), all FI360 views MUST adhere to the following architectural constraints:
+
+1. **Root Layout Contract**:
+   ```css
+   *, *::before, *::after { box-sizing: border-box; }
+   html, body { width: 100%; max-width: 100%; margin: 0; padding: 0; overflow-wrap: anywhere; word-break: break-word; }
+   .app-container { width: 100%; max-width: 100%; min-width: 0; }
+   .main-content { width: 100%; max-width: 100%; min-width: 0; }
+   .content-area { width: 100%; max-width: 100%; min-width: 0; }
+   ```
+2. **Elimination of Fixed Widths**: Hardcoded fixed inline pixel widths (e.g. `style="width: 600px;"` or `minmax(320px, 1fr)`) are strictly forbidden. Use fluid percentages (`width: 100%`) or bounded CSS rules (`minmax(min(280px, 100%), 1fr)`).
+3. **Flex & Grid Children Sizing**: All flex/grid children MUST define `min-width: 0;` to prevent child contents from forcing parent containers wider than the viewport width.
+4. **Form Input Sizing**: All `input, select, textarea` elements MUST define `max-width: 100%; box-sizing: border-box;`.
+5. **Controlled Table Overflow Policy**: Wide data tables MUST be wrapped in `.table-container` with `overflow-x: auto; max-width: 100%;`. Horizontal scrolling is isolated exclusively to `.table-container`; page-level document scrolling is prohibited.
+6. **Modal Mobile Sizing**: Modals MUST define `max-width: calc(100vw - 1.5rem); width: calc(100vw - 1.5rem);` under 768px viewports.
+
+---
+
+## 6. Reusable Component Specifications
 
 ### 4.1 Page Header Standard
 Every view MUST define a standard header section:

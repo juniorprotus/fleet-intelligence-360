@@ -16,6 +16,7 @@ import { KpiGovernanceModule } from './kpi/kpi-governance.module';
 import { ReportingModule } from './reporting/reporting.module';
 import { EventsModule } from './events/events.module';
 import { WorkflowModule } from './workflow/workflow.module';
+import { WorkshopModule } from './workshop/workshop.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { WorkflowModule } from './workflow/workflow.module';
     ReportingModule,
     EventsModule,
     WorkflowModule,
+    WorkshopModule,
   ],
   controllers: [AppController],
   providers: [AppService],

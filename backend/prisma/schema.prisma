@@ -120,6 +120,7 @@ model Workshop {
   users           User[]
   workshopAssignments VehicleWorkshopAssignment[]
   downtimes       VehicleDowntime[]
+  workOrders      WorkOrder[]
 
   @@map("workshops")
   @@index([region])
@@ -165,6 +166,7 @@ model Vehicle {
   tyreDefects       TyreDefect[]
   workshopAssignments VehicleWorkshopAssignment[]
   downtimes         VehicleDowntime[]
+  workOrders        WorkOrder[]
 
   @@map("vehicles")
   @@index([region])
@@ -475,6 +477,7 @@ model TyreDefect {
   updatedAt       DateTime      @updatedAt @map("updated_at")
 
   downtimes       VehicleDowntime[]
+  workOrders      WorkOrder[]
 
   @@map("tyre_defects")
   @@index([vehicleId])
@@ -529,6 +532,8 @@ model VehicleDowntime {
   recoveredBy      String?     @map("recovered_by")
   createdAt        DateTime    @default(now()) @map("created_at")
 
+  workOrders       WorkOrder[]
+
   @@map("vehicle_downtimes")
   @@index([vehicleId])
   @@index([tenantId])
@@ -582,6 +587,8 @@ model User {
   isActive          Boolean   @default(true) @map("is_active")
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  assignedTasks     WorkOrderTask[]
 
   @@map("users")
   @@index([workshopId])
@@ -725,4 +732,113 @@ enum UserRole {
   DRIVER
   AUDITOR
   READ_ONLY
+}
+
+// ============================================================
+// PHASE 3 — WORKSHOP INTELLIGENCE & MAINTENANCE SCHEDULING
+// ============================================================
+
+enum WorkOrderPriority {
+  LOW
+  MEDIUM
+  HIGH
+  EMERGENCY
+}
+
+enum WorkOrderStatus {
+  DRAFT
+  SCHEDULED
+  IN_PROGRESS
+  PENDING_APPROVAL
+  COMPLETED
+  CANCELLED
+}
+
+enum MaintenanceType {
+  PREVENTATIVE
+  CORRECTIVE
+  SAFETY_GROUNDING
+  INSPECTION
+}
+
+/// Workshop Maintenance Work Order
+model WorkOrder {
+  id              String           @id @default(uuid()) @map("work_order_id")
+  workOrderNumber String           @unique @map("work_order_number")
+  tenantId        String           @default("TNT-DEFAULT") @map("tenant_id")
+  organizationId  String           @default("ORG-DEFAULT") @map("organization_id")
+  vehicleId       String           @map("vehicle_id")
+  vehicle         Vehicle          @relation(fields: [vehicleId], references: [id])
+  workshopId      String           @map("workshop_id")
+  workshop        Workshop         @relation(fields: [workshopId], references: [id])
+  downtimeId      String?          @map("downtime_id")
+  downtime        VehicleDowntime? @relation(fields: [downtimeId], references: [id])
+  defectId        Int?             @map("defect_id")
+  defect          TyreDefect?      @relation(fields: [defectId], references: [id])
+  
+  title           String
+  description     String?
+  maintenanceType MaintenanceType  @default(CORRECTIVE) @map("maintenance_type")
+  priority        WorkOrderPriority @default(MEDIUM)
+  status          WorkOrderStatus  @default(DRAFT)
+  
+  scheduledStart  DateTime?        @map("scheduled_start")
+  actualStart     DateTime?        @map("actual_start")
+  completedAt     DateTime?        @map("completed_at")
+  
+  estimatedHours  Float?           @map("estimated_hours")
+  actualHours     Float?           @map("actual_hours")
+  totalPartsCost  Float            @default(0) @map("total_parts_cost")
+  totalLaborCost  Float            @default(0) @map("total_labor_cost")
+  
+  createdBy       String?          @map("created_by")
+  assignedTechId  Int?             @map("assigned_tech_id")
+  approvedBy      String?          @map("approved_by")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+
+  tasks           WorkOrderTask[]
+
+  @@map("work_orders")
+  @@index([tenantId, organizationId])
+  @@index([vehicleId])
+  @@index([workshopId])
+  @@index([status])
+}
+
+/// Itemized Task inside a Work Order
+model WorkOrderTask {
+  id           Int        @id @default(autoincrement())
+  workOrderId  String     @map("work_order_id")
+  workOrder    WorkOrder  @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  taskName     String     @map("task_name")
+  description  String?
+  assignedToId Int?       @map("assigned_to_id")
+  assignedTo   User?      @relation(fields: [assignedToId], references: [id])
+  status       String     @default("PENDING")
+  estimatedMin Int?       @map("estimated_min")
+  actualMin    Int?       @map("actual_min")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  @@map("work_order_tasks")
+  @@index([workOrderId])
+}
+
+/// Preventative Maintenance Schedule Trigger
+model MaintenanceSchedule {
+  id             String    @id @default(uuid()) @map("schedule_id")
+  tenantId       String    @default("TNT-DEFAULT") @map("tenant_id")
+  organizationId String    @default("ORG-DEFAULT") @map("organization_id")
+  vehicleClass   String    @map("vehicle_class")
+  serviceName    String    @map("service_name")
+  intervalKm     Int?      @map("interval_km")
+  intervalDays   Int?      @map("interval_days")
+  isActive       Boolean   @default(true) @map("is_active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@map("maintenance_schedules")
+  @@index([tenantId, organizationId])
+  @@index([vehicleClass])
 }

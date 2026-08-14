@@ -18,18 +18,25 @@ const can = (perm) => currentUser?.permissions?.includes(perm) ?? false;
 const NAV_MAP = {
   'SUPER_ADMIN': [
     { label: 'Admin Panel', icon: '', action: () => showDashboard('dashboard-super-admin', 'System Administration', 'User accounts, permissions & scope configuration') },
+    { label: 'Work Orders', icon: '🛠️', action: () => showDashboard('dashboard-workshop', 'Workshop Intelligence', 'Maintenance Work Orders & Scheduling Execution') },
   ],
   'CEO': [
     { label: 'Executive Dashboard', icon: '', action: () => showDashboard('dashboard-ceo', 'Executive Intelligence', 'Organisation fleet availability, costs & risk metrics') },
   ],
   'FLEET_MANAGER': [
     { label: 'Fleet Operations', icon: '', action: () => showDashboard('dashboard-fleet-manager', 'Fleet Operations', `Region: ${currentUser?.region || 'All'} · Depot: ${currentUser?.depot || 'All'}`) },
+    { label: 'Work Orders', icon: '🛠️', action: () => showDashboard('dashboard-workshop', 'Workshop Intelligence', 'Maintenance Work Orders & Scheduling Execution') },
+  ],
+  'WORKSHOP_MANAGER': [
+    { label: 'Work Orders', icon: '🛠️', action: () => showDashboard('dashboard-workshop', 'Workshop Operations', 'Maintenance Work Orders & Scheduling Execution') },
   ],
   'TYRE_SUPERVISOR': [
     { label: 'Tyre Control Center', icon: '', action: () => showDashboard('dashboard-tyre-supervisor', 'Tyre Supervisor Operations', `Workshop: ${currentUser?.workshopId || 'Nairobi Central Workshop'}`) },
+    { label: 'Work Orders', icon: '🛠️', action: () => showDashboard('dashboard-workshop', 'Workshop Intelligence', 'Maintenance Work Orders & Scheduling Execution') },
   ],
   'TYRE_TECHNICIAN': [
     { label: 'Workshop', icon: '', action: () => showDashboard('dashboard-technician', 'Workshop Dashboard', `Depot: ${currentUser?.depot || 'All'}`) },
+    { label: 'Work Orders', icon: '🛠️', action: () => showDashboard('dashboard-workshop', 'Workshop Intelligence', 'Maintenance Work Orders & Scheduling Execution') },
   ],
   'FINANCE_MANAGER': [
     { label: 'Financial Intelligence', icon: '', action: () => showDashboard('dashboard-finance', 'Financial Intelligence', 'Budgets, actual expenditure & variance analysis') },

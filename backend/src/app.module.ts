@@ -14,6 +14,8 @@ import { UserModule } from './user/user.module';
 import { SystemAdminModule } from './admin/system-admin.module';
 import { KpiGovernanceModule } from './kpi/kpi-governance.module';
 import { ReportingModule } from './reporting/reporting.module';
+import { EventsModule } from './events/events.module';
+import { WorkflowModule } from './workflow/workflow.module';
 
 @Module({
   imports: [
@@ -33,6 +35,8 @@ import { ReportingModule } from './reporting/reporting.module';
     SystemAdminModule,
     KpiGovernanceModule,
     ReportingModule,
+    EventsModule,
+    WorkflowModule,
   ],
   controllers: [AppController],
   providers: [AppService],

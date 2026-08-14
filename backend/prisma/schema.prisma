@@ -10,6 +10,89 @@ datasource db {
 }
 
 // ============================================================
+// FI360 PLATFORM FOUNDATION CORE — TENANT, ORG & LEGAL ENTITY
+// ============================================================
+
+/// Multi-tenant top-level isolation entity
+model Tenant {
+  id        String   @id @default(uuid()) @map("tenant_id")
+  code      String   @unique @default("TNT-DEFAULT")
+  name      String   @default("FI360 Default Tenant")
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  organizations Organization[]
+
+  @@map("tenants")
+}
+
+/// Organization unit within a Tenant
+model Organization {
+  id        String   @id @default(uuid()) @map("organization_id")
+  tenantId  String   @map("tenant_id")
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  code      String   @unique @default("ORG-DEFAULT")
+  name      String   @default("FI360 Fleet Organization")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  legalEntities LegalEntity[]
+
+  @@map("organizations")
+  @@index([tenantId])
+}
+
+/// Legal Entity operating under an Organization
+model LegalEntity {
+  id             String       @id @default(uuid()) @map("legal_entity_id")
+  organizationId String       @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  code           String       @unique @default("LEG-DEFAULT")
+  name           String       @default("FI360 Logistics Ltd")
+  currency       String       @default("KES")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  @@map("legal_entities")
+  @@index([organizationId])
+}
+
+/// Dedicated Driver entity (Separate concept from System User identity)
+model Driver {
+  id            String    @id @default(uuid()) @map("driver_id")
+  userId        Int?      @map("user_id")                               // Optional link to system User account
+  driverNumber  String    @unique @map("driver_number")                 // e.g. "DRV-001"
+  firstName     String    @map("first_name")
+  lastName      String    @map("last_name")
+  licenceNumber String?   @map("licence_number")
+  licenceExpiry DateTime? @map("licence_expiry")
+  status        String    @default("ACTIVE")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@map("drivers")
+}
+
+/// Historical Vehicle-Workshop Assignment Ledger
+model VehicleWorkshopAssignment {
+  id           Int       @id @default(autoincrement())
+  vehicleId    String    @map("vehicle_id")
+  vehicle      Vehicle   @relation(fields: [vehicleId], references: [id])
+  workshopId   String    @map("workshop_id")
+  workshop     Workshop  @relation(fields: [workshopId], references: [id])
+  assignedAt   DateTime  @default(now()) @map("assigned_at")
+  unassignedAt DateTime? @map("unassigned_at")
+  assignedBy   String?   @map("assigned_by")
+  reason       String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@map("vehicle_workshop_assignments")
+  @@index([vehicleId])
+  @@index([workshopId])
+}
+
+// ============================================================
 // FI360 PLATFORM — WORKSHOP ENTITY
 // First-class workshop within Org → Region → Depot → Workshop
 // Region and Depot are currently plain strings (not entities).
@@ -35,6 +118,7 @@ model Workshop {
   // Relations
   vehicles        Vehicle[]
   users           User[]
+  workshopAssignments VehicleWorkshopAssignment[]
 
   @@map("workshops")
   @@index([region])
@@ -74,10 +158,11 @@ model Vehicle {
   createdBy         String?       @map("created_by")
   updatedBy         String?       @map("updated_by")
 
-  // Relations to tyre module
+  // Relations to tyre module & platform ledger
   tyreFitments      TyreFitment[]
   tyreInspections   TyreInspection[]
   tyreDefects       TyreDefect[]
+  workshopAssignments VehicleWorkshopAssignment[]
 
   @@map("vehicles")
   @@index([region])

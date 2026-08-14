@@ -17,6 +17,8 @@ import {
 } from './dto';
 import { DataScopeContext } from '../auth/data-scope.service';
 import { KpiGovernanceService } from '../kpi/kpi-governance.service';
+import { EventPublisherService } from '../events/event-publisher.service';
+import { ApprovalWorkflowService } from '../workflow/approval-workflow.service';
 
 @Injectable()
 export class TyreService {
@@ -25,6 +27,8 @@ export class TyreService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly kpiGovernance: KpiGovernanceService,
+    private readonly eventPublisher: EventPublisherService,
+    private readonly workflowService: ApprovalWorkflowService,
   ) {}
 
   // ──────────────────────────────────────────────
@@ -99,6 +103,21 @@ export class TyreService {
         toStatus: TyreStatus.IN_STOCK,
         performedBy: userId,
         notes: `Registered physical tyre ${identifier}. Defaulted to IN_STOCK.`,
+      },
+    });
+
+    // Publish standardized FI360 Domain Event
+    await this.eventPublisher.publish({
+      eventType: 'tyre.registered',
+      entityId: String(tyre.id),
+      entityType: 'Tyre',
+      actorId: userId,
+      payload: {
+        tyreId: tyre.id,
+        tyreIdentifier: tyre.tyreIdentifier,
+        brand: tyre.brand,
+        size: tyre.size,
+        status: tyre.currentStatus,
       },
     });
 
@@ -307,6 +326,21 @@ export class TyreService {
       },
     });
 
+    // Publish standardized FI360 Domain Event
+    await this.eventPublisher.publish({
+      eventType: 'tyre.fitted',
+      entityId: String(resolvedTyreId),
+      entityType: 'Tyre',
+      actorId: userId,
+      payload: {
+        tyreId: resolvedTyreId,
+        tyreIdentifier: tyre.tyreIdentifier,
+        vehicleId: targetVehicleId,
+        positionCode: dto.positionCode || posMeta.code,
+        fitmentOdometer: dto.fitmentOdometer,
+      },
+    });
+
     this.logger.log(
       `Tyre ${tyre.tyreIdentifier} fitted to vehicle ${targetVehicleId} position ${dto.positionId}`,
     );
@@ -365,6 +399,21 @@ export class TyreService {
         reason: dto.removalReason,
         performedBy: dto.removedBy || userId,
         notes: dto.notes,
+      },
+    });
+
+    // Publish standardized FI360 Domain Event
+    await this.eventPublisher.publish({
+      eventType: 'tyre.removed',
+      entityId: String(fitment.tyreId),
+      entityType: 'Tyre',
+      actorId: userId,
+      payload: {
+        tyreId: fitment.tyreId,
+        tyreIdentifier: fitment.tyre.tyreIdentifier,
+        vehicleId: fitment.vehicleId,
+        removalReason: dto.removalReason,
+        removalOdometer: dto.removalOdometer,
       },
     });
 

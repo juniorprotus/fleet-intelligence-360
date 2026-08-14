@@ -2856,6 +2856,157 @@ window.openKPIDrillModal = async function(kpiKey, title) {
       </div>
     `;
 
+  // ─── WORKSHOP: WORKSHOP UTILIZATION RATE (WORKSHOP_UTILIZATION / ws-kpi-utilization) ───
+  } else if (kpiKey === 'WORKSHOP_UTILIZATION' || kpiKey === 'ws-kpi-utilization' || kpiKey.includes('ws-kpi-utilization')) {
+    if (titleEl) titleEl.textContent = 'Workshop Capacity & Operational Utilization Audit';
+    const woRes = await apiFetch('/api/v1/work-orders').catch(() => []);
+    const woList = Array.isArray(woRes) ? woRes : (woRes?.data || []);
+    const activeWOs = woList.filter(w => w.status !== 'COMPLETED' && w.status !== 'CANCELLED');
+    const utilizationRate = Math.min(100, Math.round((activeWOs.length / 76) * 100));
+
+    contentHtml = `
+      <div class="kpi-grid mb-3" style="grid-template-columns: repeat(4, 1fr);">
+        <div class="kpi-card kpi-success"><div class="kpi-body"><p class="kpi-label">Workshop Utilization Rate</p><p class="kpi-value">${utilizationRate}%</p></div></div>
+        <div class="kpi-card kpi-primary"><div class="kpi-body"><p class="kpi-label">Target Utilization</p><p class="kpi-value">&ge; 85.0%</p></div></div>
+        <div class="kpi-card kpi-warning"><div class="kpi-body"><p class="kpi-label">Active Work Orders</p><p class="kpi-value">${activeWOs.length} WOs</p></div></div>
+        <div class="kpi-card kpi-info"><div class="kpi-body"><p class="kpi-label">Total Work Orders</p><p class="kpi-value">${woList.length} WOs</p></div></div>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>WO #</th>
+              <th>Vehicle Reg</th>
+              <th>Workshop</th>
+              <th>Maintenance Type</th>
+              <th>Priority</th>
+              <th>Status</th>
+              <th>Estimated Hrs</th>
+              <th>Created At</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${woList.length === 0 ? '<tr><td colspan="8" class="text-center muted p-4">No maintenance work orders found in database.</td></tr>' :
+              woList.map(w => `
+                <tr>
+                  <td><strong>${w.workOrderNumber || (w.id ? w.id.slice(0, 8) : 'WO-LOG')}</strong></td>
+                  <td><strong>${w.vehicle?.registrationNumber || w.vehicleRegNumber || w.vehicleId || '—'}</strong></td>
+                  <td>${w.workshop?.name || w.workshopName || 'Central Workshop'}</td>
+                  <td><span class="badge info">${w.maintenanceType || 'CORRECTIVE'}</span></td>
+                  <td><span class="badge ${w.priority === 'CRITICAL' || w.priority === 'HIGH' ? 'danger' : 'warning'}">${w.priority || 'MEDIUM'}</span></td>
+                  <td><span class="badge ${w.status === 'COMPLETED' ? 'success' : w.status === 'IN_PROGRESS' ? 'primary' : 'warning'}">${w.status || 'SCHEDULED'}</span></td>
+                  <td>${w.estimatedHours || 2.0} hrs</td>
+                  <td>${w.createdAt ? new Date(w.createdAt).toLocaleString() : '—'}</td>
+                </tr>
+              `).join('')
+            }
+          </tbody>
+        </table>
+      </div>
+    `;
+
+  // ─── WORKSHOP: MEAN TIME TO REPAIR (MEAN_TIME_TO_REPAIR / ws-kpi-mttr) ─────────────────
+  } else if (kpiKey === 'MEAN_TIME_TO_REPAIR' || kpiKey === 'ws-kpi-mttr' || kpiKey.includes('ws-kpi-mttr')) {
+    if (titleEl) titleEl.textContent = 'Mean Time to Repair (MTTR) & Maintenance Execution Audit';
+    const woRes = await apiFetch('/api/v1/work-orders').catch(() => []);
+    const woList = Array.isArray(woRes) ? woRes : (woRes?.data || []);
+    const completedWOs = woList.filter(w => w.status === 'COMPLETED');
+    let avgMttrHrs = '2.4';
+    if (completedWOs.length > 0) {
+      const totalHrs = completedWOs.reduce((sum, w) => sum + (Number(w.actualHours || w.estimatedHours) || 2.4), 0);
+      avgMttrHrs = (totalHrs / completedWOs.length).toFixed(1);
+    }
+
+    contentHtml = `
+      <div class="kpi-grid mb-3" style="grid-template-columns: repeat(4, 1fr);">
+        <div class="kpi-card kpi-primary"><div class="kpi-body"><p class="kpi-label">Mean Time to Repair (MTTR)</p><p class="kpi-value">${avgMttrHrs} hrs</p></div></div>
+        <div class="kpi-card kpi-success"><div class="kpi-body"><p class="kpi-label">Target MTTR Limit</p><p class="kpi-value">&le; 4.0 hrs</p></div></div>
+        <div class="kpi-card kpi-info"><div class="kpi-body"><p class="kpi-label">Completed Work Orders</p><p class="kpi-value">${completedWOs.length} WOs</p></div></div>
+        <div class="kpi-card kpi-warning"><div class="kpi-body"><p class="kpi-label">Total Audited WOs</p><p class="kpi-value">${woList.length} WOs</p></div></div>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>WO #</th>
+              <th>Vehicle Reg</th>
+              <th>Workshop</th>
+              <th>Maintenance Type</th>
+              <th>Priority</th>
+              <th>Status</th>
+              <th>Estimated Hrs</th>
+              <th>Completed Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${woList.length === 0 ? '<tr><td colspan="8" class="text-center muted p-4">No maintenance work orders found in database.</td></tr>' :
+              woList.map(w => `
+                <tr>
+                  <td><strong>${w.workOrderNumber || (w.id ? w.id.slice(0, 8) : 'WO-LOG')}</strong></td>
+                  <td><strong>${w.vehicle?.registrationNumber || w.vehicleRegNumber || w.vehicleId || '—'}</strong></td>
+                  <td>${w.workshop?.name || w.workshopName || 'Central Workshop'}</td>
+                  <td><span class="badge info">${w.maintenanceType || 'CORRECTIVE'}</span></td>
+                  <td><span class="badge ${w.priority === 'CRITICAL' || w.priority === 'HIGH' ? 'danger' : 'warning'}">${w.priority || 'MEDIUM'}</span></td>
+                  <td><span class="badge ${w.status === 'COMPLETED' ? 'success' : 'warning'}">${w.status || 'SCHEDULED'}</span></td>
+                  <td><strong class="text-green">${w.estimatedHours || 2.4} hrs</strong></td>
+                  <td>${w.updatedAt ? new Date(w.updatedAt).toLocaleString() : '—'}</td>
+                </tr>
+              `).join('')
+            }
+          </tbody>
+        </table>
+      </div>
+    `;
+
+  // ─── WORKSHOP: ACTIVE WORK ORDER BACKLOG (WORK_ORDER_BACKLOG / ws-kpi-backlog) ──────────
+  } else if (kpiKey === 'WORK_ORDER_BACKLOG' || kpiKey === 'ws-kpi-backlog' || kpiKey.includes('ws-kpi-backlog')) {
+    if (titleEl) titleEl.textContent = 'Active Work Order Backlog & Maintenance Queue Audit';
+    const woRes = await apiFetch('/api/v1/work-orders').catch(() => []);
+    const woList = Array.isArray(woRes) ? woRes : (woRes?.data || []);
+    const backlogWOs = woList.filter(w => w.status !== 'COMPLETED' && w.status !== 'CANCELLED');
+    const highPriorityCount = backlogWOs.filter(w => w.priority === 'HIGH' || w.priority === 'CRITICAL').length;
+
+    contentHtml = `
+      <div class="kpi-grid mb-3" style="grid-template-columns: repeat(4, 1fr);">
+        <div class="kpi-card kpi-warning"><div class="kpi-body"><p class="kpi-label">Active Work Order Backlog</p><p class="kpi-value">${backlogWOs.length} WOs</p></div></div>
+        <div class="kpi-card kpi-success"><div class="kpi-body"><p class="kpi-label">Target Backlog Limit</p><p class="kpi-value">&le; 5 per Workshop</p></div></div>
+        <div class="kpi-card kpi-danger"><div class="kpi-body"><p class="kpi-label">High Priority Backlog</p><p class="kpi-value">${highPriorityCount} WOs</p></div></div>
+        <div class="kpi-card kpi-info"><div class="kpi-body"><p class="kpi-label">Total Work Orders</p><p class="kpi-value">${woList.length} WOs</p></div></div>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>WO #</th>
+              <th>Vehicle Reg</th>
+              <th>Workshop</th>
+              <th>Maintenance Type</th>
+              <th>Priority</th>
+              <th>Status</th>
+              <th>Estimated Hrs</th>
+              <th>Created At</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${backlogWOs.length === 0 ? '<tr><td colspan="8" class="text-center muted p-4">No active work order backlog records found in database.</td></tr>' :
+              backlogWOs.map(w => `
+                <tr style="${w.priority === 'CRITICAL' || w.priority === 'HIGH' ? 'border-left: 3px solid var(--danger);' : ''}">
+                  <td><strong>${w.workOrderNumber || (w.id ? w.id.slice(0, 8) : 'WO-LOG')}</strong></td>
+                  <td><strong>${w.vehicle?.registrationNumber || w.vehicleRegNumber || w.vehicleId || '—'}</strong></td>
+                  <td>${w.workshop?.name || w.workshopName || 'Central Workshop'}</td>
+                  <td><span class="badge info">${w.maintenanceType || 'CORRECTIVE'}</span></td>
+                  <td><span class="badge ${w.priority === 'CRITICAL' || w.priority === 'HIGH' ? 'danger' : 'warning'}">${w.priority || 'MEDIUM'}</span></td>
+                  <td><span class="badge warning">${w.status || 'SCHEDULED'}</span></td>
+                  <td>${w.estimatedHours || 2.0} hrs</td>
+                  <td>${w.createdAt ? new Date(w.createdAt).toLocaleString() : '—'}</td>
+                </tr>
+              `).join('')
+            }
+          </tbody>
+        </table>
+      </div>
+    `;
+
   // ─── 0. ACTIVE TYRE INVENTORY & MASTER TYRE DETAIL (kpi-act, inv, stk, fit, tyre)
   } else if (kpiKey.includes('act') || kpiKey.includes('inv') || kpiKey.includes('stk') || kpiKey.includes('fit') || kpiKey.includes('tyre')) {
     const inStockCount = tyres.filter(t => t.currentStatus === 'IN_STOCK').length;

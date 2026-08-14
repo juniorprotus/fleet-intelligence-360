@@ -2901,28 +2901,44 @@ window.verifyFitmentAction = async function(id, status, type) {
 };
 
 // ─── Mobile Navigation State Mechanism ────────────────────────────────────────
+let savedScrollY = 0;
+
 function openMobileSidebar() {
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('mobile-nav-overlay');
   const toggleBtn = document.getElementById('sidebar-toggle');
-  if (sidebar) sidebar.classList.add('mobile-open');
-  if (overlay) {
-    overlay.classList.add('active');
-    overlay.setAttribute('aria-hidden', 'false');
+  if (sidebar && !sidebar.classList.contains('mobile-open')) {
+    savedScrollY = window.scrollY || window.pageYOffset || 0;
+    sidebar.classList.add('mobile-open');
+    if (overlay) {
+      overlay.classList.add('active');
+      overlay.setAttribute('aria-hidden', 'false');
+    }
+    if (toggleBtn) {
+      toggleBtn.setAttribute('aria-expanded', 'true');
+      toggleBtn.setAttribute('aria-label', 'Close navigation');
+    }
+    document.body.style.overflow = 'hidden';
   }
-  if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'true');
 }
 
 function closeMobileSidebar() {
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('mobile-nav-overlay');
   const toggleBtn = document.getElementById('sidebar-toggle');
-  if (sidebar) sidebar.classList.remove('mobile-open');
-  if (overlay) {
-    overlay.classList.remove('active');
-    overlay.setAttribute('aria-hidden', 'true');
+  if (sidebar && sidebar.classList.contains('mobile-open')) {
+    sidebar.classList.remove('mobile-open');
+    if (overlay) {
+      overlay.classList.remove('active');
+      overlay.setAttribute('aria-hidden', 'true');
+    }
+    if (toggleBtn) {
+      toggleBtn.setAttribute('aria-expanded', 'false');
+      toggleBtn.setAttribute('aria-label', 'Open navigation');
+    }
+    document.body.style.overflow = '';
+    window.scrollTo(0, savedScrollY);
   }
-  if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
 }
 
 function toggleSidebar() {

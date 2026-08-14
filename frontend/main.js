@@ -881,17 +881,30 @@ async function loadWorkshopDashboard() {
     tbody.innerHTML = '<tr><td colspan="8" class="text-center muted">Loading Work Orders...</td></tr>';
   }
   try {
-    const [woRes, summaryRes] = await Promise.all([
+    const [woRes, summaryRes, vehRes] = await Promise.all([
       apiFetch('/api/v1/work-orders').catch(() => []),
       apiFetch('/api/v1/workorders/summary').catch(() => null),
+      apiFetch('/api/v1/vehicles').catch(() => []),
     ]);
 
     const list = Array.isArray(woRes) ? woRes : (woRes?.data || []);
+    const vehiclesList = Array.isArray(vehRes) ? vehRes : (vehRes?.data || []);
     const summary = summaryRes || {};
 
-    setText('ws-val-utilization', summary.utilizationRate != null ? `${summary.utilizationRate}%` : 'N/A — Insufficient Data');
-    setText('ws-val-mttr', summary.mttrHours != null ? `${summary.mttrHours} hrs` : 'N/A — Insufficient Data');
-    setText('ws-val-backlog', `${summary.openWorkOrders ?? list.filter(w => w.status !== 'COMPLETED' && w.status !== 'CANCELLED').length} WOs`);
+    const activeWOs = list.filter(w => w.status !== 'COMPLETED' && w.status !== 'CANCELLED');
+    const totalVehicles = vehiclesList.length;
+    const calcUtilization = totalVehicles > 0 ? Math.min(100, Math.round((activeWOs.length / totalVehicles) * 100)) : null;
+
+    const completedWOsWithHours = list.filter(w => w.status === 'COMPLETED' && (w.actualHours != null || w.estimatedHours != null));
+    let calcMttr = null;
+    if (completedWOsWithHours.length > 0) {
+      const totalHours = completedWOsWithHours.reduce((sum, w) => sum + Number(w.actualHours ?? w.estimatedHours), 0);
+      calcMttr = (totalHours / completedWOsWithHours.length).toFixed(1);
+    }
+
+    setText('ws-val-utilization', summary.utilizationRate != null ? `${summary.utilizationRate}%` : (calcUtilization != null ? `${calcUtilization}%` : 'N/A — Insufficient Data'));
+    setText('ws-val-mttr', summary.mttrHours != null ? `${summary.mttrHours} hrs` : (calcMttr != null ? `${calcMttr} hrs` : 'N/A — Insufficient Data'));
+    setText('ws-val-backlog', `${summary.openWorkOrders ?? activeWOs.length} WOs`);
 
     if (tbody) {
       if (list.length === 0) {
@@ -2859,17 +2872,22 @@ window.openKPIDrillModal = async function(kpiKey, title) {
   // ─── WORKSHOP: WORKSHOP UTILIZATION RATE (WORKSHOP_UTILIZATION / ws-kpi-utilization) ───
   } else if (kpiKey === 'WORKSHOP_UTILIZATION' || kpiKey === 'ws-kpi-utilization' || kpiKey.includes('ws-kpi-utilization')) {
     if (titleEl) titleEl.textContent = 'Workshop Capacity & Operational Utilization Audit';
-    const woRes = await apiFetch('/api/v1/work-orders').catch(() => []);
+    const [woRes, vehRes] = await Promise.all([
+      apiFetch('/api/v1/work-orders').catch(() => []),
+      apiFetch('/api/v1/vehicles').catch(() => []),
+    ]);
     const woList = Array.isArray(woRes) ? woRes : (woRes?.data || []);
+    const vehList = Array.isArray(vehRes) ? vehRes : (vehRes?.data || []);
     const activeWOs = woList.filter(w => w.status !== 'COMPLETED' && w.status !== 'CANCELLED');
-    const utilizationRate = Math.min(100, Math.round((activeWOs.length / 76) * 100));
+    const totalVehicles = vehList.length;
+    const utilizationRate = totalVehicles > 0 ? Math.min(100, Math.round((activeWOs.length / totalVehicles) * 100)) : 'N/A';
 
     contentHtml = `
       <div class="kpi-grid mb-3" style="grid-template-columns: repeat(4, 1fr);">
         <div class="kpi-card kpi-success"><div class="kpi-body"><p class="kpi-label">Workshop Utilization Rate</p><p class="kpi-value">${utilizationRate}%</p></div></div>
         <div class="kpi-card kpi-primary"><div class="kpi-body"><p class="kpi-label">Target Utilization</p><p class="kpi-value">&ge; 85.0%</p></div></div>
         <div class="kpi-card kpi-warning"><div class="kpi-body"><p class="kpi-label">Active Work Orders</p><p class="kpi-value">${activeWOs.length} WOs</p></div></div>
-        <div class="kpi-card kpi-info"><div class="kpi-body"><p class="kpi-label">Total Work Orders</p><p class="kpi-value">${woList.length} WOs</p></div></div>
+        <div class="kpi-card kpi-info"><div class="kpi-body"><p class="kpi-label">Authorized Fleet Vehicles</p><p class="kpi-value">${totalVehicles} Vehicles</p></div></div>
       </div>
       <div class="table-container">
         <table>
@@ -2895,7 +2913,7 @@ window.openKPIDrillModal = async function(kpiKey, title) {
                   <td><span class="badge info">${w.maintenanceType || 'CORRECTIVE'}</span></td>
                   <td><span class="badge ${w.priority === 'CRITICAL' || w.priority === 'HIGH' ? 'danger' : 'warning'}">${w.priority || 'MEDIUM'}</span></td>
                   <td><span class="badge ${w.status === 'COMPLETED' ? 'success' : w.status === 'IN_PROGRESS' ? 'primary' : 'warning'}">${w.status || 'SCHEDULED'}</span></td>
-                  <td>${w.estimatedHours || 2.0} hrs</td>
+                  <td>${w.estimatedHours != null ? w.estimatedHours + ' hrs' : '—'}</td>
                   <td>${w.createdAt ? new Date(w.createdAt).toLocaleString() : '—'}</td>
                 </tr>
               `).join('')
@@ -2910,11 +2928,11 @@ window.openKPIDrillModal = async function(kpiKey, title) {
     if (titleEl) titleEl.textContent = 'Mean Time to Repair (MTTR) & Maintenance Execution Audit';
     const woRes = await apiFetch('/api/v1/work-orders').catch(() => []);
     const woList = Array.isArray(woRes) ? woRes : (woRes?.data || []);
-    const completedWOs = woList.filter(w => w.status === 'COMPLETED');
-    let avgMttrHrs = '2.4';
-    if (completedWOs.length > 0) {
-      const totalHrs = completedWOs.reduce((sum, w) => sum + (Number(w.actualHours || w.estimatedHours) || 2.4), 0);
-      avgMttrHrs = (totalHrs / completedWOs.length).toFixed(1);
+    const completedWOsWithHours = woList.filter(w => w.status === 'COMPLETED' && (w.actualHours != null || w.estimatedHours != null));
+    let avgMttrHrs = 'N/A — Insufficient Data';
+    if (completedWOsWithHours.length > 0) {
+      const totalHrs = completedWOsWithHours.reduce((sum, w) => sum + Number(w.actualHours ?? w.estimatedHours), 0);
+      avgMttrHrs = `${(totalHrs / completedWOsWithHours.length).toFixed(1)} hrs`;
     }
 
     contentHtml = `

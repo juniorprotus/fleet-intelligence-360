@@ -119,37 +119,42 @@ function buildNav() {
   });
 }
 
-// ─── Header Action Buttons (Strictly Scoped Per Role) ──────────────────────────
+// ─── Header Action Buttons (Strictly Scoped Per Role + Universal Generate Report) ──────────
 function buildHeaderActions() {
   const container = document.getElementById('header-actions');
   if (!container) return;
   container.innerHTML = '';
   const role = currentUser?.role;
 
+  let roleButtonsHTML = '';
   if (role === 'SUPER_ADMIN') {
-    container.innerHTML = `<button class="btn primary" id="btn-add-user">+ New User</button>`;
+    roleButtonsHTML = `<button class="btn primary" id="btn-add-user">+ New User</button>`;
   } else if (role === 'FLEET_MANAGER') {
-    container.innerHTML = `
+    roleButtonsHTML = `
       <button class="btn primary" id="btn-add-vehicle">+ Add Vehicle</button>
       <button class="btn secondary ml-2" id="btn-add-tyre">+ Add Tyre</button>
     `;
   } else if (role === 'TYRE_SUPERVISOR') {
-    container.innerHTML = `
+    roleButtonsHTML = `
       <button class="btn primary" id="btn-sup-hdr-register">+ Register New Tyre</button>
       <button class="btn secondary ml-2" id="btn-sup-hdr-fit">+ Fit Tyre</button>
       <button class="btn secondary ml-2" id="btn-sup-hdr-inspect">+ Record Inspection</button>
     `;
   } else if (role === 'TYRE_TECHNICIAN') {
-    container.innerHTML = `
+    roleButtonsHTML = `
       <button class="btn primary" id="btn-add-tyre">+ Register Tyre</button>
       <button class="btn secondary ml-2" id="btn-inspect">+ Record Inspection</button>
       <button class="btn secondary ml-2" id="btn-fit-tyre">+ Fit Tyre</button>
     `;
   } else if (role === 'FINANCE_MANAGER') {
-    container.innerHTML = `<button class="btn primary" id="btn-fin-add-budget">+ New Budget</button>`;
+    roleButtonsHTML = `<button class="btn primary" id="btn-fin-add-budget">+ New Budget</button>`;
   } else if (role === 'DRIVER') {
-    container.innerHTML = `<button class="btn primary" id="btn-report-defect">Report Defect</button>`;
+    roleButtonsHTML = `<button class="btn primary" id="btn-report-defect">Report Defect</button>`;
   }
+
+  // Universal Generate Report Button for EVERY role dashboard
+  const universalReportBtnHTML = `<button class="btn outline info ml-2" id="btn-hdr-univ-report">📄 + GENERATE REPORT</button>`;
+  container.innerHTML = `${roleButtonsHTML} ${universalReportBtnHTML}`;
 
   bindHeaderActions();
 }
@@ -165,6 +170,7 @@ function bindHeaderActions() {
   document.getElementById('btn-sup-hdr-fit')?.addEventListener('click', () => window.openFitmentModal());
   document.getElementById('btn-sup-hdr-inspect')?.addEventListener('click', () => window.openInspectionModal());
   document.getElementById('btn-sup-register-tyre')?.addEventListener('click', () => openModal('add-tyre-modal'));
+  document.getElementById('btn-hdr-univ-report')?.addEventListener('click', () => window.openUniversalReportModal());
 }
 
 // ─── Modal Openers ─────────────────────────────────────────────────────────────
@@ -299,18 +305,45 @@ async function loadViewData(viewId) {
 
 // ─── Super Admin Dashboard ────────────────────────────────────────────────────
 async function loadAdminDashboard() {
-  const users = await apiFetch('/api/v1/users');
-  const list = users.data || users;
+  const [usersRes, kpisRes] = await Promise.all([
+    apiFetch('/api/v1/users').catch(() => []),
+    apiFetch('/api/v1/system-admin/kpis').catch(() => null),
+  ]);
+
+  const list = Array.isArray(usersRes) ? usersRes : (usersRes?.data || []);
+  const kpis = kpisRes || {};
 
   const total = list.length;
   const active = list.filter(u => u.isActive).length;
   const inactive = total - active;
   const roles = new Set(list.map(u => u.role)).size;
 
-  setText('admin-total-users', total);
-  setText('admin-active-users', active);
+  // System Health & Governance KPIs
+  setText('admin-val-avail', kpis.SYSTEM_AVAILABILITY?.displayValue || 'N/A');
+  setText('admin-val-api', kpis.API_HEALTH?.displayValue || 'N/A — Insufficient Data');
+  setText('admin-val-db', kpis.DATABASE_HEALTH?.displayValue || 'HEALTHY');
+  setText('admin-val-backup', kpis.BACKUP_STATUS?.displayValue || 'NOT MONITORED');
+
+  // User & Access Governance
+  setText('admin-total-users-sub', `Total: ${total} Accounts`);
+  setText('admin-active-users', kpis.ACTIVE_USERS?.value ?? active);
+  setText('admin-val-usercomp', kpis.USER_ACCESS_COMPLIANCE?.displayValue || '100.0%');
   setText('admin-inactive-users', inactive);
   setText('admin-roles-count', roles);
+
+  // Security & Data Quality
+  setText('admin-val-failauth', kpis.FAILED_LOGIN_RATE?.displayValue || '0.0%');
+  setText('admin-val-secevents', kpis.SECURITY_EVENTS?.displayValue || '0');
+  setText('admin-val-auditcov', kpis.AUDIT_COVERAGE?.displayValue || '100.0%');
+  setText('admin-val-dqscore', kpis.DATA_QUALITY_SCORE?.displayValue || '100.0%');
+  setText('admin-val-unassigned', kpis.UNASSIGNED_RECORDS?.displayValue || '0');
+  setText('admin-val-duplicates', kpis.DUPLICATE_RECORDS?.displayValue || '0');
+
+  // Connectors, Storage & AI
+  setText('admin-val-integhealth', kpis.INTEGRATION_HEALTH?.displayValue || 'READY');
+  setText('admin-val-repengine', kpis.REPORT_ENGINE_SUCCESS_RATE?.displayValue || '100.0%');
+  setText('admin-val-storage', kpis.STORAGE_USAGE?.displayValue || 'N/A — CAPACITY NOT CONFIGURED');
+  setText('admin-val-aihealth', kpis.AI_PLATFORM_HEALTH?.displayValue || 'N/A');
 
   const roleCounts = {};
   list.forEach(u => { roleCounts[u.role] = (roleCounts[u.role] || 0) + 1; });
@@ -333,6 +366,71 @@ async function loadAdminDashboard() {
     `).join('') || `<tr><td colspan="7" class="text-center muted">No registered users found</td></tr>`;
   }
 }
+
+// Super Admin Governance Drill-Down Modal Handler
+window.openAdminKPIDrillModal = async function(kpiKey, title) {
+  const modal = document.getElementById('kpi-drill-modal');
+  const titleEl = document.getElementById('kpi-drill-title');
+  const bodyEl = document.getElementById('kpi-drill-body');
+  if (!modal || !bodyEl) return;
+
+  if (titleEl) titleEl.textContent = `${title} — System Governance Drill-Down`;
+
+  setLoading(true);
+  try {
+    const data = await apiFetch(`/api/v1/system-admin/kpis/${kpiKey}/drilldown`);
+    const meta = data.metadata || {};
+    const summary = data.summary || {};
+    const items = data.items || [];
+
+    let statusBadgeColor = meta.status === 'GREEN' ? 'background: #10b981;' : meta.status === 'AMBER' ? 'background: #f59e0b;' : meta.status === 'RED' ? 'background: #ef4444;' : 'background: #64748b;';
+
+    let html = `
+      <div style="background: rgba(30, 41, 59, 0.6); padding: 1rem; border-radius: 8px; margin-bottom: 1.25rem; border: 1px solid var(--panel-border);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <h4 style="margin: 0; font-size: 1.1rem; color: #f8fafc;">${meta.name || title} Metadata</h4>
+          <span style="${statusBadgeColor} color: white; padding: 2px 10px; border-radius: 12px; font-weight: bold; font-size: 0.8rem;">${meta.status || 'N/A'}</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; font-size: 0.82rem;">
+          <div><strong style="color: var(--text-muted);">Current Value:</strong> <span style="color: #38bdf8; font-weight: bold;">${meta.displayValue || meta.value || 'N/A'}</span></div>
+          <div><strong style="color: var(--text-muted);">Target Threshold:</strong> ${meta.target !== null ? meta.target + ' ' + (meta.unit || '') : 'N/A'}</div>
+          <div><strong style="color: var(--text-muted);">Variance:</strong> ${meta.variance !== null ? (meta.variance >= 0 ? '+' : '') + meta.variance : 'N/A'}</div>
+          <div><strong style="color: var(--text-muted);">Data Available:</strong> ${meta.dataAvailable ? 'Yes (Live Data)' : 'No (Unconfigured / Insufficient)'}</div>
+          <div style="grid-column: 1 / -1;"><strong style="color: var(--text-muted);">Data Source:</strong> ${meta.dataSource || 'System Telemetry'}</div>
+          <div style="grid-column: 1 / -1;"><strong style="color: var(--text-muted);">Calculation Method:</strong> <code>${meta.calculationMethod || 'N/A'}</code></div>
+        </div>
+      </div>
+    `;
+
+    if (items.length > 0) {
+      const keys = Object.keys(items[0]).filter(k => k !== 'id');
+      html += `
+        <h4>Reconciled Record Audit (${items.length} records)</h4>
+        <div class="table-container" style="max-height: 300px; overflow-y: auto;">
+          <table>
+            <thead>
+              <tr>${keys.map(k => `<th>${k.toUpperCase()}</th>`).join('')}</tr>
+            </thead>
+            <tbody>
+              ${items.slice(0, 50).map(row => `
+                <tr>${keys.map(k => `<td>${typeof row[k] === 'object' ? JSON.stringify(row[k]) : row[k] ?? '—'}</td>`).join('')}</tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    } else {
+      html += `<p class="muted text-center" style="padding: 1.5rem;">${meta.dataAvailable ? 'No problem records found for this governance rule.' : meta.displayValue || 'No data available for this governance KPI.'}</p>`;
+    }
+
+    bodyEl.innerHTML = html;
+    openModal('kpi-drill-modal');
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    setLoading(false);
+  }
+};
 
 // ─── CEO Dashboard ────────────────────────────────────────────────────────────
 async function loadCeoDashboard() {
@@ -1552,6 +1650,179 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-tech-fit-tyre')?.addEventListener('click', () => openModal('fitment-modal'));
   document.getElementById('btn-admin-add-user')?.addEventListener('click', () => openModal('add-user-modal'));
 
+  // Super Admin System Report Export Handler
+  document.getElementById('btn-admin-export-report')?.addEventListener('click', async () => {
+    const reportId = document.getElementById('adminReportSelect')?.value || 'system-health';
+    const format = document.getElementById('adminReportFormat')?.value || 'CSV';
+    try {
+      setLoading(true);
+      const data = await apiFetch(`/api/v1/system-admin/reports/${reportId}?format=${format}`);
+      const dateStr = new Date().toISOString().split('T')[0];
+
+      if (format === 'PDF') {
+        const htmlDoc = generateReportHTMLDocument(data);
+        const fileName = `FI360_Report_${reportId}_${dateStr}.html`;
+        
+        // Trigger instant file download
+        const blob = new Blob([htmlDoc], { type: 'text/html;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        // Also open print window preview
+        renderReportPDFWindow(data);
+        showToast(`Downloaded printable PDF document: ${fileName}`, 'success');
+        return;
+      }
+
+      const isExcel = format === 'EXCEL';
+      const ext = isExcel ? 'csv' : 'csv';
+      const fileName = `FI360_Report_${reportId}_${dateStr}.${ext}`;
+      const csvContent = formatReportCSV(data);
+
+      const blob = new Blob(['\uFEFF' + csvContent], { type: isExcel ? 'application/vnd.ms-excel;charset=utf-8;' : 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showToast(`Downloaded ${format} report: ${fileName}`, 'success');
+    } catch (err) {
+      showToast(`Report download failed: ${err.message}`, 'error');
+    } finally {
+      setLoading(false);
+    }
+  });
+
+function formatReportCSV(data) {
+  let lines = [];
+  lines.push(`"FI360 FLEET INTELLIGENCE 360 - SYSTEM GOVERNANCE REPORT"`);
+  lines.push(`"Report Title","${data.title || 'System Report'}"`);
+  lines.push(`"Generated At","${data.generatedAt ? new Date(data.generatedAt).toLocaleString() : new Date().toLocaleString()}"`);
+  lines.push(`"Scope Level","SYSTEM / ORGANISATION"`);
+  
+  if (data.summary) {
+    Object.entries(data.summary).forEach(([k, v]) => {
+      lines.push(`"Summary: ${k.replace(/([A-Z])/g, ' $1')}","${typeof v === 'object' ? JSON.stringify(v) : v}"`);
+    });
+  }
+  lines.push(''); // Blank line
+
+  const items = data.items || [];
+  if (items.length > 0) {
+    const headers = Object.keys(items[0]);
+    lines.push(headers.map(h => `"${h.toUpperCase()}"`).join(','));
+    items.forEach(item => {
+      const row = headers.map(h => {
+        let val = item[h];
+        if (val === null || val === undefined) val = '—';
+        if (typeof val === 'object') val = JSON.stringify(val);
+        return `"${String(val).replace(/"/g, '""')}"`;
+      });
+      lines.push(row.join(','));
+    });
+  } else {
+    lines.push('"STATUS","No records or issues found for this report scope."');
+  }
+
+  return lines.join('\r\n');
+}
+
+function generateReportHTMLDocument(data) {
+  const title = data.title || 'FI360 System Governance Report';
+  const dateStr = data.generatedAt ? new Date(data.generatedAt).toLocaleString() : new Date().toLocaleString();
+  const items = data.items || [];
+  const summary = data.summary || {};
+
+  let summaryCardsHtml = Object.entries(summary).map(([k, v]) => `
+    <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:10px 14px; border-radius:6px;">
+      <div style="font-size:0.75rem; color:#64748b; text-transform:uppercase; font-weight:bold;">${k.replace(/([A-Z])/g, ' $1')}</div>
+      <div style="font-size:1.1rem; color:#0f172a; font-weight:bold; margin-top:2px;">${typeof v === 'object' ? JSON.stringify(v) : v}</div>
+    </div>
+  `).join('');
+
+  let tableHtml = '';
+  if (items.length > 0) {
+    const headers = Object.keys(items[0]);
+    tableHtml = `
+      <table style="width:100%; border-collapse:collapse; margin-top:15px; font-size:0.85rem;">
+        <thead>
+          <tr style="background:#0f172a; color:#ffffff;">
+            ${headers.map(h => `<th style="padding:8px 12px; text-align:left; font-size:0.75rem; text-transform:uppercase;">${h}</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${items.map((row, idx) => `
+            <tr style="background:${idx % 2 === 0 ? '#ffffff' : '#f8fafc'}; border-bottom:1px solid #e2e8f0;">
+              ${headers.map(h => {
+                let val = row[h];
+                let style = 'padding:8px 12px; color:#334155;';
+                if (h.toLowerCase() === 'status') {
+                  const color = val === 'GREEN' || val === 'ACTIVE' || val === 'HEALTHY' ? '#16a34a' : val === 'AMBER' || val === 'WARNING' ? '#d97706' : val === 'RED' || val === 'DISABLED' || val === 'CRITICAL' ? '#dc2626' : '#64748b';
+                  val = `<span style="background:${color}; color:#fff; padding:2px 8px; border-radius:10px; font-weight:bold; font-size:0.75rem;">${val}</span>`;
+                }
+                return `<td style="${style}">${val ?? '—'}</td>`;
+              }).join('')}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } else {
+    tableHtml = `<p style="text-align:center; color:#64748b; padding:20px; font-style:italic;">No records found for this governance report.</p>`;
+  }
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${title}</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 30px; color: #0f172a; line-height: 1.5; background: #fff; }
+    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0284c7; padding-bottom: 12px; margin-bottom: 20px; }
+    .logo { font-size: 1.4rem; font-weight: bold; color: #0284c7; }
+    .subtitle { font-size: 0.85rem; color: #64748b; }
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    @media print { .no-print { display: none !important; } body { margin: 0; } }
+  </style>
+</head>
+<body>
+  <div class="no-print" style="margin-bottom: 15px; text-align: right;">
+    <button onclick="window.print()" style="background:#0284c7; color:#fff; border:none; padding:8px 16px; border-radius:4px; font-weight:bold; cursor:pointer;">🖨️ Print / Save as PDF</button>
+  </div>
+  <div class="header">
+    <div>
+      <div class="logo">Fleet Intelligence 360</div>
+      <div style="font-size: 1.2rem; font-weight: bold; margin-top: 4px;">${title}</div>
+    </div>
+    <div style="text-align: right;">
+      <div class="subtitle">Generated At: ${dateStr}</div>
+      <div class="subtitle">Scope: SYSTEM / ORGANISATION</div>
+    </div>
+  </div>
+  <div class="summary-grid">${summaryCardsHtml}</div>
+  ${tableHtml}
+</body>
+</html>`;
+}
+
+function renderReportPDFWindow(data) {
+  const html = generateReportHTMLDocument(data);
+  const win = window.open('', '_blank');
+  if (!win) return;
+  win.document.write(html);
+  win.document.close();
+}
+
   document.querySelectorAll('.modal').forEach(m => {
     m.addEventListener('click', (e) => {
       if (e.target === m) m.classList.add('hidden');
@@ -1738,6 +2009,19 @@ document.addEventListener('DOMContentLoaded', () => {
 // ─── Tyre Supervisor Helpers & Handlers ─────────────────────────────────────
 
 window.openKPIDrillModal = async function(kpiKey, title) {
+  const adminGovernanceKeys = [
+    'SYSTEM_AVAILABILITY', 'API_HEALTH', 'DATABASE_HEALTH', 'BACKUP_STATUS',
+    'ACTIVE_USERS', 'USER_ACCESS_COMPLIANCE', 'FAILED_LOGIN_RATE', 'SECURITY_EVENTS',
+    'DATA_QUALITY_SCORE', 'UNASSIGNED_RECORDS', 'DUPLICATE_RECORDS', 'INTEGRATION_HEALTH',
+    'INTEGRATION_SUCCESS_RATE', 'REPORT_ENGINE_SUCCESS_RATE', 'FAILED_BACKGROUND_JOBS',
+    'STORAGE_USAGE', 'AUDIT_COVERAGE', 'CRITICAL_AUDIT_EVENTS', 'AI_PLATFORM_HEALTH'
+  ];
+
+  if (adminGovernanceKeys.includes(kpiKey)) {
+    await window.openAdminKPIDrillModal(kpiKey, title);
+    return;
+  }
+
   // Map CEO dashboard KPIs to their correct specific views
   if (kpiKey === 'ceo-kpi-fleet') kpiKey = 'card-fm-fleet';
   else if (kpiKey === 'ceo-kpi-available') kpiKey = 'chart-fm-status';

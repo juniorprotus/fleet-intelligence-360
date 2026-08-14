@@ -16,12 +16,16 @@ import {
   CreateTyreInspectionDto,
 } from './dto';
 import { DataScopeContext } from '../auth/data-scope.service';
+import { KpiGovernanceService } from '../kpi/kpi-governance.service';
 
 @Injectable()
 export class TyreService {
   private readonly logger = new Logger(TyreService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly kpiGovernance: KpiGovernanceService,
+  ) {}
 
   // ──────────────────────────────────────────────
   // TYRE REGISTRATION & CRUD
@@ -824,4 +828,232 @@ export class TyreService {
       },
     };
   }
+
+  // ──────────────────────────────────────────────
+  // WEEKLY INSPECTION SCHEDULER (7 CALENDAR DAYS POLICY)
+  // & GOVERNED TYRE KPIS
+  // ──────────────────────────────────────────────
+
+  /**
+   * 7-Day Weekly Tyre Inspection Schedule & Compliance
+   */
+  async getWeeklyInspectionSchedule(policyDays = 7) {
+    const fittedTyres = await this.prisma.tyre.findMany({
+      where: { isActive: true, currentStatus: TyreStatus.FITTED },
+      include: { inspections: { orderBy: { inspectionDate: 'desc' }, take: 1 } },
+    });
+
+    const now = new Date();
+    const policyMs = policyDays * 24 * 60 * 60 * 1000;
+
+    let tyresDue = 0;
+    let tyresInspectedOnTime = 0;
+    let tyresOverdue = 0;
+
+    const scheduleList = fittedTyres.map(tyre => {
+      const lastInspection = tyre.inspections[0];
+      const lastDate = lastInspection ? new Date(lastInspection.inspectionDate) : new Date(tyre.createdAt);
+      const nextDueDate = new Date(lastDate.getTime() + policyMs);
+      const isOverdue = now > nextDueDate;
+      const daysOverdue = isOverdue ? Math.floor((now.getTime() - nextDueDate.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+
+      tyresDue++;
+      if (isOverdue) {
+        tyresOverdue++;
+      } else {
+        tyresInspectedOnTime++;
+      }
+
+      return {
+        tyreId: tyre.id,
+        tyreIdentifier: tyre.tyreIdentifier,
+        brand: tyre.brand,
+        size: tyre.size,
+        vehicleId: tyre.currentVehicleId,
+        lastInspectionDate: lastDate,
+        nextInspectionDueDate: nextDueDate,
+        isOverdue,
+        daysOverdue,
+        status: isOverdue ? 'OVERDUE' : 'DUE',
+      };
+    });
+
+    // Tyre-Level Inspection Compliance Formula:
+    // (Tyres Inspected Within 7-Day Window / Tyres Due) * 100
+    const complianceRate = tyresDue > 0 ? Math.round((tyresInspectedOnTime / tyresDue) * 1000) / 10 : 100;
+
+    return {
+      policyDays,
+      summary: {
+        totalFittedTyres: fittedTyres.length,
+        tyresDue,
+        tyresInspectedOnTime,
+        tyresOverdue,
+        compliancePercentage: complianceRate,
+      },
+      schedule: scheduleList,
+    };
+  }
+
+  /**
+   * Scoped Mechanic Weekly Inspection KPI
+   */
+  async getMechanicWeeklyInspectionKPI(userId?: string) {
+    const schedule = await this.getWeeklyInspectionSchedule(7);
+    const summary = schedule.summary;
+
+    return this.kpiGovernance.evaluateKpi({
+      kpiId: 'WEEKLY_TYRE_INSPECTION_COMPLIANCE',
+      name: 'Mechanic Weekly Tyre Inspection Compliance',
+      rawValue: summary.compliancePercentage,
+      unit: '%',
+      formula: '(Tyres Inspected Within 7-Day Window / Tyres Due) * 100',
+      dataSource: 'tyre_inspections table (7 Calendar Days Policy)',
+      target: 95.0,
+      sampleSize: summary.tyresDue,
+      measurementPeriod: '7 Calendar Days Rolling Window',
+      dataCoverage: `${summary.totalFittedTyres} Fitted Tyres Monitored`,
+      isMonitored: true,
+      hasData: summary.tyresDue > 0,
+      customDisplayValue: `${summary.compliancePercentage}% (${summary.tyresInspectedOnTime}/${summary.tyresDue} Tyres Inspected On Time)`,
+    });
+  }
+
+  /**
+   * Governed Tyre KPIs for Executive & Management Dashboards
+   */
+  async getGovernedTyreKPIs() {
+    const [tyres, schedule] = await Promise.all([
+      this.prisma.tyre.findMany({ where: { isActive: true } }),
+      this.getWeeklyInspectionSchedule(7),
+    ]);
+
+    const totalCount = tyres.length;
+    const goodTyres = tyres.filter(t => Number(t.currentTreadDepth || 0) >= Number(t.minimumTreadDepth || 3.0));
+    const healthRate = totalCount > 0 ? Math.round((goodTyres.length / totalCount) * 1000) / 10 : 100;
+
+    const retreaded = tyres.filter(t => t.retreadCount > 0).length;
+    const retreadRatio = totalCount > 0 ? Math.round((retreaded / totalCount) * 1000) / 10 : 0;
+
+    const kpiTyreHealth = this.kpiGovernance.evaluateKpi({
+      kpiId: 'FLEET_TYRE_HEALTH',
+      name: 'Fleet Tyre Health Score',
+      rawValue: healthRate,
+      unit: '%',
+      formula: '(good_tyres_above_min_tread / total_tyres) * 100',
+      dataSource: 'tyres table tread depth readings',
+      target: 95.0,
+      sampleSize: totalCount,
+      isMonitored: true,
+      hasData: totalCount > 0,
+      customDisplayValue: `${healthRate}% (${goodTyres.length}/${totalCount} Tyres Above Legal Limit)`,
+    });
+
+    const kpiCompliance = await this.getMechanicWeeklyInspectionKPI();
+
+    const kpiCostPerKM = this.kpiGovernance.evaluateKpi({
+      kpiId: 'TYRE_COST_PER_KM',
+      name: 'Tyre Cost per Kilometre',
+      rawValue: null,
+      unit: 'KES/km',
+      formula: '(purchaseCost + repairCosts + retreadCosts) / totalKmTraveled',
+      dataSource: 'tyre_fitments, tyres, tyre_movements tables',
+      target: 0.50,
+      isMonitored: true,
+      hasData: false,
+      customDisplayValue: 'N/A — INSUFFICIENT DATA',
+    });
+
+    const kpiRetreadRatio = this.kpiGovernance.evaluateKpi({
+      kpiId: 'RETREAD_RATIO',
+      name: 'Tyre Retread Ratio',
+      rawValue: retreadRatio,
+      unit: '%',
+      formula: '(retreaded_tyres / total_tyres) * 100',
+      dataSource: 'tyres table retreadCount',
+      target: 25.0,
+      sampleSize: totalCount,
+      isMonitored: true,
+      hasData: totalCount > 0,
+      customDisplayValue: `${retreadRatio}% (${retreaded} Retreaded Tyres)`,
+    });
+
+    return {
+      FLEET_TYRE_HEALTH: kpiTyreHealth,
+      WEEKLY_TYRE_INSPECTION_COMPLIANCE: kpiCompliance,
+      TYRE_COST_PER_KM: kpiCostPerKM,
+      RETREAD_RATIO: kpiRetreadRatio,
+    };
+  }
+
+  /**
+   * Tyre Mechanic Work Queue
+   */
+  async getMechanicWorkQueue(userId?: string) {
+    const schedule = await this.getWeeklyInspectionSchedule(7);
+    const pendingInspections = schedule.schedule.filter(s => s.isOverdue || s.daysOverdue >= 0);
+
+    const pendingDefects = await this.prisma.tyreDefect.findMany({
+      where: { status: 'OPEN' },
+      take: 20,
+    });
+
+    return {
+      userId: userId || 'Mechanic',
+      pendingInspectionsCount: pendingInspections.length,
+      pendingDefectsCount: pendingDefects.length,
+      inspectionsQueue: pendingInspections,
+      defectsQueue: pendingDefects,
+    };
+  }
+
+  /**
+   * Tyre Supervisor Work Queue
+   */
+  async getSupervisorWorkQueue(workshopId?: string) {
+    const [unverifiedFitments, unverifiedInspections, openAlerts] = await Promise.all([
+      this.prisma.tyreFitment.findMany({ where: { verificationStatus: 'PENDING' }, take: 20 }),
+      this.prisma.tyreInspection.findMany({ where: { verificationStatus: 'PENDING' }, take: 20 }),
+      this.prisma.tyreAlert.findMany({ where: { status: 'OPEN' }, take: 20 }),
+    ]);
+
+    return {
+      workshopId: workshopId || 'All Workshops',
+      unverifiedFitmentsCount: unverifiedFitments.length,
+      unverifiedInspectionsCount: unverifiedInspections.length,
+      openAlertsCount: openAlerts.length,
+      fitments: unverifiedFitments,
+      inspections: unverifiedInspections,
+      alerts: openAlerts,
+    };
+  }
+
+  /**
+   * Cradle-to-Grave Tyre Lifecycle Timeline
+   */
+  async getTyreLifecycle(id: number) {
+    const tyre = await this.prisma.tyre.findUnique({
+      where: { id },
+      include: {
+        supplier: true,
+        fitments: { orderBy: { fitmentDate: 'desc' } },
+        inspections: { orderBy: { inspectionDate: 'desc' } },
+        movements: { orderBy: { movementDate: 'desc' } },
+        alerts: { orderBy: { createdAt: 'desc' } },
+        defects: { orderBy: { createdAt: 'desc' } },
+      },
+    });
+
+    if (!tyre) throw new NotFoundException(`Tyre ID ${id} not found`);
+
+    return {
+      tyre,
+      timeline: [
+        ...tyre.movements.map(m => ({ type: 'MOVEMENT', date: m.movementDate, detail: `${m.movementType}: ${m.fromStatus || 'INIT'} → ${m.toStatus}` })),
+        ...tyre.inspections.map(i => ({ type: 'INSPECTION', date: i.inspectionDate, detail: `Inspection: Avg Tread ${i.averageTreadDepth}mm, Press ${i.pressure}PSI` })),
+        ...tyre.fitments.map(f => ({ type: 'FITMENT', date: f.fitmentDate, detail: `Fitted to ${f.vehicleId} at Pos ${f.positionCode || f.positionId}` })),
+      ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    };
+  }
 }
+

@@ -29,19 +29,78 @@ export const ROLE_MATRIX: Record<UserRole, RoleConfig> = {
   // ────────────────────────────────────────────────────────────────
   [UserRole.SUPER_ADMIN]: {
     label: 'System Administrator',
-    description: 'User management, system config, integrations, audit',
+    description: 'User management, system config, integrations, governance, audit',
     scopeLevel: ScopeLevel.SYSTEM,
     dashboard: DashboardId.ADMIN_DASHBOARD,
     permissions: [
+      // Users & Security
       Permission.USERS_READ,
       Permission.USERS_CREATE,
       Permission.USERS_UPDATE,
       Permission.USERS_DISABLE,
-      Permission.AUDIT_READ,
+      Permission.USER_ACTIVATE,
+      Permission.USER_DEACTIVATE,
+      Permission.USER_RESET,
+      Permission.USER_ASSIGN_ROLE,
+      Permission.USER_ASSIGN_SCOPE,
+      // System & Governance
       Permission.ADMIN_SYSTEM,
-      Permission.VEHICLE_READ,       // read-only data view for config
-      Permission.TYRE_READ,
+      Permission.SYSTEM_READ,
+      Permission.SYSTEM_CONFIGURE,
+      Permission.SYSTEM_HEALTH_READ,
+      Permission.SYSTEM_SETTINGS_MANAGE,
+      // Roles & RBAC
+      Permission.ROLE_READ,
+      Permission.ROLE_CREATE,
+      Permission.ROLE_UPDATE,
+      Permission.ROLE_PERMISSION_READ,
+      Permission.ROLE_PERMISSION_ASSIGN,
+      Permission.PERMISSION_READ,
+      // Organization & Scope
+      Permission.ORGANIZATION_READ,
+      Permission.ORGANIZATION_CREATE,
+      Permission.ORGANIZATION_UPDATE,
+      Permission.REGION_MANAGE,
+      Permission.DEPOT_MANAGE,
+      Permission.WORKSHOP_MANAGE,
+      // Master Data & Configuration
+      Permission.MASTERDATA_READ,
+      Permission.MASTERDATA_CONFIGURE,
+      Permission.VEHICLE_MASTER_CONFIGURE,
+      Permission.TYRE_MASTER_CONFIGURE,
+      // Integrations
+      Permission.INTEGRATION_READ,
+      Permission.INTEGRATION_CONFIGURE,
+      Permission.INTEGRATION_TEST,
+      Permission.INTEGRATION_HEALTH_READ,
+      // Audit
+      Permission.AUDIT_READ,
+      Permission.AUDIT_EXPORT,
+      Permission.AUDIT_SEARCH,
+      // Reports Infrastructure
       Permission.REPORTS_READ,
+      Permission.REPORTS_EXPORT,
+      Permission.REPORT_TEMPLATE_READ,
+      Permission.REPORT_TEMPLATE_CREATE,
+      Permission.REPORT_TEMPLATE_UPDATE,
+      Permission.REPORT_TEMPLATE_ENABLE,
+      Permission.REPORT_TEMPLATE_DISABLE,
+      Permission.REPORT_SCHEDULE_MANAGE,
+      Permission.REPORT_CONFIGURATION_MANAGE,
+      // Data Governance
+      Permission.DATAQUALITY_READ,
+      Permission.DATAQUALITY_MANAGE,
+      Permission.DUPLICATE_REVIEW,
+      Permission.DATA_RECONCILIATION,
+      // AI Administration
+      Permission.AI_HEALTH_READ,
+      Permission.AI_CONFIGURATION_READ,
+      Permission.AI_CONFIGURATION_MANAGE,
+      Permission.AI_MODEL_READ,
+      Permission.AI_AUDIT_READ,
+      // Read-only reference
+      Permission.VEHICLE_READ,
+      Permission.TYRE_READ,
     ],
   },
 

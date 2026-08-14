@@ -3,8 +3,10 @@ import { TyreController } from './tyre.controller';
 import { TyreService } from './tyre.service';
 import { AuthModule } from '../auth/auth.module';
 
+import { KpiGovernanceModule } from '../kpi/kpi-governance.module';
+
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, KpiGovernanceModule],
   controllers: [TyreController],
   providers: [TyreService],
   exports: [TyreService],

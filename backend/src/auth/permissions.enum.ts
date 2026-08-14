@@ -96,8 +96,64 @@ export enum Permission {
   // ── Audit ────────────────────────────────────
   AUDIT_READ               = 'audit.read',
 
-  // ── Administration ───────────────────────────
+  // ── Administration & Governance ──────────────
   ADMIN_SYSTEM             = 'admin.system',
+  SYSTEM_READ              = 'system.read',
+  SYSTEM_CONFIGURE         = 'system.configure',
+  SYSTEM_HEALTH_READ       = 'system.health.read',
+  SYSTEM_SETTINGS_MANAGE   = 'system.settings.manage',
+
+  USER_ACTIVATE            = 'user.activate',
+  USER_DEACTIVATE          = 'user.deactivate',
+  USER_RESET               = 'user.reset',
+  USER_ASSIGN_ROLE         = 'user.assign.role',
+  USER_ASSIGN_SCOPE        = 'user.assign.scope',
+
+  ROLE_READ                = 'role.read',
+  ROLE_CREATE              = 'role.create',
+  ROLE_UPDATE              = 'role.update',
+  ROLE_PERMISSION_READ     = 'role.permission.read',
+  ROLE_PERMISSION_ASSIGN   = 'role.permission.assign',
+  PERMISSION_READ          = 'permission.read',
+
+  ORGANIZATION_READ        = 'organization.read',
+  ORGANIZATION_CREATE      = 'organization.create',
+  ORGANIZATION_UPDATE      = 'organization.update',
+  REGION_MANAGE            = 'region.manage',
+  DEPOT_MANAGE             = 'depot.manage',
+  WORKSHOP_MANAGE          = 'workshop.manage',
+
+  MASTERDATA_READ          = 'masterdata.read',
+  MASTERDATA_CONFIGURE     = 'masterdata.configure',
+  VEHICLE_MASTER_CONFIGURE = 'vehicle.master.configure',
+  TYRE_MASTER_CONFIGURE    = 'tyre.master.configure',
+
+  INTEGRATION_READ         = 'integration.read',
+  INTEGRATION_CONFIGURE    = 'integration.configure',
+  INTEGRATION_TEST         = 'integration.test',
+  INTEGRATION_HEALTH_READ  = 'integration.health.read',
+
+  AUDIT_EXPORT             = 'audit.export',
+  AUDIT_SEARCH             = 'audit.search',
+
+  REPORT_TEMPLATE_READ     = 'report.template.read',
+  REPORT_TEMPLATE_CREATE   = 'report.template.create',
+  REPORT_TEMPLATE_UPDATE   = 'report.template.update',
+  REPORT_TEMPLATE_ENABLE   = 'report.template.enable',
+  REPORT_TEMPLATE_DISABLE  = 'report.template.disable',
+  REPORT_SCHEDULE_MANAGE   = 'report.schedule.manage',
+  REPORT_CONFIGURATION_MANAGE = 'report.configuration.manage',
+
+  DATAQUALITY_READ         = 'dataquality.read',
+  DATAQUALITY_MANAGE       = 'dataquality.manage',
+  DUPLICATE_REVIEW         = 'duplicate.review',
+  DATA_RECONCILIATION      = 'data.reconciliation',
+
+  AI_HEALTH_READ           = 'ai.health.read',
+  AI_CONFIGURATION_READ    = 'ai.configuration.read',
+  AI_CONFIGURATION_MANAGE  = 'ai.configuration.manage',
+  AI_MODEL_READ            = 'ai.model.read',
+  AI_AUDIT_READ            = 'ai.audit.read',
 }
 
 /**

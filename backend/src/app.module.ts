@@ -11,6 +11,9 @@ import { AlertModule } from './alert/alert.module';
 import { DefectModule } from './defect/defect.module';
 import { AuditModule } from './audit/audit.module';
 import { UserModule } from './user/user.module';
+import { SystemAdminModule } from './admin/system-admin.module';
+import { KpiGovernanceModule } from './kpi/kpi-governance.module';
+import { ReportingModule } from './reporting/reporting.module';
 
 @Module({
   imports: [
@@ -27,6 +30,9 @@ import { UserModule } from './user/user.module';
     AlertModule,
     DefectModule,
     AuditModule,
+    SystemAdminModule,
+    KpiGovernanceModule,
+    ReportingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

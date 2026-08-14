@@ -53,6 +53,36 @@ export class TyreController {
     return this.tyreService.getSupervisorKPIs(req.user);
   }
 
+  @Get('kpis')
+  @RequirePermissions(Permission.TYRE_READ)
+  @ApiOperation({ summary: 'Get Governed Tyre KPIs', description: 'Returns governed KPIs evaluated via KpiGovernanceService' })
+  async getGovernedKPIs() {
+    return this.tyreService.getGovernedTyreKPIs();
+  }
+
+  @Get('weekly-schedule')
+  @RequirePermissions(Permission.TYRE_READ)
+  @ApiOperation({ summary: 'Get 7-Day Weekly Inspection Schedule', description: 'Returns 7-day inspection schedule and tyre-level compliance' })
+  async getWeeklySchedule() {
+    return this.tyreService.getWeeklyInspectionSchedule(7);
+  }
+
+  @Get('mechanic-work-queue')
+  @RequirePermissions(Permission.TYRE_READ)
+  @ApiOperation({ summary: 'Get Tyre Mechanic Work Queue', description: 'Returns due inspections, open defects, and mechanic weekly inspection KPI' })
+  async getMechanicWorkQueue(@Req() req: any) {
+    const userId = req.user?.email || 'Mechanic';
+    return this.tyreService.getMechanicWorkQueue(userId);
+  }
+
+  @Get('supervisor-work-queue')
+  @RequirePermissions(Permission.TYRE_READ)
+  @ApiOperation({ summary: 'Get Tyre Supervisor Work Queue', description: 'Returns unverified fitments/inspections and open safety alerts' })
+  async getSupervisorWorkQueue(@Req() req: any) {
+    const workshopId = req.user?.workshopId || 'All Workshops';
+    return this.tyreService.getSupervisorWorkQueue(workshopId);
+  }
+
   @Get('summary')
   @RequirePermissions(Permission.TYRE_READ)
   @ApiOperation({ summary: 'Get tyre summary/dashboard', description: 'Returns counts by status for dashboard display' })

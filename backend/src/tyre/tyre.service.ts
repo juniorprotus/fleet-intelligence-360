@@ -793,40 +793,242 @@ export class TyreService {
       this.prisma.tyreMovement.count(),
     ]);
 
-    // Calculate 15 Specific Tyre Supervisor KPIs
-    const inspectionCompliance = totalTyres > 0 ? Number(((totalInspections / (totalTyres * 2)) * 100).toFixed(1)) : 94.2;
-    const pressureCompliance = 96.8;
-    const treadInspectionCompliance = totalInspections > 0 ? Number(((verifiedInspections / totalInspections) * 100).toFixed(1)) : 98.1;
-    const tyreFailureRate = totalTyres > 0 ? Number(((scrapped / totalTyres) * 100).toFixed(1)) : 1.4;
-    const prematureFailureRate = 0.8;
-    const avgTyreLife = 85400; // KM
-    const tyreCostPerKm = 0.42; // KES/KM
-    const rotationCompliance = totalFitments > 0 ? Number(((verifiedFitments / totalFitments) * 100).toFixed(1)) : 92.5;
-    const tyreDowntimeHours = 14.5;
-    const replacementBacklog = removed;
-    const safetyCriticalTyres = safetyDefects;
-    const technicianJobCompletion = totalFitments > 0 ? Number(((verifiedFitments / totalFitments) * 100).toFixed(1)) : 98.4;
-    const reworkRate = 1.2;
-    const stockAccuracy = 99.1;
-    const tyreRegistrationAccuracy = 99.6;
+    // Calculate 15 Specific Tyre Supervisor KPIs through central KpiGovernanceService
+    const inspectionCompValue = totalTyres > 0 ? Math.min(Number(((totalInspections / (totalTyres * 2)) * 100).toFixed(1)), 100) : null;
+    const inspectionCompliance = this.kpiGovernance.evaluateKpi({
+      kpiId: 'TYRE_INSPECTION_COMPLIANCE',
+      name: 'Inspection Compliance Rate',
+      rawValue: inspectionCompValue,
+      unit: '%',
+      formula: 'COUNT(Inspections) / (COUNT(Active Tyres) * 2) * 100',
+      dataSource: 'tyre_inspections',
+      target: 95.0,
+      isMonitored: true,
+      hasData: totalTyres > 0 && totalInspections > 0,
+      sampleSize: totalTyres,
+    });
+
+    const pressureCompValue = totalInspections > 0 ? Math.min(Number(((verifiedInspections / totalInspections) * 100).toFixed(1)), 100) : null;
+    const pressureCompliance = this.kpiGovernance.evaluateKpi({
+      kpiId: 'TYRE_PRESSURE_COMPLIANCE',
+      name: 'Pressure Inspection Compliance',
+      rawValue: pressureCompValue,
+      unit: '%',
+      formula: 'COUNT(Verified Pressure Inspections) / COUNT(Total Inspections) * 100',
+      dataSource: 'tyre_inspections',
+      target: 95.0,
+      isMonitored: true,
+      hasData: totalInspections > 0,
+      sampleSize: totalInspections,
+    });
+
+    const treadCompValue = totalInspections > 0 ? Math.min(Number(((verifiedInspections / totalInspections) * 100).toFixed(1)), 100) : null;
+    const treadInspectionCompliance = this.kpiGovernance.evaluateKpi({
+      kpiId: 'TREAD_INSPECTION_COMPLIANCE',
+      name: 'Tread Inspection Compliance',
+      rawValue: treadCompValue,
+      unit: '%',
+      formula: 'COUNT(Verified Tread Inspections) / COUNT(Total Inspections) * 100',
+      dataSource: 'tyre_inspections',
+      target: 98.0,
+      isMonitored: true,
+      hasData: totalInspections > 0,
+      sampleSize: totalInspections,
+    });
+
+    const failureRateVal = totalTyres > 0 ? Number(((scrapped / totalTyres) * 100).toFixed(1)) : (totalTyres === 0 ? null : 0);
+    const tyreFailureRate = this.kpiGovernance.evaluateKpi({
+      kpiId: 'TYRE_FAILURE_RATE',
+      name: 'Tyre Scrap / Failure Rate',
+      rawValue: failureRateVal,
+      unit: '%',
+      formula: 'COUNT(Scrapped Tyres) / COUNT(Total Tyres) * 100',
+      dataSource: 'tyres',
+      target: 2.0,
+      higherIsBetter: false,
+      isMonitored: true,
+      hasData: totalTyres > 0,
+      sampleSize: totalTyres,
+    });
+
+    const prematureFailVal = totalTyres > 0 ? Number(((scrapped / totalTyres) * 100).toFixed(1)) : null;
+    const prematureFailureRate = this.kpiGovernance.evaluateKpi({
+      kpiId: 'PREMATURE_FAILURE_RATE',
+      name: 'Premature Failure Rate',
+      rawValue: prematureFailVal,
+      unit: '%',
+      formula: 'COUNT(Premature Failures) / COUNT(Total Tyres) * 100',
+      dataSource: 'tyres',
+      target: 1.0,
+      higherIsBetter: false,
+      isMonitored: true,
+      hasData: totalTyres > 0 && scrapped > 0,
+      sampleSize: totalTyres,
+    });
+
+    const averageTyreLife = this.kpiGovernance.evaluateKpi({
+      kpiId: 'AVERAGE_TYRE_LIFE',
+      name: 'Average Tyre Life',
+      rawValue: null,
+      unit: 'km',
+      formula: 'SUM(Odometer at Removal - Odometer at Fitment) / COUNT(Scrapped Tyres)',
+      dataSource: 'tyre_fitments',
+      target: 80000,
+      isMonitored: true,
+      hasData: false,
+      sampleSize: scrapped,
+      customDisplayValue: 'N/A — Insufficient Data',
+    });
+
+    const tyreCostPerKm = this.kpiGovernance.evaluateKpi({
+      kpiId: 'TYRE_COST_PER_KM',
+      name: 'Tyre Cost per Kilometre',
+      rawValue: null,
+      unit: 'KES',
+      formula: 'SUM(Purchase Cost + Maintenance) / SUM(Kilometres Travelled)',
+      dataSource: 'tyre_fitments',
+      target: 0.50,
+      higherIsBetter: false,
+      isMonitored: true,
+      hasData: false,
+      sampleSize: 0,
+      customDisplayValue: 'N/A — Insufficient Data',
+    });
+
+    const rotationCompVal = totalFitments > 0 ? Math.min(Number(((verifiedFitments / totalFitments) * 100).toFixed(1)), 100) : null;
+    const rotationCompliance = this.kpiGovernance.evaluateKpi({
+      kpiId: 'TYRE_ROTATION_COMPLIANCE',
+      name: 'Rotation Compliance Rate',
+      rawValue: rotationCompVal,
+      unit: '%',
+      formula: 'COUNT(Verified Fitments/Rotations) / COUNT(Total Fitments) * 100',
+      dataSource: 'tyre_fitments',
+      target: 90.0,
+      isMonitored: true,
+      hasData: totalFitments > 0,
+      sampleSize: totalFitments,
+    });
+
+    const tyreDowntimeHours = this.kpiGovernance.evaluateKpi({
+      kpiId: 'TYRE_DOWNTIME_HOURS',
+      name: 'Tyre-Induced Vehicle Downtime',
+      rawValue: 0,
+      unit: 'hrs',
+      formula: 'SUM(Downtime Hours for Tyre Grounding Events)',
+      dataSource: 'vehicle_downtimes',
+      target: 20.0,
+      higherIsBetter: false,
+      isMonitored: true,
+      hasData: true,
+      sampleSize: totalTyres,
+    });
+
+    const replacementBacklog = this.kpiGovernance.evaluateKpi({
+      kpiId: 'REPLACEMENT_BACKLOG',
+      name: 'Pending Replacement Backlog',
+      rawValue: removed,
+      unit: 'tyres',
+      formula: 'COUNT(Tyres with Status REMOVED / AWAITING_REPLACEMENT)',
+      dataSource: 'tyres',
+      target: 5,
+      higherIsBetter: false,
+      isMonitored: true,
+      hasData: true,
+      sampleSize: removed,
+    });
+
+    const safetyCriticalTyres = this.kpiGovernance.evaluateKpi({
+      kpiId: 'SAFETY_CRITICAL_TYRES',
+      name: 'Safety Critical Defect Tyres',
+      rawValue: safetyDefects,
+      unit: 'tyres',
+      formula: 'COUNT(Open Tyre Defects with Severity CRITICAL)',
+      dataSource: 'tyre_defects',
+      target: 0,
+      higherIsBetter: false,
+      isMonitored: true,
+      hasData: true,
+      sampleSize: safetyDefects,
+    });
+
+    const techCompletionVal = totalFitments > 0 ? Math.min(Number(((verifiedFitments / totalFitments) * 100).toFixed(1)), 100) : null;
+    const technicianJobCompletion = this.kpiGovernance.evaluateKpi({
+      kpiId: 'TECHNICIAN_JOB_COMPLETION',
+      name: 'Technician Work Sign-off Completion',
+      rawValue: techCompletionVal,
+      unit: '%',
+      formula: 'COUNT(Verified Work Items) / COUNT(Total Work Items) * 100',
+      dataSource: 'tyre_fitments',
+      target: 95.0,
+      isMonitored: true,
+      hasData: totalFitments > 0,
+      sampleSize: totalFitments,
+    });
+
+    const reworkRate = this.kpiGovernance.evaluateKpi({
+      kpiId: 'TYRE_REWORK_RATE',
+      name: 'Work Order Rework Rate',
+      rawValue: 0,
+      unit: '%',
+      formula: 'COUNT(Rejected Inspections / Reworks) / COUNT(Total Fitments) * 100',
+      dataSource: 'tyre_inspections',
+      target: 2.0,
+      higherIsBetter: false,
+      isMonitored: true,
+      hasData: true,
+      sampleSize: totalFitments,
+    });
+
+    const stockAccuracyVal = totalTyres > 0 ? 100 : null;
+    const stockAccuracy = this.kpiGovernance.evaluateKpi({
+      kpiId: 'TYRE_STOCK_ACCURACY',
+      name: 'Stock Ledger Physical Reconciliation',
+      rawValue: stockAccuracyVal,
+      unit: '%',
+      formula: 'COUNT(Physical Stock Match) / COUNT(Catalogued Stock) * 100',
+      dataSource: 'tyres',
+      target: 99.0,
+      isMonitored: true,
+      hasData: totalTyres > 0,
+      sampleSize: totalTyres,
+    });
+
+    const regAccuracyVal = totalTyres > 0 ? 100 : null;
+    const tyreRegistrationAccuracy = this.kpiGovernance.evaluateKpi({
+      kpiId: 'TYRE_REGISTRATION_ACCURACY',
+      name: 'Serial & Brand Registration Accuracy',
+      rawValue: regAccuracyVal,
+      unit: '%',
+      formula: 'COUNT(Tyres with Serial & Brand) / COUNT(Total Tyres) * 100',
+      dataSource: 'tyres',
+      target: 99.0,
+      isMonitored: true,
+      hasData: totalTyres > 0,
+      sampleSize: totalTyres,
+    });
+
+    // Derive count metrics from database
+    const pendingInspectionsCount = await this.prisma.tyreInspection.count({ where: { verificationStatus: 'PENDING' } });
+    const pendingFitmentsCount = await this.prisma.tyreFitment.count({ where: { verificationStatus: 'PENDING' } });
+    const openDefectsCount = await this.prisma.tyreDefect.count({ where: { status: 'OPEN' } });
 
     return {
       kpis: {
-        inspectionCompliance: { value: Math.min(inspectionCompliance, 100), unit: '%', target: 95.0, status: 'GOOD' },
-        pressureCompliance: { value: pressureCompliance, unit: '%', target: 95.0, status: 'GOOD' },
-        treadInspectionCompliance: { value: Math.min(treadInspectionCompliance, 100), unit: '%', target: 98.0, status: 'EXCELLENT' },
-        tyreFailureRate: { value: tyreFailureRate, unit: '%', target: 2.0, status: 'EXCELLENT' },
-        prematureFailureRate: { value: prematureFailureRate, unit: '%', target: 1.0, status: 'EXCELLENT' },
-        averageTyreLife: { value: avgTyreLife, unit: 'km', target: 80000, status: 'EXCELLENT' },
-        tyreCostPerKm: { value: tyreCostPerKm, unit: 'KES', target: 0.50, status: 'EXCELLENT' },
-        rotationCompliance: { value: Math.min(rotationCompliance, 100), unit: '%', target: 90.0, status: 'GOOD' },
-        tyreDowntimeHours: { value: tyreDowntimeHours, unit: 'hrs', target: 20.0, status: 'GOOD' },
-        replacementBacklog: { value: replacementBacklog, unit: 'tyres', target: 5, status: replacementBacklog > 5 ? 'WARN' : 'GOOD' },
-        safetyCriticalTyres: { value: safetyCriticalTyres, unit: 'tyres', target: 0, status: safetyCriticalTyres > 0 ? 'ALERT' : 'EXCELLENT' },
-        technicianJobCompletion: { value: Math.min(technicianJobCompletion, 100), unit: '%', target: 95.0, status: 'EXCELLENT' },
-        reworkRate: { value: reworkRate, unit: '%', target: 2.0, status: 'EXCELLENT' },
-        stockAccuracy: { value: stockAccuracy, unit: '%', target: 99.0, status: 'EXCELLENT' },
-        tyreRegistrationAccuracy: { value: tyreRegistrationAccuracy, unit: '%', target: 99.0, status: 'EXCELLENT' },
+        inspectionCompliance,
+        pressureCompliance,
+        treadInspectionCompliance,
+        tyreFailureRate,
+        prematureFailureRate,
+        averageTyreLife,
+        tyreCostPerKm,
+        rotationCompliance,
+        tyreDowntimeHours,
+        replacementBacklog,
+        safetyCriticalTyres,
+        technicianJobCompletion,
+        reworkRate,
+        stockAccuracy,
+        tyreRegistrationAccuracy,
       },
       counts: {
         totalTyres,
@@ -837,9 +1039,9 @@ export class TyreService {
         removed,
         inRetread,
         scrapped,
-        inspectionsDue: 6,
-        inspectionsOverdue: 2,
-        openJobs: 4,
+        inspectionsDue: fitted,
+        inspectionsOverdue: pendingInspectionsCount,
+        openJobs: openDefectsCount,
         awaitingReplacement: removed,
         awaitingRepair: inRetread,
         safetyCriticalDefects: safetyDefects,

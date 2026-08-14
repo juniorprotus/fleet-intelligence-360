@@ -629,26 +629,26 @@ async function loadTyreSupervisorDashboard() {
 
   if (kpisRes) {
     const k = kpisRes.kpis || {};
-    setText('sup-val-cmp', `${k.inspectionCompliance?.value ?? 94.2}%`);
-    setText('sup-val-prs', `${k.pressureCompliance?.value ?? 96.8}%`);
-    setText('sup-val-trd', `${k.treadInspectionCompliance?.value ?? 98.1}%`);
-    setText('sup-val-flr', `${k.tyreFailureRate?.value ?? 1.4}%`);
-    setText('sup-val-pfr', `${k.prematureFailureRate?.value ?? 0.8}%`);
-    setText('sup-val-lif', `${(k.averageTyreLife?.value ?? 85400).toLocaleString()} km`);
-    setText('sup-val-cpk', `${k.tyreCostPerKm?.value ?? 0.42} KES`);
-    setText('sup-val-rot', `${k.rotationCompliance?.value ?? 92.5}%`);
-    setText('sup-val-dow', `${k.tyreDowntimeHours?.value ?? 14.5} hrs`);
-    setText('sup-val-bac', k.replacementBacklog?.value ?? 0);
-    setText('sup-val-saf', k.safetyCriticalTyres?.value ?? 0);
-    setText('sup-val-job', `${k.technicianJobCompletion?.value ?? 98.4}%`);
-    setText('sup-val-rew', `${k.reworkRate?.value ?? 1.2}%`);
-    setText('sup-val-stk', `${k.stockAccuracy?.value ?? 99.1}%`);
-    setText('sup-val-reg', `${k.tyreRegistrationAccuracy?.value ?? 99.6}%`);
+    setText('sup-val-cmp', k.inspectionCompliance?.displayValue || (k.inspectionCompliance?.value != null ? `${k.inspectionCompliance.value}%` : 'N/A — Insufficient Data'));
+    setText('sup-val-prs', k.pressureCompliance?.displayValue || (k.pressureCompliance?.value != null ? `${k.pressureCompliance.value}%` : 'N/A — Insufficient Data'));
+    setText('sup-val-trd', k.treadInspectionCompliance?.displayValue || (k.treadInspectionCompliance?.value != null ? `${k.treadInspectionCompliance.value}%` : 'N/A — Insufficient Data'));
+    setText('sup-val-flr', k.tyreFailureRate?.displayValue || (k.tyreFailureRate?.value != null ? `${k.tyreFailureRate.value}%` : 'N/A — Insufficient Data'));
+    setText('sup-val-pfr', k.prematureFailureRate?.displayValue || (k.prematureFailureRate?.value != null ? `${k.prematureFailureRate.value}%` : 'N/A — Insufficient Data'));
+    setText('sup-val-lif', k.averageTyreLife?.displayValue || (k.averageTyreLife?.value != null ? `${k.averageTyreLife.value} km` : 'N/A — Insufficient Data'));
+    setText('sup-val-cpk', k.tyreCostPerKm?.displayValue || (k.tyreCostPerKm?.value != null ? `${k.tyreCostPerKm.value} KES` : 'N/A — Insufficient Data'));
+    setText('sup-val-rot', k.rotationCompliance?.displayValue || (k.rotationCompliance?.value != null ? `${k.rotationCompliance.value}%` : 'N/A — Insufficient Data'));
+    setText('sup-val-dow', k.tyreDowntimeHours?.displayValue || (k.tyreDowntimeHours?.value != null ? `${k.tyreDowntimeHours.value} hrs` : 'N/A — Insufficient Data'));
+    setText('sup-val-bac', k.replacementBacklog?.displayValue || (k.replacementBacklog?.value ?? 0));
+    setText('sup-val-saf', k.safetyCriticalTyres?.displayValue || (k.safetyCriticalTyres?.value ?? 0));
+    setText('sup-val-job', k.technicianJobCompletion?.displayValue || (k.technicianJobCompletion?.value != null ? `${k.technicianJobCompletion.value}%` : 'N/A — Insufficient Data'));
+    setText('sup-val-rew', k.reworkRate?.displayValue || (k.reworkRate?.value != null ? `${k.reworkRate.value}%` : 'N/A — Insufficient Data'));
+    setText('sup-val-stk', k.stockAccuracy?.displayValue || (k.stockAccuracy?.value != null ? `${k.stockAccuracy.value}%` : 'N/A — Insufficient Data'));
+    setText('sup-val-reg', k.tyreRegistrationAccuracy?.displayValue || (k.tyreRegistrationAccuracy?.value != null ? `${k.tyreRegistrationAccuracy.value}%` : 'N/A — Insufficient Data'));
 
     const c = kpisRes.counts || {};
-    setText('sup-num-due', c.inspectionsDue ?? 6);
-    setText('sup-num-ovr', c.inspectionsOverdue ?? 2);
-    setText('sup-num-opn', c.openJobs ?? 4);
+    setText('sup-num-due', c.inspectionsDue ?? 0);
+    setText('sup-num-ovr', c.inspectionsOverdue ?? 0);
+    setText('sup-num-opn', c.openJobs ?? 0);
     setText('sup-num-rep', c.awaitingReplacement ?? 0);
     setText('sup-num-rpr', c.awaitingRepair ?? 0);
     setText('sup-num-scd', c.safetyCriticalDefects ?? 0);

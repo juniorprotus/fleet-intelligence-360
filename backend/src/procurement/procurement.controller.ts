@@ -20,6 +20,13 @@ export class ProcurementController {
     return this.procurementService.createVendor(body);
   }
 
+  @Get('purchase-orders')
+  @RequirePermissions(Permission.PROCUREMENT_READ)
+  @ApiOperation({ summary: 'Get list of purchase orders' })
+  async getPurchaseOrders() {
+    return this.procurementService.getPurchaseOrders();
+  }
+
   @Post('purchase-orders')
   @RequirePermissions(Permission.PROCUREMENT_CREATE)
   @ApiOperation({ summary: 'Create a new Purchase Order' })

@@ -30,6 +30,13 @@ export class ProcurementService {
     });
   }
 
+  async getPurchaseOrders() {
+    return this.prisma.purchaseOrder.findMany({
+      include: { vendor: true, workshop: true, items: { include: { item: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async createPurchaseOrder(dto: {
     vendorId: string;
     workshopId: string;

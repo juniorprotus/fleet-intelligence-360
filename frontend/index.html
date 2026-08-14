@@ -40,6 +40,8 @@
               <option value="admin@fi360.com">System Admin</option>
               <option value="ceo@fi360.com">CEO / Executive</option>
               <option value="fleet.manager@fi360.com">Fleet Manager</option>
+              <option value="workshop.manager@fi360.com">Workshop Manager</option>
+              <option value="inventory.manager@fi360.com">Inventory Manager</option>
               <option value="supervisor@fi360.com">Tyre Supervisor</option>
               <option value="technician@fi360.com">Tyre Technician</option>
               <option value="finance.manager@fi360.com">Finance Manager</option>
@@ -394,7 +396,7 @@
             <div class="card p-4 mt-4">
               <div class="card-header flex-between mb-3">
                 <h3>K. Append-Only Data Correction Governance Ledger</h3>
-                <button class="btn small primary" onclick="showToast('Use Data Correction API endpoint POST /api/v1/system-admin/corrections', 'info')">+ Execute Data Correction</button>
+                <button class="btn small primary" id="btn-open-correction-modal" onclick="openModal('data-correction-modal')">+ Execute Data Correction</button>
               </div>
               <div class="table-container">
                 <table>
@@ -1275,24 +1277,24 @@
           <div id="dashboard-inventory" class="view hidden">
             <h3 class="mb-2">Inventory Stock &amp; Material Movement Supply Chain</h3>
             <div class="kpi-grid">
-              <div class="kpi-card kpi-success clickable" id="inv-kpi-turnover">
+              <div class="kpi-card kpi-success clickable" id="inv-kpi-turnover" data-kpi="inv-kpi-turnover">
                 <div class="kpi-body">
                   <p class="kpi-label">Inventory Turnover Ratio</p>
-                  <p class="kpi-value" id="inv-val-turnover">4.2 Turns</p>
+                  <p class="kpi-value" id="inv-val-turnover">-- Turns</p>
                   <p class="kpi-sub">Target: &ge; 4.0 Turns/Year</p>
                 </div>
               </div>
-              <div class="kpi-card kpi-primary clickable" id="inv-kpi-stockout">
+              <div class="kpi-card kpi-primary clickable" id="inv-kpi-stockout" data-kpi="inv-kpi-stockout">
                 <div class="kpi-body">
                   <p class="kpi-label">Parts Stockout Rate</p>
-                  <p class="kpi-value" id="inv-val-stockout">1.2%</p>
+                  <p class="kpi-value" id="inv-val-stockout">--%</p>
                   <p class="kpi-sub">Target: &le; 2.0%</p>
                 </div>
               </div>
-              <div class="kpi-card kpi-warning clickable" id="inv-kpi-cycle-time">
+              <div class="kpi-card kpi-warning clickable" id="inv-kpi-cycle-time" data-kpi="inv-kpi-cycle-time">
                 <div class="kpi-body">
                   <p class="kpi-label">PO Fulfillment Cycle Time</p>
-                  <p class="kpi-value" id="inv-val-cycle-time">4.5 Days</p>
+                  <p class="kpi-value" id="inv-val-cycle-time">-- Days</p>
                   <p class="kpi-sub">Target: &le; 5.0 Days</p>
                 </div>
               </div>
@@ -1319,24 +1321,24 @@
           <div id="dashboard-driver-safety" class="view hidden">
             <h3 class="mb-2">Driver Operations &amp; Pre-Trip Safety Compliance</h3>
             <div class="kpi-grid">
-              <div class="kpi-card kpi-success clickable" id="drv-kpi-compliance">
+              <div class="kpi-card kpi-success clickable" id="drv-kpi-compliance" data-kpi="drv-kpi-compliance">
                 <div class="kpi-body">
                   <p class="kpi-label">Pre-Trip Inspection Compliance</p>
-                  <p class="kpi-value" id="drv-val-compliance">98.5%</p>
+                  <p class="kpi-value" id="drv-val-compliance">--%</p>
                   <p class="kpi-sub">Target: &ge; 98.0%</p>
                 </div>
               </div>
-              <div class="kpi-card kpi-primary clickable" id="drv-kpi-score">
+              <div class="kpi-card kpi-primary clickable" id="drv-kpi-score" data-kpi="drv-kpi-score">
                 <div class="kpi-body">
                   <p class="kpi-label">Driver Safety Score (Avg)</p>
-                  <p class="kpi-value" id="drv-val-score">95.0 / 100</p>
+                  <p class="kpi-value" id="drv-val-score">-- / 100</p>
                   <p class="kpi-sub">Target: &ge; 92.0 / 100</p>
                 </div>
               </div>
-              <div class="kpi-card kpi-warning clickable" id="drv-kpi-leadtime">
+              <div class="kpi-card kpi-warning clickable" id="drv-kpi-leadtime" data-kpi="drv-kpi-leadtime">
                 <div class="kpi-body">
                   <p class="kpi-label">Defect Reporting Lead Time</p>
-                  <p class="kpi-value" id="drv-val-leadtime">8.5 Mins</p>
+                  <p class="kpi-value" id="drv-val-leadtime">-- Mins</p>
                   <p class="kpi-sub">Target: &le; 15.0 Mins</p>
                 </div>
               </div>
@@ -1518,6 +1520,162 @@
                     <tbody><tr><td colspan="8" class="text-center muted">Loading...</td></tr></tbody>
                   </table>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─────────────────────────────────────────
+               DASHBOARD-TECHNICIAN (Tyre Operational Key-In Workspace)
+          ──────────────────────────────────────────── -->
+          <div id="dashboard-technician" class="view hidden">
+            <div class="card-header mb-3" style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <h2>🔧 Tyre Technician Operational Workspace</h2>
+                <p class="muted small">Operational tyre inspection key-in and vehicle fitment execution</p>
+              </div>
+              <div style="display: flex; gap: 0.5rem;">
+                <button class="btn primary" id="btn-open-technician-inspect">+ Key-In Tyre Inspection</button>
+                <button class="btn secondary" id="btn-open-technician-fit">+ Fit Tyre to Vehicle</button>
+              </div>
+            </div>
+
+            <div class="kpi-grid">
+              <div class="kpi-card kpi-primary">
+                <div class="kpi-icon-svg svg-blue">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+                </div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Due Inspections</p>
+                  <p class="kpi-value" id="tech-due-count">--</p>
+                  <p class="kpi-sub">Vehicles scheduled today</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-success">
+                <div class="kpi-icon-svg svg-green">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>
+                </div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Inspections Completed</p>
+                  <p class="kpi-value" id="tech-completed-count">--</p>
+                  <p class="kpi-sub">Recorded this shift</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-info">
+                <div class="kpi-icon-svg svg-cyan">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                </div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Fitments Recorded</p>
+                  <p class="kpi-value" id="tech-fitments-count">--</p>
+                  <p class="kpi-sub">Wheel position assignments</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="card table-card mt-4">
+              <div class="card-header">
+                <h3>Assigned Workshop Inspection &amp; Key-In Work Queue</h3>
+              </div>
+              <div class="table-container">
+                <table id="tech-work-queue-table">
+                  <thead>
+                    <tr>
+                      <th>Vehicle Reg</th>
+                      <th>Tyre Serial / ID</th>
+                      <th>Position</th>
+                      <th>Last Tread (mm)</th>
+                      <th>Last Pressure (PSI)</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tech-work-queue-tbody">
+                    <tr><td colspan="6" class="text-center muted">Loading operational work queue...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─────────────────────────────────────────
+               DASHBOARD-TYRE-SUPERVISOR (Tyre Intelligence Control Center)
+          ──────────────────────────────────────────── -->
+          <div id="dashboard-tyre-supervisor" class="view hidden">
+            <div class="card-header mb-3" style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <h2>🛡️ Tyre Intelligence &amp; Supervision Center</h2>
+                <p class="muted small">Tyre fleet health, fitment verification, retread tracking &amp; scrap audit</p>
+              </div>
+              <div style="display: flex; gap: 0.5rem;">
+                <button class="btn primary" id="btn-sup-open-inspect">+ Key-In Inspection</button>
+                <button class="btn secondary" id="btn-sup-open-fit">+ Fit Tyre</button>
+              </div>
+            </div>
+
+            <div class="kpi-grid">
+              <div class="kpi-card kpi-primary">
+                <div class="kpi-icon-svg svg-blue">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v5M12 16v5M3 12h5M16 12h5"/></svg>
+                </div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Workshop Tyres in Scope</p>
+                  <p class="kpi-value" id="sup-total-tyres">--</p>
+                  <p class="kpi-sub">Fitted &amp; spare inventory</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-warning">
+                <div class="kpi-icon-svg svg-amber">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Pending Verifications</p>
+                  <p class="kpi-value" id="sup-unverified-count">--</p>
+                  <p class="kpi-sub">Fitments awaiting sign-off</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-success">
+                <div class="kpi-icon-svg svg-green">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                </div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Inspection Compliance</p>
+                  <p class="kpi-value" id="sup-compliance-rate">--%</p>
+                  <p class="kpi-sub">7-Day inspection window</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-danger">
+                <div class="kpi-icon-svg svg-rose">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+                </div>
+                <div class="kpi-body">
+                  <p class="kpi-label">Low Tread / Scrap Candidates</p>
+                  <p class="kpi-value" id="sup-scrap-candidates">--</p>
+                  <p class="kpi-sub">&lt; 3.0 mm tread remaining</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="card table-card mt-4">
+              <div class="card-header">
+                <h3>Workshop Tyre Inventory &amp; Fitment Verification Ledger</h3>
+              </div>
+              <div class="table-container">
+                <table id="sup-tyre-table">
+                  <thead>
+                    <tr>
+                      <th>Identifier</th>
+                      <th>Brand &amp; Model</th>
+                      <th>Size</th>
+                      <th>Status</th>
+                      <th>Vehicle</th>
+                      <th>Tread (mm)</th>
+                      <th>Pressure (PSI)</th>
+                      <th>Supervisory Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="sup-tyre-tbody">
+                    <tr><td colspan="8" class="text-center muted">Loading supervisory tyre list...</td></tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -1999,6 +2157,219 @@
             <div class="modal-actions">
               <button type="button" class="btn secondary" id="cancel-complete-workorder">Cancel</button>
               <button type="submit" class="btn primary">Sign-off &amp; Recover Vehicle</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Controlled Super Admin Data Correction Modal -->
+    <div id="data-correction-modal" class="modal hidden">
+      <div class="modal-content card modal-md">
+        <div class="modal-header">
+          <h2>🛡️ Execute Controlled Append-Only Data Correction</h2>
+          <button class="close-modal" id="close-data-correction-modal" aria-label="Close">&#x2715;</button>
+        </div>
+        <div class="modal-body">
+          <form id="data-correction-form">
+            <div class="form-group mb-3">
+              <label class="form-label mb-1">Domain</label>
+              <select id="corr-domain" class="form-select" required>
+                <option value="SAFETY">SAFETY</option>
+                <option value="TYRE">TYRE</option>
+                <option value="WORKSHOP">WORKSHOP</option>
+                <option value="INVENTORY">INVENTORY</option>
+                <option value="VEHICLE">VEHICLE</option>
+              </select>
+            </div>
+            <div class="grid grid-2 gap-3 mb-3">
+              <div class="form-group">
+                <label class="form-label mb-1">Entity Type</label>
+                <input type="text" id="corr-entity-type" class="form-input" placeholder="TripInspection" required />
+              </div>
+              <div class="form-group">
+                <label class="form-label mb-1">Target Entity ID</label>
+                <input type="text" id="corr-entity-id" class="form-input" placeholder="c3a4..." required />
+              </div>
+            </div>
+            <div class="form-group mb-3">
+              <label class="form-label mb-1">Field Name to Correct</label>
+              <input type="text" id="corr-field-name" class="form-input" placeholder="odometer" required />
+              <small class="muted">Protected fields (id, tenantId, password) cannot be corrected.</small>
+            </div>
+            <div class="form-group mb-3">
+              <label class="form-label mb-1">Corrected Value</label>
+              <input type="text" id="corr-value" class="form-input" placeholder="45150" required />
+            </div>
+            <div class="form-group mb-3">
+              <label class="form-label mb-1">Mandatory Business Justification Reason</label>
+              <textarea id="corr-reason" class="form-textarea" rows="3" placeholder="Explain the verified business reason for this data correction..." required></textarea>
+            </div>
+            <div class="modal-actions">
+              <button type="button" class="btn secondary" id="cancel-data-correction">Cancel</button>
+              <button type="submit" class="btn primary">Execute Governance Correction</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Digital Driver Pre-Trip & Post-Trip Inspection Modal -->
+    <div id="driver-inspection-modal" class="modal hidden">
+      <div class="modal-content card modal-lg">
+        <div class="modal-header">
+          <h2>📋 Start Pre-Trip / Post-Trip Vehicle Safety Inspection</h2>
+          <button class="close-modal" id="close-driver-inspection-modal" aria-label="Close">&#x2715;</button>
+        </div>
+        <div class="modal-body">
+          <form id="driver-inspection-form">
+            <div class="grid grid-2 gap-3 mb-3">
+              <div class="form-group">
+                <label class="form-label mb-1">Inspection Type</label>
+                <select id="drv-insp-type" class="form-select" required>
+                  <option value="PRE_TRIP">Pre-Trip Safety Inspection</option>
+                  <option value="POST_TRIP">Post-Trip Shift Inspection</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label mb-1">Current Odometer (KM)</label>
+                <input type="number" id="drv-insp-odometer" class="form-input" placeholder="45200" required />
+              </div>
+            </div>
+
+            <h4 class="mb-2">Safety &amp; Compliance Checklist Items</h4>
+            <div style="display: grid; gap: 0.75rem; max-height: 250px; overflow-y: auto; padding-right: 0.5rem;" id="drv-checklist-container">
+              <div class="card p-2" style="background: rgba(30,41,59,0.5);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <strong>1. Tyres &amp; Wheel Nuts Check</strong>
+                  <select class="form-select drv-chk-item" data-category="TYRES" data-name="Tyres & Wheel Nuts Check" style="width: 140px;">
+                    <option value="PASS">PASS</option>
+                    <option value="FAIL">DEFECT</option>
+                    <option value="CRITICAL">CRITICAL</option>
+                  </select>
+                </div>
+              </div>
+              <div class="card p-2" style="background: rgba(30,41,59,0.5);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <strong>2. Brakes &amp; Fluid Pressure</strong>
+                  <select class="form-select drv-chk-item" data-category="BRAKES" data-name="Brakes & Fluid Pressure" style="width: 140px;">
+                    <option value="PASS">PASS</option>
+                    <option value="FAIL">DEFECT</option>
+                    <option value="CRITICAL">CRITICAL</option>
+                  </select>
+                </div>
+              </div>
+              <div class="card p-2" style="background: rgba(30,41,59,0.5);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <strong>3. Steering &amp; Suspension</strong>
+                  <select class="form-select drv-chk-item" data-category="STEERING" data-name="Steering & Suspension" style="width: 140px;">
+                    <option value="PASS">PASS</option>
+                    <option value="FAIL">DEFECT</option>
+                    <option value="CRITICAL">CRITICAL</option>
+                  </select>
+                </div>
+              </div>
+              <div class="card p-2" style="background: rgba(30,41,59,0.5);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <strong>4. Headlights, Indicators &amp; Signals</strong>
+                  <select class="form-select drv-chk-item" data-category="LIGHTS" data-name="Headlights & Indicators" style="width: 140px;">
+                    <option value="PASS">PASS</option>
+                    <option value="FAIL">DEFECT</option>
+                    <option value="CRITICAL">CRITICAL</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group mt-3 mb-3">
+              <label class="form-label mb-1">Shift Notes / Observations</label>
+              <textarea id="drv-insp-notes" class="form-textarea" rows="2" placeholder="Enter any additional driver observations..."></textarea>
+            </div>
+
+            <div class="modal-actions">
+              <button type="button" class="btn secondary" id="cancel-driver-inspection">Cancel</button>
+              <button type="submit" class="btn primary">Submit Official Inspection</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Key-In Operational Tyre Inspection Modal -->
+    <div id="tyre-inspection-modal" class="modal hidden">
+      <div class="modal-content card modal-md">
+        <div class="modal-header">
+          <h2>🔍 Operational Tyre Inspection Key-In</h2>
+          <button class="close-modal" id="close-tyre-inspection-modal" aria-label="Close">&#x2715;</button>
+        </div>
+        <div class="modal-body">
+          <form id="tyre-inspection-form">
+            <div class="form-group mb-3">
+              <label class="form-label mb-1">Target Tyre Serial / Identifier</label>
+              <input type="text" id="keyin-tyre-id" class="form-input" placeholder="TYR-2024-001" required />
+            </div>
+            <div class="grid grid-2 gap-3 mb-3">
+              <div class="form-group">
+                <label class="form-label mb-1">Tread Depth (mm)</label>
+                <input type="number" step="0.1" id="keyin-tread-depth" class="form-input" placeholder="14.5" required />
+              </div>
+              <div class="form-group">
+                <label class="form-label mb-1">Pressure (PSI)</label>
+                <input type="number" id="keyin-pressure" class="form-input" placeholder="115" required />
+              </div>
+            </div>
+            <div class="form-group mb-3">
+              <label class="form-label mb-1">Condition Assessment</label>
+              <select id="keyin-condition" class="form-select" required>
+                <option value="GOOD">GOOD — Normal Operational Wear</option>
+                <option value="FAIR">FAIR — Monitor Tread</option>
+                <option value="POOR">POOR — Retread Candidate</option>
+                <option value="CRITICAL">CRITICAL — Immediate Replacement Required</option>
+              </select>
+            </div>
+            <div class="form-group mb-3">
+              <label class="form-label mb-1">Operational Inspection Notes</label>
+              <textarea id="keyin-notes" class="form-textarea" rows="2" placeholder="Key in technician tread & pressure measurements..."></textarea>
+            </div>
+            <div class="modal-actions">
+              <button type="button" class="btn secondary" id="cancel-tyre-inspection">Cancel</button>
+              <button type="submit" class="btn primary">Record Inspection</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Key-In Operational Tyre Fitment Modal -->
+    <div id="tyre-fitment-modal" class="modal hidden">
+      <div class="modal-content card modal-md">
+        <div class="modal-header">
+          <h2>🔩 Record Tyre Vehicle Fitment</h2>
+          <button class="close-modal" id="close-tyre-fitment-modal" aria-label="Close">&#x2715;</button>
+        </div>
+        <div class="modal-body">
+          <form id="tyre-fitment-form">
+            <div class="form-group mb-3">
+              <label class="form-label mb-1">Tyre Serial / Identifier</label>
+              <input type="text" id="fitment-tyre-id" class="form-input" placeholder="TYR-2024-001" required />
+            </div>
+            <div class="form-group mb-3">
+              <label class="form-label mb-1">Target Vehicle Registration</label>
+              <input type="text" id="fitment-vehicle-reg" class="form-input" placeholder="KCA-0342X" required />
+            </div>
+            <div class="grid grid-2 gap-3 mb-3">
+              <div class="form-group">
+                <label class="form-label mb-1">Wheel Position Code</label>
+                <input type="text" id="fitment-position-code" class="form-input" placeholder="AX1-L" required />
+              </div>
+              <div class="form-group">
+                <label class="form-label mb-1">Fitment Odometer (KM)</label>
+                <input type="number" id="fitment-odometer" class="form-input" placeholder="45000" required />
+              </div>
+            </div>
+            <div class="modal-actions">
+              <button type="button" class="btn secondary" id="cancel-tyre-fitment">Cancel</button>
+              <button type="submit" class="btn primary">Record Vehicle Fitment</button>
             </div>
           </form>
         </div>

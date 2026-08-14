@@ -1295,6 +1295,50 @@
           </div>
 
           <!-- ─────────────────────────────────────────
+               DASHBOARD-DRIVER-SAFETY (Driver & Safety Intelligence View)
+          ──────────────────────────────────────────── -->
+          <div id="dashboard-driver-safety" class="view hidden">
+            <h3 class="mb-2">Driver Operations &amp; Pre-Trip Safety Compliance</h3>
+            <div class="kpi-grid">
+              <div class="kpi-card kpi-success clickable" id="drv-kpi-compliance">
+                <div class="kpi-body">
+                  <p class="kpi-label">Pre-Trip Inspection Compliance</p>
+                  <p class="kpi-value" id="drv-val-compliance">98.5%</p>
+                  <p class="kpi-sub">Target: &ge; 98.0%</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-primary clickable" id="drv-kpi-score">
+                <div class="kpi-body">
+                  <p class="kpi-label">Driver Safety Score (Avg)</p>
+                  <p class="kpi-value" id="drv-val-score">95.0 / 100</p>
+                  <p class="kpi-sub">Target: &ge; 92.0 / 100</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-warning clickable" id="drv-kpi-leadtime">
+                <div class="kpi-body">
+                  <p class="kpi-label">Defect Reporting Lead Time</p>
+                  <p class="kpi-value" id="drv-val-leadtime">8.5 Mins</p>
+                  <p class="kpi-sub">Target: &le; 15.0 Mins</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="card p-4 mt-4">
+              <h4 class="mb-3">Recent Digital Pre-Trip &amp; Post-Trip Inspections</h4>
+              <div class="table-container">
+                <table id="driver-inspections-table">
+                  <thead>
+                    <tr><th>Inspection #</th><th>Vehicle</th><th>Driver</th><th>Type</th><th>Odometer</th><th>Status</th><th>Submitted At</th></tr>
+                  </thead>
+                  <tbody id="driver-inspections-tbody">
+                    <tr><td colspan="7" class="text-center muted">Loading Trip Inspections...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─────────────────────────────────────────
                DASHBOARD-DRIVER (My Vehicle View)
           ──────────────────────────────────────────── -->
           <div id="dashboard-driver" class="view hidden">

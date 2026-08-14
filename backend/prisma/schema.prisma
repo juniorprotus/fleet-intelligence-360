@@ -170,6 +170,9 @@ model Vehicle {
   workshopAssignments VehicleWorkshopAssignment[]
   downtimes         VehicleDowntime[]
   workOrders        WorkOrder[]
+  driverAssignments DriverAssignment[]
+  tripInspections   TripInspection[]
+  safetyIncidents   SafetyIncident[]
 
   @@map("vehicles")
   @@index([region])
@@ -593,6 +596,10 @@ model User {
 
   assignedTasks     WorkOrderTask[]
   partsRequisitions PartsRequisition[]
+  driverAssignments DriverAssignment[]
+  tripInspections   TripInspection[]
+  safetyIncidents   SafetyIncident[]
+  driverSafetyScores DriverSafetyScore[]
 
   @@map("users")
   @@index([workshopId])
@@ -1053,4 +1060,147 @@ model PurchaseOrderItem {
 
   @@map("purchase_order_items")
   @@index([poId])
+}
+
+// ============================================================
+// PHASE 5 — DRIVER & SAFETY INTELLIGENCE
+// ============================================================
+
+enum InspectionType {
+  PRE_TRIP
+  POST_TRIP
+  ROUTINE_SAFETY
+}
+
+enum InspectionStatus {
+  PASSED
+  FAILED_MINOR
+  FAILED_CRITICAL
+}
+
+enum AssignmentStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum IncidentSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+/// Driver Vehicle Shift Assignment Ledger
+model DriverAssignment {
+  id             String           @id @default(uuid()) @map("assignment_id")
+  tenantId       String           @default("TNT-DEFAULT") @map("tenant_id")
+  organizationId String           @default("ORG-DEFAULT") @map("organization_id")
+  driverId       Int              @map("driver_id")
+  driver         User             @relation(fields: [driverId], references: [id])
+  vehicleId      String           @map("vehicle_id")
+  vehicle        Vehicle          @relation(fields: [vehicleId], references: [id])
+  
+  shiftStart     DateTime         @default(now()) @map("shift_start")
+  shiftEnd       DateTime?        @map("shift_end")
+  status         AssignmentStatus @default(ACTIVE)
+  startOdometer  Int              @map("start_odometer")
+  endOdometer    Int?             @map("end_odometer")
+  notes          String?
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  @@map("driver_assignments")
+  @@index([tenantId, organizationId])
+  @@index([driverId])
+  @@index([vehicleId])
+  @@index([status])
+}
+
+/// Digital Pre-Trip / Post-Trip Vehicle Inspection
+model TripInspection {
+  id             String            @id @default(uuid()) @map("inspection_id")
+  inspectionNo   String            @unique @map("inspection_no")
+  tenantId       String            @default("TNT-DEFAULT") @map("tenant_id")
+  organizationId String            @default("ORG-DEFAULT") @map("organization_id")
+  vehicleId      String            @map("vehicle_id")
+  vehicle        Vehicle           @relation(fields: [vehicleId], references: [id])
+  driverId       Int               @map("driver_id")
+  driver         User              @relation(fields: [driverId], references: [id])
+  
+  type           InspectionType    @default(PRE_TRIP)
+  status         InspectionStatus  @default(PASSED)
+  odometer       Int
+  hasDefects     Boolean           @default(false) @map("has_defects")
+  isGrounded     Boolean           @default(false) @map("is_grounded")
+  groundingReason String?          @map("grounding_reason")
+  submittedAt    DateTime          @default(now()) @map("submitted_at")
+
+  itemResults    InspectionItemResult[]
+
+  @@map("trip_inspections")
+  @@index([tenantId, organizationId])
+  @@index([vehicleId])
+  @@index([driverId])
+  @@index([type])
+}
+
+/// Checklist item inside an inspection
+model InspectionItemResult {
+  id             Int            @id @default(autoincrement())
+  inspectionId   String         @map("inspection_id")
+  tripInspection TripInspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  
+  category       String
+  itemName       String         @map("item_name")
+  isPassed       Boolean        @map("is_passed")
+  severity       IncidentSeverity @default(LOW)
+  notes          String?
+
+  @@map("inspection_item_results")
+  @@index([inspectionId])
+}
+
+/// Driver Safety Incident Ledger
+model SafetyIncident {
+  id             String           @id @default(uuid()) @map("incident_id")
+  incidentNo     String           @unique @map("incident_no")
+  tenantId       String           @default("TNT-DEFAULT") @map("tenant_id")
+  organizationId String           @default("ORG-DEFAULT") @map("organization_id")
+  driverId       Int              @map("driver_id")
+  driver         User             @relation(fields: [driverId], references: [id])
+  vehicleId      String           @map("vehicle_id")
+  vehicle        Vehicle          @relation(fields: [vehicleId], references: [id])
+  
+  incidentType   String           @map("incident_type")
+  severity       IncidentSeverity @default(MEDIUM)
+  description    String
+  occurredAt     DateTime         @map("occurred_at")
+  pointsDeducted Int              @default(5) @map("points_deducted")
+  createdAt      DateTime         @default(now()) @map("created_at")
+
+  @@map("safety_incidents")
+  @@index([tenantId, organizationId])
+  @@index([driverId])
+  @@index([vehicleId])
+}
+
+/// Monthly Rolling Driver Safety Score
+model DriverSafetyScore {
+  id             Int      @id @default(autoincrement())
+  tenantId       String   @default("TNT-DEFAULT") @map("tenant_id")
+  organizationId String   @default("ORG-DEFAULT") @map("organization_id")
+  driverId       Int      @map("driver_id")
+  driver         User     @relation(fields: [driverId], references: [id])
+  
+  periodMonth    String   @map("period_month")
+  score          Float    @default(100.0)
+  totalTrips     Int      @default(0) @map("total_trips")
+  inspectionsPassed Int   @default(0) @map("inspections_passed")
+  incidentsCount Int      @default(0) @map("incidents_count")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@unique([driverId, periodMonth])
+  @@map("driver_safety_scores")
+  @@index([tenantId, organizationId])
 }

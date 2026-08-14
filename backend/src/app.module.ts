@@ -19,6 +19,8 @@ import { WorkflowModule } from './workflow/workflow.module';
 import { WorkshopModule } from './workshop/workshop.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { ProcurementModule } from './procurement/procurement.module';
+import { DriverModule } from './driver/driver.module';
+import { SafetyModule } from './safety/safety.module';
 
 @Module({
   imports: [
@@ -43,6 +45,8 @@ import { ProcurementModule } from './procurement/procurement.module';
     WorkshopModule,
     InventoryModule,
     ProcurementModule,
+    DriverModule,
+    SafetyModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -20,6 +20,7 @@ const NAV_MAP = {
     { label: 'Admin Panel', icon: '', action: () => showDashboard('dashboard-super-admin', 'System Administration', 'User accounts, permissions & scope configuration') },
     { label: 'Work Orders', icon: '🛠️', action: () => showDashboard('dashboard-workshop', 'Workshop Intelligence', 'Maintenance Work Orders & Scheduling Execution') },
     { label: 'Inventory Stock', icon: '📦', action: () => showDashboard('dashboard-inventory', 'Inventory Intelligence', 'Spare Parts, Casings & Procurement Supply Chain') },
+    { label: 'Driver Safety', icon: '🛡️', action: () => showDashboard('dashboard-driver-safety', 'Driver & Safety Intelligence', 'Pre-Trip Inspections, Shifts & Driver Safety Scoring') },
   ],
   'CEO': [
     { label: 'Executive Dashboard', icon: '', action: () => showDashboard('dashboard-ceo', 'Executive Intelligence', 'Organisation fleet availability, costs & risk metrics') },
@@ -28,10 +29,12 @@ const NAV_MAP = {
     { label: 'Fleet Operations', icon: '', action: () => showDashboard('dashboard-fleet-manager', 'Fleet Operations', `Region: ${currentUser?.region || 'All'} · Depot: ${currentUser?.depot || 'All'}`) },
     { label: 'Work Orders', icon: '🛠️', action: () => showDashboard('dashboard-workshop', 'Workshop Intelligence', 'Maintenance Work Orders & Scheduling Execution') },
     { label: 'Inventory Stock', icon: '📦', action: () => showDashboard('dashboard-inventory', 'Inventory Intelligence', 'Spare Parts, Casings & Procurement Supply Chain') },
+    { label: 'Driver Safety', icon: '🛡️', action: () => showDashboard('dashboard-driver-safety', 'Driver & Safety Intelligence', 'Pre-Trip Inspections, Shifts & Driver Safety Scoring') },
   ],
   'WORKSHOP_MANAGER': [
     { label: 'Work Orders', icon: '🛠️', action: () => showDashboard('dashboard-workshop', 'Workshop Operations', 'Maintenance Work Orders & Scheduling Execution') },
     { label: 'Inventory Stock', icon: '📦', action: () => showDashboard('dashboard-inventory', 'Inventory Operations', 'Spare Parts, Casings & Procurement Supply Chain') },
+    { label: 'Driver Safety', icon: '🛡️', action: () => showDashboard('dashboard-driver-safety', 'Driver & Safety Intelligence', 'Pre-Trip Inspections, Shifts & Driver Safety Scoring') },
   ],
   'TYRE_SUPERVISOR': [
     { label: 'Tyre Control Center', icon: '', action: () => showDashboard('dashboard-tyre-supervisor', 'Tyre Supervisor Operations', `Workshop: ${currentUser?.workshopId || 'Nairobi Central Workshop'}`) },
@@ -47,6 +50,7 @@ const NAV_MAP = {
   ],
   'DRIVER': [
     { label: 'My Vehicle', icon: '', action: () => showDashboard('dashboard-driver', 'My Vehicle', `Assigned vehicle: ${currentUser?.assignedVehicleId || 'None'}`) },
+    { label: 'Pre-Trip Inspection', icon: '🛡️', action: () => showDashboard('dashboard-driver-safety', 'Pre-Trip Inspection & Safety', 'Digital Pre-Trip Checklists & Shift Logging') },
   ],
   'AUDITOR': [
     { label: 'Audit & Compliance', icon: '', action: () => showDashboard('dashboard-auditor', 'Audit & Compliance', 'Read-only compliance views') },

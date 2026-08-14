@@ -171,6 +171,8 @@ export const ROLE_MATRIX: Record<UserRole, RoleConfig> = {
       Permission.PROCUREMENT_READ,
       Permission.PROCUREMENT_CREATE,
       Permission.PROCUREMENT_UPDATE,
+      Permission.SAFETY_READ,
+      Permission.SAFETY_CREATE,
     ],
   },
 

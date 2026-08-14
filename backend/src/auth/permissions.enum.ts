@@ -92,9 +92,11 @@ export enum Permission {
   BUDGET_CREATE            = 'budget.create',
   BUDGET_UPDATE            = 'budget.update',
 
-  // ── Driver ───────────────────────────────────
+  // ── Driver & Safety ──────────────────────────
   DRIVER_READ              = 'driver.read',
   DRIVER_DEFECT_CREATE     = 'driver.defect.create',
+  SAFETY_READ              = 'safety.read',
+  SAFETY_CREATE            = 'safety.create',
 
   // ── Reports ──────────────────────────────────
   REPORTS_READ             = 'reports.read',

@@ -147,7 +147,7 @@ async function runPhase3WorkshopVerticalSliceCertification() {
   }
   openDowntimeId = groundRes.body.downtime?.id;
   console.log(`✅ STEP 6 & 7: Vehicle grounded (Status: GROUNDED, VehicleDowntime ID: ${openDowntimeId}).`);
-  await new Promise((r) => setTimeout(r, 200));
+  await new Promise((r) => setTimeout(r, 500));
 
   // Step 7: WorkOrder Creation & Linking
   const createWoRes = await request('POST', '/api/v1/work-orders', {

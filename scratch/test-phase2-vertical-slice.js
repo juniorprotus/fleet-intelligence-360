@@ -170,8 +170,11 @@ async function runPhase2VerticalSliceCertification() {
   if (groundRes.status !== 201 && groundRes.status !== 200) {
     throw new Error(`Grounding failed: ${JSON.stringify(groundRes.body)}`);
   }
+  if (groundRes.body.vehicle?.vehicleStatus !== 'GROUNDED') {
+    throw new Error(`Grounding failed: Expected vehicleStatus = GROUNDED, got ${groundRes.body.vehicle?.vehicleStatus}`);
+  }
   openDowntimeId = groundRes.body.downtime?.id;
-  console.log(`✅ STEP 13 & 14: Vehicle grounded (Status: GROUNDED, Downtime ID: ${openDowntimeId}).`);
+  console.log(`✅ STEP 13 & 14: Vehicle grounded (Status: ${groundRes.body.vehicle?.vehicleStatus}, Downtime ID: ${openDowntimeId}).`);
 
   // Step 15: Idempotency Check (Repeated grounding request returns existing downtime)
   const groundIdempotencyRes = await request('POST', `/api/v1/vehicles/${createdVehicleId}/ground`, {
@@ -198,7 +201,10 @@ async function runPhase2VerticalSliceCertification() {
   if (recoverRes.status !== 201 && recoverRes.status !== 200) {
     throw new Error(`Recovery failed: ${JSON.stringify(recoverRes.body)}`);
   }
-  console.log(`✅ STEP 17 & 18: Vehicle recovered to ACTIVE status (Downtime closed, Duration: ${recoverRes.body.downtime?.durationMinutes || 0} mins).`);
+  if (recoverRes.body.vehicle?.vehicleStatus !== 'ACTIVE') {
+    throw new Error(`Recovery failed: Expected vehicleStatus = ACTIVE, got ${recoverRes.body.vehicle?.vehicleStatus}`);
+  }
+  console.log(`✅ STEP 17 & 18: Vehicle recovered to ${recoverRes.body.vehicle?.vehicleStatus} status (Downtime closed, Duration: ${recoverRes.body.downtime?.durationMinutes || 0} mins).`);
 
   // Step 19: Verify Standard Domain Events
   console.log('✅ STEP 19: Domain event envelope verified for vehicle.grounded and vehicle.recovered.');

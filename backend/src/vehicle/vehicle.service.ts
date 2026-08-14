@@ -529,7 +529,7 @@ export class VehicleService {
     const groundedVehicle = await this.prisma.vehicle.update({
       where: { id: vehicle.id },
       data: {
-        vehicleStatus: 'MAINTENANCE',
+        vehicleStatus: 'GROUNDED',
         updatedBy: userId,
       },
     });

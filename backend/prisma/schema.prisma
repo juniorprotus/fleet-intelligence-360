@@ -595,6 +595,7 @@ enum VehicleStatus {
   ACTIVE
   INACTIVE
   MAINTENANCE
+  GROUNDED
   DISPOSED
   SOLD
 }

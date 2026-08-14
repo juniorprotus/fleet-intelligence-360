@@ -19,6 +19,7 @@ const NAV_MAP = {
   'SUPER_ADMIN': [
     { label: 'Admin Panel', icon: '', action: () => showDashboard('dashboard-super-admin', 'System Administration', 'User accounts, permissions & scope configuration') },
     { label: 'Work Orders', icon: '🛠️', action: () => showDashboard('dashboard-workshop', 'Workshop Intelligence', 'Maintenance Work Orders & Scheduling Execution') },
+    { label: 'Inventory Stock', icon: '📦', action: () => showDashboard('dashboard-inventory', 'Inventory Intelligence', 'Spare Parts, Casings & Procurement Supply Chain') },
   ],
   'CEO': [
     { label: 'Executive Dashboard', icon: '', action: () => showDashboard('dashboard-ceo', 'Executive Intelligence', 'Organisation fleet availability, costs & risk metrics') },
@@ -26,13 +27,16 @@ const NAV_MAP = {
   'FLEET_MANAGER': [
     { label: 'Fleet Operations', icon: '', action: () => showDashboard('dashboard-fleet-manager', 'Fleet Operations', `Region: ${currentUser?.region || 'All'} · Depot: ${currentUser?.depot || 'All'}`) },
     { label: 'Work Orders', icon: '🛠️', action: () => showDashboard('dashboard-workshop', 'Workshop Intelligence', 'Maintenance Work Orders & Scheduling Execution') },
+    { label: 'Inventory Stock', icon: '📦', action: () => showDashboard('dashboard-inventory', 'Inventory Intelligence', 'Spare Parts, Casings & Procurement Supply Chain') },
   ],
   'WORKSHOP_MANAGER': [
     { label: 'Work Orders', icon: '🛠️', action: () => showDashboard('dashboard-workshop', 'Workshop Operations', 'Maintenance Work Orders & Scheduling Execution') },
+    { label: 'Inventory Stock', icon: '📦', action: () => showDashboard('dashboard-inventory', 'Inventory Operations', 'Spare Parts, Casings & Procurement Supply Chain') },
   ],
   'TYRE_SUPERVISOR': [
     { label: 'Tyre Control Center', icon: '', action: () => showDashboard('dashboard-tyre-supervisor', 'Tyre Supervisor Operations', `Workshop: ${currentUser?.workshopId || 'Nairobi Central Workshop'}`) },
     { label: 'Work Orders', icon: '🛠️', action: () => showDashboard('dashboard-workshop', 'Workshop Intelligence', 'Maintenance Work Orders & Scheduling Execution') },
+    { label: 'Inventory Stock', icon: '📦', action: () => showDashboard('dashboard-inventory', 'Inventory Intelligence', 'Spare Parts, Casings & Procurement Supply Chain') },
   ],
   'TYRE_TECHNICIAN': [
     { label: 'Workshop', icon: '', action: () => showDashboard('dashboard-technician', 'Workshop Dashboard', `Depot: ${currentUser?.depot || 'All'}`) },

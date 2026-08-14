@@ -1251,6 +1251,50 @@
           </div>
 
           <!-- ─────────────────────────────────────────
+               DASHBOARD-INVENTORY (Spare Parts & Procurement View)
+          ──────────────────────────────────────────── -->
+          <div id="dashboard-inventory" class="view hidden">
+            <h3 class="mb-2">Inventory Stock &amp; Material Movement Supply Chain</h3>
+            <div class="kpi-grid">
+              <div class="kpi-card kpi-success clickable" id="inv-kpi-turnover">
+                <div class="kpi-body">
+                  <p class="kpi-label">Inventory Turnover Ratio</p>
+                  <p class="kpi-value" id="inv-val-turnover">4.2 Turns</p>
+                  <p class="kpi-sub">Target: &ge; 4.0 Turns/Year</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-primary clickable" id="inv-kpi-stockout">
+                <div class="kpi-body">
+                  <p class="kpi-label">Parts Stockout Rate</p>
+                  <p class="kpi-value" id="inv-val-stockout">1.2%</p>
+                  <p class="kpi-sub">Target: &le; 2.0%</p>
+                </div>
+              </div>
+              <div class="kpi-card kpi-warning clickable" id="inv-kpi-cycle-time">
+                <div class="kpi-body">
+                  <p class="kpi-label">PO Fulfillment Cycle Time</p>
+                  <p class="kpi-value" id="inv-val-cycle-time">4.5 Days</p>
+                  <p class="kpi-sub">Target: &le; 5.0 Days</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="card p-4 mt-4">
+              <h4 class="mb-3">Workshop Spare Parts Stock Position</h4>
+              <div class="table-container">
+                <table id="inventory-stock-table">
+                  <thead>
+                    <tr><th>Part #</th><th>Name</th><th>Category</th><th>Workshop</th><th>On Hand</th><th>Reorder Level</th><th>Unit Cost</th></tr>
+                  </thead>
+                  <tbody id="inventory-stock-tbody">
+                    <tr><td colspan="7" class="text-center muted">Loading Stock Position...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- ─────────────────────────────────────────
                DASHBOARD-DRIVER (My Vehicle View)
           ──────────────────────────────────────────── -->
           <div id="dashboard-driver" class="view hidden">

@@ -17,6 +17,8 @@ import { ReportingModule } from './reporting/reporting.module';
 import { EventsModule } from './events/events.module';
 import { WorkflowModule } from './workflow/workflow.module';
 import { WorkshopModule } from './workshop/workshop.module';
+import { InventoryModule } from './inventory/inventory.module';
+import { ProcurementModule } from './procurement/procurement.module';
 
 @Module({
   imports: [
@@ -39,6 +41,8 @@ import { WorkshopModule } from './workshop/workshop.module';
     EventsModule,
     WorkflowModule,
     WorkshopModule,
+    InventoryModule,
+    ProcurementModule,
   ],
   controllers: [AppController],
   providers: [AppService],

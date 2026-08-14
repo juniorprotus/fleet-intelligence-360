@@ -63,6 +63,19 @@ export enum Permission {
   WORKSHOP_READ            = 'workshop.read',
   WORKSHOP_CREATE          = 'workshop.create',
   WORKSHOP_UPDATE          = 'workshop.update',
+  WORKSHOP_DELETE          = 'workshop.delete',
+
+  // ── Inventory ────────────────────────────────
+  INVENTORY_READ           = 'inventory.read',
+  INVENTORY_CREATE         = 'inventory.create',
+  INVENTORY_UPDATE         = 'inventory.update',
+  INVENTORY_DELETE         = 'inventory.delete',
+
+  // ── Procurement ──────────────────────────────
+  PROCUREMENT_READ         = 'procurement.read',
+  PROCUREMENT_CREATE       = 'procurement.create',
+  PROCUREMENT_UPDATE       = 'procurement.update',
+  PROCUREMENT_DELETE       = 'procurement.delete',
 
   // ── Fuel ─────────────────────────────────────
   FUEL_READ                = 'fuel.read',

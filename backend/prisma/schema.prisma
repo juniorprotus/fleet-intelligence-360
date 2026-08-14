@@ -119,6 +119,7 @@ model Workshop {
   vehicles        Vehicle[]
   users           User[]
   workshopAssignments VehicleWorkshopAssignment[]
+  downtimes       VehicleDowntime[]
 
   @@map("workshops")
   @@index([region])
@@ -163,6 +164,7 @@ model Vehicle {
   tyreInspections   TyreInspection[]
   tyreDefects       TyreDefect[]
   workshopAssignments VehicleWorkshopAssignment[]
+  downtimes         VehicleDowntime[]
 
   @@map("vehicles")
   @@index([region])
@@ -472,10 +474,65 @@ model TyreDefect {
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
 
+  downtimes       VehicleDowntime[]
+
   @@map("tyre_defects")
   @@index([vehicleId])
   @@index([status])
   @@index([severity])
+}
+
+// ============================================================
+// FLEET & ASSET — VEHICLE GROUNDING POLICY & DOWNTIME LEDGER
+// ============================================================
+
+/// Grounding policy abstraction governing vehicle grounding rules
+model VehicleGroundingPolicy {
+  id                   String   @id @default(uuid()) @map("policy_id")
+  tenantId             String   @default("TNT-DEFAULT") @map("tenant_id")
+  organizationId       String   @default("ORG-DEFAULT") @map("organization_id")
+  name                 String   @default("Standard Fleet Grounding Policy")
+  vehicleClass         String?  @map("vehicle_class")
+  defectCategory       String   @map("defect_category")
+  severityThreshold    String   @default("CRITICAL") @map("severity_threshold")
+  isAutomaticGrounding Boolean  @default(true) @map("is_automatic_grounding")
+  requiresApproval     Boolean  @default(false) @map("requires_approval")
+  effectiveFrom        DateTime @default(now()) @map("effective_from")
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  @@map("vehicle_grounding_policies")
+  @@index([tenantId])
+  @@index([organizationId])
+}
+
+/// Vehicle downtime domain ledger (Owned strictly by Fleet & Asset Domain)
+model VehicleDowntime {
+  id               String      @id @default(uuid()) @map("downtime_id")
+  vehicleId        String      @map("vehicle_id")
+  vehicle          Vehicle     @relation(fields: [vehicleId], references: [id])
+  tenantId         String      @default("TNT-DEFAULT") @map("tenant_id")
+  organizationId   String      @default("ORG-DEFAULT") @map("organization_id")
+  workshopId       String?     @map("workshop_id")
+  workshop         Workshop?   @relation(fields: [workshopId], references: [id])
+  downtimeType     String      @default("UNPLANNED") @map("downtime_type")
+  reason           String
+  sourceDomain     String      @default("TYRE_INTELLIGENCE") @map("source_domain")
+  sourceEntityId   String?     @map("source_entity_id")
+  startedAt        DateTime    @default(now()) @map("started_at")
+  acknowledgedAt   DateTime?   @map("acknowledged_at")
+  recoveredAt      DateTime?   @map("recovered_at")
+  durationMinutes  Int?        @map("duration_minutes")
+  responsibleParty String?     @map("responsible_party")
+  defectId         Int?        @map("defect_id")
+  defect           TyreDefect? @relation(fields: [defectId], references: [id])
+  startedBy        String?     @map("started_by")
+  recoveredBy      String?     @map("recovered_by")
+  createdAt        DateTime    @default(now()) @map("created_at")
+
+  @@map("vehicle_downtimes")
+  @@index([vehicleId])
+  @@index([tenantId])
+  @@index([workshopId])
 }
 
 /// FI360 platform audit log - immutable record of critical actions.

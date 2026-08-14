@@ -108,4 +108,55 @@ export class VehicleController {
   async update(@Param('id') id: string, @Body() dto: UpdateVehicleDto) {
     return this.vehicleService.update(id, dto);
   }
+
+  // ──────────────────────────────────────────────
+  // PHASE 2 — WORKSHOP TRANSFER & GROUNDING ENDPOINTS
+  // ──────────────────────────────────────────────
+
+  @Post(':id/transfer-workshop')
+  @RequirePermissions(Permission.VEHICLE_UPDATE)
+  @ApiOperation({ summary: 'Transfer a vehicle to a new workshop location' })
+  async transferWorkshop(
+    @Request() req,
+    @Param('id') id: string,
+    @Body() body: { workshopId: string; reason?: string },
+  ) {
+    return this.vehicleService.transferWorkshop(id, body, req.user?.email || req.user?.id);
+  }
+
+  @Get(':id/workshop-history')
+  @RequirePermissions(Permission.VEHICLE_READ)
+  @ApiOperation({ summary: 'Get historical workshop transfer ledger for a vehicle' })
+  async getWorkshopHistory(@Param('id') id: string) {
+    return this.vehicleService.getWorkshopHistory(id);
+  }
+
+  @Post(':id/ground')
+  @RequirePermissions(Permission.VEHICLE_UPDATE)
+  @ApiOperation({ summary: 'Evaluate policy and ground a vehicle due to critical defect' })
+  async groundVehicle(
+    @Request() req,
+    @Param('id') id: string,
+    @Body() body: { reason: string; defectId?: number; sourceDomain?: string; requestedBy?: string; approverId?: string; notes?: string },
+  ) {
+    return this.vehicleService.groundVehicle(id, body, req.user?.email || req.user?.id);
+  }
+
+  @Post(':id/recover')
+  @RequirePermissions(Permission.VEHICLE_UPDATE)
+  @ApiOperation({ summary: 'Close downtime and recover vehicle back to active service' })
+  async recoverVehicle(
+    @Request() req,
+    @Param('id') id: string,
+    @Body() body: { notes?: string },
+  ) {
+    return this.vehicleService.recoverVehicle(id, req.user?.email || req.user?.id, body?.notes);
+  }
+
+  @Get('downtime-summary')
+  @RequirePermissions(Permission.VEHICLE_READ)
+  @ApiOperation({ summary: 'Get active and historical vehicle downtime ledgers' })
+  async getDowntimeSummary() {
+    return this.vehicleService.getDowntimeSummary();
+  }
 }

@@ -1,7 +1,9 @@
-import { Injectable, NotFoundException, ConflictException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { DataScopeService, DataScopeContext } from '../auth/data-scope.service';
 import { CreateVehicleDto, UpdateVehicleDto } from './dto/vehicle.dto';
+import { EventPublisherService } from '../events/event-publisher.service';
+import { ApprovalWorkflowService } from '../workflow/approval-workflow.service';
 
 @Injectable()
 export class VehicleService {
@@ -10,6 +12,8 @@ export class VehicleService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly dataScopeService: DataScopeService,
+    private readonly eventPublisher: EventPublisherService,
+    private readonly workflowService: ApprovalWorkflowService,
   ) {}
 
   async create(dto: CreateVehicleDto, userId?: string) {
@@ -27,6 +31,20 @@ export class VehicleService {
         updatedBy: userId,
       },
     });
+    await this.eventPublisher.publish({
+      eventType: 'vehicle.created',
+      entityId: vehicle.id,
+      entityType: 'Vehicle',
+      actorId: userId,
+      payload: {
+        vehicleId: vehicle.id,
+        registrationNumber: vehicle.registrationNumber,
+        fleetNumber: vehicle.fleetNumber,
+        vehicleClass: vehicle.vehicleClass,
+        workshopId: vehicle.workshopId,
+      },
+    });
+
     this.logger.log(`Vehicle created: ${vehicle.registrationNumber} (${vehicle.id})`);
     return vehicle;
   }
@@ -363,7 +381,6 @@ export class VehicleService {
   }
 
   async getDriversForVehicles() {
-    // Return all DRIVER users with their assigned vehicle info
     return this.prisma.user.findMany({
       where: { role: 'DRIVER', isActive: true },
       select: {
@@ -376,4 +393,253 @@ export class VehicleService {
       orderBy: { firstName: 'asc' },
     });
   }
+
+  // ──────────────────────────────────────────────
+  // PHASE 2 — WORKSHOP TRANSFER & ASSIGNMENT LEDGER
+  // ──────────────────────────────────────────────
+
+  async transferWorkshop(vehicleId: string, dto: { workshopId: string; reason?: string }, userId?: string) {
+    const vehicle = await this.findOne(vehicleId);
+    const workshop = await this.prisma.workshop.findUnique({ where: { id: dto.workshopId } });
+    if (!workshop) {
+      throw new NotFoundException(`Workshop #${dto.workshopId} not found`);
+    }
+
+    const previousWorkshopId = vehicle.workshopId;
+
+    // Update current vehicle workshop assignment
+    const updatedVehicle = await this.prisma.vehicle.update({
+      where: { id: vehicle.id },
+      data: {
+        workshopId: dto.workshopId,
+        updatedBy: userId,
+      },
+    });
+
+    // Close any previous open assignment
+    if (previousWorkshopId) {
+      await this.prisma.vehicleWorkshopAssignment.updateMany({
+        where: { vehicleId: vehicle.id, unassignedAt: null },
+        data: { unassignedAt: new Date() },
+      });
+    }
+
+    // Insert append-only assignment ledger record
+    const assignment = await this.prisma.vehicleWorkshopAssignment.create({
+      data: {
+        vehicleId: vehicle.id,
+        workshopId: dto.workshopId,
+        assignedAt: new Date(),
+        assignedBy: userId,
+        reason: dto.reason || 'Workshop Transfer',
+      },
+    });
+
+    // Emit domain event
+    await this.eventPublisher.publish({
+      eventType: 'vehicle.workshop.transferred',
+      entityId: vehicle.id,
+      entityType: 'Vehicle',
+      actorId: userId,
+      payload: {
+        vehicleId: vehicle.id,
+        fromWorkshopId: previousWorkshopId,
+        toWorkshopId: dto.workshopId,
+        reason: dto.reason,
+      },
+    });
+
+    this.logger.log(`Vehicle ${vehicle.registrationNumber} transferred to workshop ${workshop.name} (${workshop.id})`);
+    return { vehicle: updatedVehicle, assignment };
+  }
+
+  async getWorkshopHistory(vehicleId: string) {
+    const vehicle = await this.findOne(vehicleId);
+    return this.prisma.vehicleWorkshopAssignment.findMany({
+      where: { vehicleId: vehicle.id },
+      include: { workshop: true },
+      orderBy: { assignedAt: 'desc' },
+    });
+  }
+
+  // ──────────────────────────────────────────────
+  // PHASE 2 — POLICY-DRIVEN GROUNDING & DOWNTIME
+  // ──────────────────────────────────────────────
+
+  async evaluateGroundingPolicy(vehicleClass?: string, defectCategory?: string, severityThreshold?: string) {
+    const policy = await this.prisma.vehicleGroundingPolicy.findFirst({
+      where: {
+        ...(vehicleClass && { OR: [{ vehicleClass }, { vehicleClass: 'ALL' }, { vehicleClass: null }] }),
+        ...(defectCategory && { defectCategory }),
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (policy) {
+      return policy;
+    }
+
+    // Default policy fallback
+    return {
+      id: 'POLICY-DEFAULT',
+      tenantId: 'TNT-DEFAULT',
+      organizationId: 'ORG-DEFAULT',
+      name: 'Default Safety Grounding Policy',
+      vehicleClass: vehicleClass || 'ALL',
+      defectCategory: defectCategory || 'TYRE_CRITICAL',
+      severityThreshold: severityThreshold || 'CRITICAL',
+      isAutomaticGrounding: true,
+      requiresApproval: false,
+    };
+  }
+
+  async groundVehicle(
+    vehicleId: string,
+    dto: {
+      reason: string;
+      defectId?: number;
+      sourceDomain?: string;
+      requestedBy?: string;
+      approverId?: string;
+      notes?: string;
+    },
+    userId?: string,
+  ) {
+    const vehicle = await this.findOne(vehicleId);
+
+    // Idempotency check: If an active open downtime record exists (recoveredAt IS NULL), return it
+    const existingDowntime = await this.prisma.vehicleDowntime.findFirst({
+      where: { vehicleId: vehicle.id, recoveredAt: null },
+    });
+
+    if (existingDowntime) {
+      this.logger.log(`Idempotency check: Vehicle ${vehicle.registrationNumber} is already grounded (Downtime ID: ${existingDowntime.id})`);
+      return { vehicle, downtime: existingDowntime, idempotency: true };
+    }
+
+    // Evaluate Grounding Policy
+    const policy = await this.evaluateGroundingPolicy(vehicle.vehicleClass || undefined, 'TYRE_CRITICAL', 'CRITICAL');
+
+    // Segregation of Duties & Approval check if required by policy
+    if (policy.requiresApproval && dto.approverId) {
+      this.workflowService.validateSegregationOfDuties(dto.requestedBy || userId || 'system', dto.approverId);
+    }
+
+    // Update Vehicle Status to GROUNDED
+    const groundedVehicle = await this.prisma.vehicle.update({
+      where: { id: vehicle.id },
+      data: {
+        vehicleStatus: 'MAINTENANCE',
+        updatedBy: userId,
+      },
+    });
+
+    try {
+      // Create VehicleDowntime domain ledger entry
+      const downtime = await this.prisma.vehicleDowntime.create({
+        data: {
+          vehicleId: vehicle.id,
+          tenantId: 'TNT-DEFAULT',
+          organizationId: 'ORG-DEFAULT',
+          workshopId: vehicle.workshopId,
+          downtimeType: 'UNPLANNED',
+          reason: dto.reason,
+          sourceDomain: dto.sourceDomain || 'TYRE_INTELLIGENCE',
+          sourceEntityId: dto.defectId ? String(dto.defectId) : undefined,
+          startedAt: new Date(),
+          defectId: dto.defectId,
+          startedBy: dto.requestedBy || userId,
+        },
+      });
+
+      // Emit domain event
+      await this.eventPublisher.publish({
+        eventType: 'vehicle.grounded',
+        entityId: vehicle.id,
+        entityType: 'Vehicle',
+        actorId: userId,
+        payload: {
+          vehicleId: vehicle.id,
+          downtimeId: downtime.id,
+          sourceDomain: downtime.sourceDomain,
+          reason: downtime.reason,
+          workshopId: downtime.workshopId,
+        },
+      });
+
+      this.logger.log(`Vehicle ${vehicle.registrationNumber} grounded (Downtime #${downtime.id})`);
+      return { vehicle: groundedVehicle, downtime, idempotency: false };
+    } catch (err: any) {
+      this.logger.error(`groundVehicle failed: ${err?.message || err}`, err?.stack);
+      throw err;
+    }
+  }
+
+  async recoverVehicle(vehicleId: string, userId?: string, notes?: string) {
+    const vehicle = await this.findOne(vehicleId);
+
+    // Find active open downtime record
+    const activeDowntime = await this.prisma.vehicleDowntime.findFirst({
+      where: { vehicleId: vehicle.id, recoveredAt: null },
+    });
+
+    let closedDowntime: any = null;
+    if (activeDowntime) {
+      const now = new Date();
+      const durationMinutes = Math.round((now.getTime() - activeDowntime.startedAt.getTime()) / 60000);
+
+      closedDowntime = await this.prisma.vehicleDowntime.update({
+        where: { id: activeDowntime.id },
+        data: {
+          recoveredAt: now,
+          durationMinutes,
+          recoveredBy: userId,
+        },
+      });
+    }
+
+    // Restore vehicle status to ACTIVE
+    const recoveredVehicle = await this.prisma.vehicle.update({
+      where: { id: vehicle.id },
+      data: {
+        vehicleStatus: 'ACTIVE' as any,
+        updatedBy: userId,
+      },
+    });
+
+    // Emit domain event
+    await this.eventPublisher.publish({
+      eventType: 'vehicle.recovered',
+      entityId: vehicle.id,
+      entityType: 'Vehicle',
+      actorId: userId,
+      payload: {
+        vehicleId: vehicle.id,
+        downtimeId: closedDowntime?.id,
+        durationMinutes: closedDowntime?.durationMinutes || 0,
+        recoveredBy: userId,
+      },
+    });
+
+    this.logger.log(`Vehicle ${vehicle.registrationNumber} recovered from downtime to ACTIVE status`);
+    return { vehicle: recoveredVehicle, downtime: closedDowntime };
+  }
+
+  async getDowntimeSummary() {
+    const [active, recent] = await Promise.all([
+      this.prisma.vehicleDowntime.findMany({
+        where: { recoveredAt: null },
+        include: { vehicle: true, workshop: true, defect: true },
+        orderBy: { startedAt: 'desc' },
+      }),
+      this.prisma.vehicleDowntime.findMany({
+        where: { recoveredAt: { not: null } },
+        include: { vehicle: true, workshop: true },
+        orderBy: { recoveredAt: 'desc' },
+        take: 20,
+      }),
+    ]);
+    return { activeDowntimes: active, recentRecoveries: recent };
+  }
 }
+

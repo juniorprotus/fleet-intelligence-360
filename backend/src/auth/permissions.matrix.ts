@@ -98,9 +98,18 @@ export const ROLE_MATRIX: Record<UserRole, RoleConfig> = {
       Permission.AI_CONFIGURATION_MANAGE,
       Permission.AI_MODEL_READ,
       Permission.AI_AUDIT_READ,
-      // Read-only reference
+      // Read-only & Operational permissions
       Permission.VEHICLE_READ,
+      Permission.VEHICLE_CREATE,
+      Permission.VEHICLE_UPDATE,
+      Permission.VEHICLE_DELETE,
       Permission.TYRE_READ,
+      Permission.TYRE_CREATE,
+      Permission.TYRE_REGISTER,
+      Permission.TYRE_UPDATE,
+      Permission.TYRE_INSPECT,
+      Permission.TYRE_REPLACE,
+      Permission.TYRE_RETREAD,
     ],
   },
 

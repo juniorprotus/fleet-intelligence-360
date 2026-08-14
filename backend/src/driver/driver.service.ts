@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventPublisherService } from '../events/event-publisher.service';
 import { VehicleService } from '../vehicle/vehicle.service';
@@ -91,19 +91,51 @@ export class DriverService {
   /**
    * Submit digital Pre-Trip or Post-Trip Inspection
    * Policy Grounding Integration: Failed critical items invoke VehicleService.groundVehicle()
+   * Scoping Enforcement: DRIVER role must have active DriverAssignment for the vehicle
    */
   async submitTripInspection(dto: {
     vehicleId: string;
     driverId: number;
+    userRole?: string;
     type?: any;
     odometer: number;
     items: { category: string; itemName: string; isPassed: boolean; severity?: any; notes?: string }[];
   }) {
+    const numericDriverId = Number(dto.driverId);
     const vehicle = await this.prisma.vehicle.findUnique({ where: { id: dto.vehicleId } });
     if (!vehicle) throw new NotFoundException(`Vehicle #${dto.vehicleId} not found`);
 
-    const driver = await this.prisma.user.findUnique({ where: { id: dto.driverId } });
+    const driver = await this.prisma.user.findUnique({ where: { id: numericDriverId } });
     if (!driver) throw new NotFoundException(`Driver User #${dto.driverId} not found`);
+
+    // Strict Driver Vehicle Scoping Check
+    if (dto.userRole === 'DRIVER' || driver.role === 'DRIVER') {
+      const activeAssignment = await this.prisma.driverAssignment.findFirst({
+        where: {
+          driverId: numericDriverId,
+          vehicleId: dto.vehicleId,
+          status: 'ACTIVE',
+        },
+      });
+
+      if (!activeAssignment) {
+        await this.eventPublisher.publish({
+          eventType: 'security.unauthorized_inspection_attempt',
+          entityId: dto.vehicleId,
+          entityType: 'Vehicle',
+          actorId: String(numericDriverId),
+          payload: {
+            driverId: numericDriverId,
+            driverEmail: driver.email,
+            attemptedVehicleId: dto.vehicleId,
+            timestamp: new Date(),
+          },
+        });
+
+        this.logger.warn(`SECURITY VIOLATION: Driver #${numericDriverId} (${driver.email}) attempted inspection on unassigned vehicle #${dto.vehicleId}`);
+        throw new ForbiddenException(`Access Denied: Vehicle ${vehicle.registrationNumber} is not assigned to your active shift.`);
+      }
+    }
 
     const inspectionNo = `INSP-${Date.now().toString().slice(-6)}`;
     const hasDefects = dto.items.some((i) => !i.isPassed);
@@ -119,7 +151,7 @@ export class DriverService {
         tenantId: 'TNT-DEFAULT',
         organizationId: 'ORG-DEFAULT',
         vehicleId: dto.vehicleId,
-        driverId: dto.driverId,
+        driverId: numericDriverId,
         type: dto.type || 'PRE_TRIP',
         status: criticalFailure ? 'FAILED_CRITICAL' : hasDefects ? 'FAILED_MINOR' : 'PASSED',
         odometer: dto.odometer,
@@ -160,12 +192,12 @@ export class DriverService {
       eventType: 'inspection.completed',
       entityId: inspection.id,
       entityType: 'TripInspection',
-      actorId: String(dto.driverId),
+      actorId: String(numericDriverId),
       payload: {
         inspectionId: inspection.id,
         inspectionNo: inspection.inspectionNo,
         vehicleId: dto.vehicleId,
-        driverId: dto.driverId,
+        driverId: numericDriverId,
         type: inspection.type,
         status: inspection.status,
         hasDefects,
@@ -179,7 +211,7 @@ export class DriverService {
 
   async getAssignments(driverId?: number) {
     const where: any = {};
-    if (driverId) where.driverId = driverId;
+    if (driverId) where.driverId = Number(driverId);
     return this.prisma.driverAssignment.findMany({
       where,
       include: { driver: true, vehicle: true },
@@ -193,6 +225,25 @@ export class DriverService {
     return this.prisma.tripInspection.findMany({
       where,
       include: { driver: true, vehicle: true, itemResults: true },
+      orderBy: { submittedAt: 'desc' },
+    });
+  }
+
+  async getMyVehicle(userId: number | string) {
+    const numericUserId = Number(userId);
+    const active = await this.prisma.driverAssignment.findFirst({
+      where: { driverId: numericUserId, status: 'ACTIVE' },
+      include: { vehicle: true },
+      orderBy: { createdAt: 'desc' },
+    });
+    return active || null;
+  }
+
+  async getMyInspections(userId: number | string) {
+    const numericUserId = Number(userId);
+    return this.prisma.tripInspection.findMany({
+      where: { driverId: numericUserId },
+      include: { vehicle: true, itemResults: true },
       orderBy: { submittedAt: 'desc' },
     });
   }

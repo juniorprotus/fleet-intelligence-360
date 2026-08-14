@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -24,5 +24,15 @@ export class SystemAdminController {
   @Get('reports/:reportId')
   async getReport(@Param('reportId') reportId: string, @Query() query: any) {
     return this.adminService.generateSystemReport(reportId, query);
+  }
+
+  @Post('corrections')
+  async executeDataCorrection(@Request() req: any, @Body() body: any) {
+    return this.adminService.executeDataCorrection(body, req.user);
+  }
+
+  @Get('corrections')
+  async getDataCorrections(@Query('domain') domain?: string, @Query('entityType') entityType?: string) {
+    return this.adminService.getDataCorrections({ domain, entityType });
   }
 }

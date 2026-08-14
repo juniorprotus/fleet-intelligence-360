@@ -95,6 +95,9 @@ export enum Permission {
   // ── Driver & Safety ──────────────────────────
   DRIVER_READ              = 'driver.read',
   DRIVER_DEFECT_CREATE     = 'driver.defect.create',
+  DRIVER_INSPECTION_CREATE = 'driver.inspection.create',
+  DRIVER_INSPECTION_VIEW_OWN = 'driver.inspection.view_own',
+  DRIVER_SAFETY_VIEW_OWN   = 'driver.safety.view_own',
   SAFETY_READ              = 'safety.read',
   SAFETY_CREATE            = 'safety.create',
 
@@ -117,6 +120,9 @@ export enum Permission {
   SYSTEM_CONFIGURE         = 'system.configure',
   SYSTEM_HEALTH_READ       = 'system.health.read',
   SYSTEM_SETTINGS_MANAGE   = 'system.settings.manage',
+  DATA_CORRECTION_CREATE   = 'data.correction.create',
+  DATA_CORRECTION_EXECUTE  = 'data.correction.execute',
+  DATA_CORRECTION_HISTORY_VIEW = 'data.correction.history_view',
 
   USER_ACTIVATE            = 'user.activate',
   USER_DEACTIVATE          = 'user.deactivate',

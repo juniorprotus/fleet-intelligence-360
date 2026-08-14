@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { KpiGovernanceService, KpiStandardPayload } from '../kpi/kpi-governance.service';
 
@@ -809,5 +809,118 @@ export class SystemAdminService {
         };
       }
     }
+  }
+
+  /**
+   * Controlled Append-Only Data Correction Execution (SUPER_ADMIN Only)
+   */
+  async executeDataCorrection(
+    dto: {
+      domain: string;
+      entityType: string;
+      entityId: string;
+      fieldName: string;
+      correctedValue: string;
+      reason: string;
+    },
+    user: { id: number; email: string; role: string },
+  ) {
+    if (user?.role !== 'SUPER_ADMIN') {
+      throw new ForbiddenException('Access Denied: Only SUPER_ADMIN is authorized to execute historical data corrections.');
+    }
+
+    if (!dto.reason || dto.reason.trim().length === 0) {
+      throw new BadRequestException('Validation Error: Mandatory business justification reason required for data correction.');
+    }
+
+    // Allowlist check on fieldName (prevent correcting security/identity/primary key fields)
+    const prohibitedFields = ['id', 'uuid', 'tenantId', 'tenant_id', 'organizationId', 'organization_id', 'password', 'passwordHash', 'createdAt', 'created_at'];
+    if (prohibitedFields.includes(dto.fieldName)) {
+      throw new BadRequestException(`Security Policy Error: Field '${dto.fieldName}' is protected and prohibited from direct administrative correction.`);
+    }
+
+    let originalValue = 'N/A';
+    const entityTypeLower = dto.entityType.toLowerCase();
+    const parsedValue = (dto.correctedValue !== '' && !isNaN(Number(dto.correctedValue))) ? Number(dto.correctedValue) : dto.correctedValue;
+
+    // Fetch original value and apply update based on entityType
+    if (entityTypeLower === 'tripinspection' || entityTypeLower === 'trip_inspection') {
+      const target = await this.prisma.tripInspection.findUnique({ where: { id: dto.entityId } });
+      if (!target) throw new NotFoundException(`TripInspection #${dto.entityId} not found.`);
+      originalValue = JSON.stringify((target as any)[dto.fieldName] ?? null);
+      await this.prisma.tripInspection.update({
+        where: { id: dto.entityId },
+        data: { [dto.fieldName]: parsedValue },
+      });
+    } else if (entityTypeLower === 'tyreinspection' || entityTypeLower === 'tyre_inspection') {
+      const target = await this.prisma.tyreInspection.findUnique({ where: { id: parseInt(dto.entityId, 10) } });
+      if (!target) throw new NotFoundException(`TyreInspection #${dto.entityId} not found.`);
+      originalValue = JSON.stringify((target as any)[dto.fieldName] ?? null);
+      await this.prisma.tyreInspection.update({
+        where: { id: parseInt(dto.entityId, 10) },
+        data: { [dto.fieldName]: parsedValue },
+      });
+    } else if (entityTypeLower === 'inventorystock' || entityTypeLower === 'inventory_stock') {
+      const target = await this.prisma.inventoryStock.findUnique({ where: { id: dto.entityId } });
+      if (!target) throw new NotFoundException(`InventoryStock #${dto.entityId} not found.`);
+      originalValue = JSON.stringify((target as any)[dto.fieldName] ?? null);
+      await this.prisma.inventoryStock.update({
+        where: { id: dto.entityId },
+        data: { [dto.fieldName]: parsedValue },
+      });
+    } else if (entityTypeLower === 'workorder' || entityTypeLower === 'work_order') {
+      const target = await this.prisma.workOrder.findUnique({ where: { id: dto.entityId } });
+      if (!target) throw new NotFoundException(`WorkOrder #${dto.entityId} not found.`);
+      originalValue = JSON.stringify((target as any)[dto.fieldName] ?? null);
+      await this.prisma.workOrder.update({
+        where: { id: dto.entityId },
+        data: { [dto.fieldName]: parsedValue },
+      });
+    } else if (entityTypeLower === 'vehicle') {
+      const target = await this.prisma.vehicle.findUnique({ where: { id: dto.entityId } });
+      if (!target) throw new NotFoundException(`Vehicle #${dto.entityId} not found.`);
+      originalValue = JSON.stringify((target as any)[dto.fieldName] ?? null);
+      await this.prisma.vehicle.update({
+        where: { id: dto.entityId },
+        data: { [dto.fieldName]: parsedValue },
+      });
+    } else {
+      throw new BadRequestException(`Unsupported Entity Type for Data Correction: '${dto.entityType}'`);
+    }
+
+    // Record entry in append-only DataCorrection ledger
+    const correction = await this.prisma.dataCorrection.create({
+      data: {
+        tenantId: 'TNT-DEFAULT',
+        organizationId: 'ORG-DEFAULT',
+        domain: dto.domain,
+        entityType: dto.entityType,
+        entityId: dto.entityId,
+        fieldName: dto.fieldName,
+        originalValue,
+        correctedValue: dto.correctedValue,
+        reason: dto.reason,
+        correctedById: Number((user as any)?.userId || user?.id || 1),
+        correctedByEmail: user.email,
+        correlationId: `CORR-${Date.now()}`,
+      },
+    });
+
+    this.logger.log(`DATA CORRECTION EXECUTED by ${user.email} on ${dto.entityType} #${dto.entityId} [${dto.fieldName}]: ${originalValue} -> ${dto.correctedValue}. Reason: ${dto.reason}`);
+    return correction;
+  }
+
+  /**
+   * Get Data Correction Ledger History
+   */
+  async getDataCorrections(filters?: { domain?: string; entityType?: string }) {
+    const where: any = {};
+    if (filters?.domain) where.domain = filters.domain;
+    if (filters?.entityType) where.entityType = filters.entityType;
+    return this.prisma.dataCorrection.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
   }
 }

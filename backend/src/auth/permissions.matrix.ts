@@ -87,11 +87,14 @@ export const ROLE_MATRIX: Record<UserRole, RoleConfig> = {
       Permission.REPORT_TEMPLATE_DISABLE,
       Permission.REPORT_SCHEDULE_MANAGE,
       Permission.REPORT_CONFIGURATION_MANAGE,
-      // Data Governance
+      // Data Governance & Controlled Correction
       Permission.DATAQUALITY_READ,
       Permission.DATAQUALITY_MANAGE,
       Permission.DUPLICATE_REVIEW,
       Permission.DATA_RECONCILIATION,
+      Permission.DATA_CORRECTION_CREATE,
+      Permission.DATA_CORRECTION_EXECUTE,
+      Permission.DATA_CORRECTION_HISTORY_VIEW,
       // AI Administration
       Permission.AI_HEALTH_READ,
       Permission.AI_CONFIGURATION_READ,
@@ -110,6 +113,10 @@ export const ROLE_MATRIX: Record<UserRole, RoleConfig> = {
       Permission.TYRE_INSPECT,
       Permission.TYRE_REPLACE,
       Permission.TYRE_RETREAD,
+      Permission.DRIVER_READ,
+      Permission.DRIVER_INSPECTION_CREATE,
+      Permission.DRIVER_INSPECTION_VIEW_OWN,
+      Permission.DRIVER_SAFETY_VIEW_OWN,
     ],
   },
 
@@ -258,6 +265,7 @@ export const ROLE_MATRIX: Record<UserRole, RoleConfig> = {
       Permission.TYRE_FAILURE_INVESTIGATE,
       Permission.TYRE_ANALYTICS_READ,
       Permission.TYRE_AUDIT_READ,
+      Permission.DATA_CORRECTION_CREATE,
     ],
   },
 
@@ -281,6 +289,9 @@ export const ROLE_MATRIX: Record<UserRole, RoleConfig> = {
       Permission.TYRE_REMOVE,
       Permission.TYRE_ROTATE,
       Permission.TYRE_REPAIR,
+      Permission.TYRE_STOCK_READ,
+      Permission.TYRE_STOCK_RECEIVE,
+      Permission.TYRE_STOCK_ISSUE,
       Permission.DRIVER_DEFECT_CREATE,
     ],
   },
@@ -320,6 +331,10 @@ export const ROLE_MATRIX: Record<UserRole, RoleConfig> = {
     permissions: [
       Permission.VEHICLE_READ,
       Permission.TYRE_READ,
+      Permission.DRIVER_READ,
+      Permission.DRIVER_INSPECTION_CREATE,
+      Permission.DRIVER_INSPECTION_VIEW_OWN,
+      Permission.DRIVER_SAFETY_VIEW_OWN,
       Permission.DRIVER_DEFECT_CREATE,
     ],
   },

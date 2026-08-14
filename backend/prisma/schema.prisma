@@ -1204,3 +1204,31 @@ model DriverSafetyScore {
   @@map("driver_safety_scores")
   @@index([tenantId, organizationId])
 }
+
+// ============================================================
+// PHASE 5A — SYSTEM ADMINISTRATION & DATA CORRECTION GOVERNANCE
+// ============================================================
+
+/// Controlled Append-Only Data Correction Governance Ledger
+model DataCorrection {
+  id               String   @id @default(uuid()) @map("correction_id")
+  tenantId         String   @default("TNT-DEFAULT") @map("tenant_id")
+  organizationId   String   @default("ORG-DEFAULT") @map("organization_id")
+  domain           String   // e.g. 'TYRE', 'INVENTORY', 'WORKSHOP', 'SAFETY', 'VEHICLE'
+  entityType       String   @map("entity_type") // e.g. 'TripInspection', 'TyreInspection', 'InventoryStock'
+  entityId         String   @map("entity_id")
+  fieldName        String   @map("field_name")
+  originalValue    String   @map("original_value") // Stored as String/JSON
+  correctedValue   String   @map("corrected_value") // Stored as String/JSON
+  reason           String   // Mandatory business justification
+  correctedById    Int      @map("corrected_by_id")
+  correctedByEmail String   @map("corrected_by_email")
+  createdAt        DateTime @default(now()) @map("created_at")
+  correlationId    String?  @map("correlation_id")
+  auditLogId       String?  @map("audit_log_id")
+
+  @@map("data_corrections")
+  @@index([tenantId, organizationId])
+  @@index([domain, entityType, entityId])
+  @@index([correctedById])
+}

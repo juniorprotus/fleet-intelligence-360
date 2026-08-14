@@ -31,8 +31,25 @@ export class DriverController {
   @RequirePermissions(Permission.DRIVER_READ)
   @ApiOperation({ summary: 'Submit digital Pre-Trip / Post-Trip Inspection form' })
   async submitTripInspection(@Request() req, @Body() body: any) {
-    const driverId = req.user?.id || body.driverId || 1;
-    return this.driverService.submitTripInspection({ ...body, driverId });
+    const driverId = req.user?.userId || req.user?.id || body.driverId || 1;
+    const userRole = req.user?.role;
+    return this.driverService.submitTripInspection({ ...body, driverId, userRole });
+  }
+
+  @Get('my-vehicle')
+  @RequirePermissions(Permission.DRIVER_READ)
+  @ApiOperation({ summary: 'Get currently assigned vehicle for authenticated driver' })
+  async getMyVehicle(@Request() req) {
+    const driverId = req.user?.userId || req.user?.id || 1;
+    return this.driverService.getMyVehicle(driverId);
+  }
+
+  @Get('my-inspections')
+  @RequirePermissions(Permission.DRIVER_READ)
+  @ApiOperation({ summary: 'Get submitted inspection history for authenticated driver' })
+  async getMyInspections(@Request() req) {
+    const driverId = req.user?.userId || req.user?.id || 1;
+    return this.driverService.getMyInspections(driverId);
   }
 
   @Get('assignments')

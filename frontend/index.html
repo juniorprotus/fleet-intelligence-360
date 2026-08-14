@@ -389,6 +389,24 @@
                 </div>
               </div>
             </div>
+
+            <!-- Controlled Data Correction Governance Section (SUPER_ADMIN) -->
+            <div class="card p-4 mt-4">
+              <div class="card-header flex-between mb-3">
+                <h3>K. Append-Only Data Correction Governance Ledger</h3>
+                <button class="btn small primary" onclick="showToast('Use Data Correction API endpoint POST /api/v1/system-admin/corrections', 'info')">+ Execute Data Correction</button>
+              </div>
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr><th>Correction #</th><th>Domain</th><th>Target Entity</th><th>Field</th><th>Correction Trace (Original &rarr; Corrected)</th><th>Reason</th><th>Corrected By / Time</th></tr>
+                  </thead>
+                  <tbody id="data-corrections-tbody">
+                    <tr><td colspan="7" class="text-center muted">Loading historical data corrections...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
           <!-- ─────────────────────────────────────────
@@ -1408,6 +1426,20 @@
                 <div class="defect-form-mini" id="driver-defect-form-container">
                   <p class="muted small">Login to report defects</p>
                 </div>
+              </div>
+            </div>
+
+            <div class="card table-card mt-4">
+              <div class="card-header">
+                <h3>My Submitted Pre-Trip &amp; Post-Trip Inspections</h3>
+              </div>
+              <div class="table-container">
+                <table>
+                  <thead><tr><th>Inspection #</th><th>Vehicle</th><th>Type</th><th>Status</th><th>Odometer</th><th>Submitted At</th></tr></thead>
+                  <tbody id="driver-submitted-inspections-tbody">
+                    <tr><td colspan="6" class="text-center muted">Loading inspection history...</td></tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>

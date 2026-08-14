@@ -386,6 +386,28 @@ async function loadAdminDashboard() {
       </tr>
     `).join('') || `<tr><td colspan="7" class="text-center muted">No registered users found</td></tr>`;
   }
+
+  // Render Data Correction Governance Ledger History
+  const corrRes = await apiFetch('/api/v1/system-admin/corrections').catch(() => []);
+  const corrList = Array.isArray(corrRes) ? corrRes : [];
+  const corrTbody = document.querySelector('#data-corrections-tbody');
+  if (corrTbody) {
+    if (corrList.length === 0) {
+      corrTbody.innerHTML = '<tr><td colspan="7" class="text-center muted">No historical data corrections logged.</td></tr>';
+    } else {
+      corrTbody.innerHTML = corrList.map(c => `
+        <tr>
+          <td><strong>${c.id.slice(0, 8)}</strong></td>
+          <td><span class="badge info">${c.domain}</span></td>
+          <td>${c.entityType} #${c.entityId}</td>
+          <td><code>${c.fieldName}</code></td>
+          <td class="small text-muted"><s>${c.originalValue}</s> &rarr; <strong>${c.correctedValue}</strong></td>
+          <td class="small">${c.reason}</td>
+          <td class="small">${c.correctedByEmail} (${new Date(c.createdAt).toLocaleString()})</td>
+        </tr>
+      `).join('');
+    }
+  }
 }
 
 // Super Admin Governance Drill-Down Modal Handler
@@ -991,22 +1013,23 @@ async function loadDriverSafetyDashboard() {
 
 // ─── Driver Dashboard ─────────────────────────────────────────────────────────
 async function loadDriverDashboard() {
-  const assignedId = currentUser?.assignedVehicleId;
+  try {
+    const myVehicleRes = await apiFetch('/api/v1/driver-intelligence/my-vehicle').catch(() => null);
+    const assignment = myVehicleRes?.vehicle ? myVehicleRes : null;
+    const vehicle = assignment?.vehicle;
 
-  if (assignedId) {
-    try {
-      const vehicle = await apiFetch(`/api/v1/vehicles/${assignedId}`);
-      setText('driver-vehicle-reg', vehicle?.registrationNumber || assignedId);
-      setText('driver-vehicle-details', `${vehicle?.make || ''} ${vehicle?.model || ''} · ${vehicle?.vehicleClass || ''} · ${vehicle?.depot || ''}`);
+    if (vehicle) {
+      setText('driver-vehicle-reg', vehicle.registrationNumber || 'Assigned');
+      setText('driver-vehicle-details', `${vehicle.make || ''} ${vehicle.model || ''} · Shift Start: ${assignment.shiftStart ? new Date(assignment.shiftStart).toLocaleTimeString() : 'Active'}`);
       const statusEl = document.getElementById('driver-vehicle-status');
-      if (statusEl) statusEl.innerHTML = statusBadge2(vehicle?.status || 'ACTIVE');
+      if (statusEl) statusEl.innerHTML = statusBadge2(vehicle.status || 'ACTIVE');
 
-      const tyres = await apiFetch(`/api/v1/vehicles/${assignedId}/tyres`).catch(() => []);
+      const tyres = await apiFetch(`/api/v1/vehicles/${vehicle.id}/tyres`).catch(() => []);
       const tyreList = tyres?.data || tyres || [];
-      setText('driver-tyres-count', tyreList.length);
+      setText('driver-tyres-count', Array.isArray(tyreList) ? tyreList.length : 0);
 
       const tbody = document.querySelector('#driver-tyres-table tbody');
-      if (tbody) {
+      if (tbody && Array.isArray(tyreList)) {
         tbody.innerHTML = tyreList.map(t => `
           <tr>
             <td class="small">${t.axlePosition || '--'}</td>
@@ -1017,18 +1040,38 @@ async function loadDriverDashboard() {
           </tr>
         `).join('') || `<tr><td colspan="5" class="muted text-center">No tyres fitted</td></tr>`;
       }
-    } catch (e) {
-      setText('driver-vehicle-reg', assignedId || 'Not assigned');
-      setText('driver-vehicle-details', 'Vehicle details unavailable');
+    } else {
+      setText('driver-vehicle-reg', 'No Active Shift Assignment');
+      setText('driver-vehicle-details', 'Contact your fleet manager to assign a vehicle shift');
+      setText('driver-tyres-count', '0');
     }
-  } else {
-    setText('driver-vehicle-reg', 'No vehicle assigned');
-    setText('driver-vehicle-details', 'Contact your fleet manager to assign a vehicle');
-    setText('driver-tyres-count', '0');
-  }
 
-  setText('driver-alerts-count', '0');
-  setText('driver-defects-count', '0');
+    // Load submitted inspections for this driver
+    const myInspections = await apiFetch('/api/v1/driver-intelligence/my-inspections').catch(() => []);
+    const inspList = Array.isArray(myInspections) ? myInspections : [];
+    setText('driver-defects-count', inspList.filter(i => i.hasDefects).length);
+    setText('driver-alerts-count', inspList.filter(i => i.isGrounded).length);
+
+    const inspTbody = document.querySelector('#driver-submitted-inspections-tbody');
+    if (inspTbody) {
+      if (inspList.length === 0) {
+        inspTbody.innerHTML = '<tr><td colspan="6" class="muted text-center">No digital pre-trip or post-trip inspections submitted yet.</td></tr>';
+      } else {
+        inspTbody.innerHTML = inspList.map(i => `
+          <tr>
+            <td><strong>${i.inspectionNo || i.id.slice(0, 8)}</strong></td>
+            <td>${i.vehicle?.registrationNumber || 'Assigned Vehicle'}</td>
+            <td><span class="badge info">${i.type || 'PRE_TRIP'}</span></td>
+            <td><span class="badge ${i.isGrounded ? 'danger' : i.hasDefects ? 'warning' : 'success'}">${i.status}</span></td>
+            <td>${i.odometer ? i.odometer.toLocaleString() + ' km' : '—'}</td>
+            <td>${new Date(i.submittedAt).toLocaleString()}</td>
+          </tr>
+        `).join('');
+      }
+    }
+  } catch (e) {
+    console.error('Error loading driver dashboard:', e);
+  }
 
   const formContainer = document.getElementById('driver-defect-form-container');
   if (formContainer) {

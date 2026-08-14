@@ -120,4 +120,11 @@ export class SafetyService {
 
     return scoreRec;
   }
+
+  async getIncidents() {
+    return this.prisma.safetyIncident.findMany({
+      include: { driver: true, vehicle: true },
+      orderBy: { occurredAt: 'desc' },
+    });
+  }
 }

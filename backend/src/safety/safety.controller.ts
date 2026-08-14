@@ -20,6 +20,13 @@ export class SafetyController {
     return this.safetyService.logIncident(body);
   }
 
+  @Get('incidents')
+  @RequirePermissions(Permission.SAFETY_READ)
+  @ApiOperation({ summary: 'Get list of safety incidents' })
+  async getIncidents() {
+    return this.safetyService.getIncidents();
+  }
+
   @Get('scores/:driverId')
   @RequirePermissions(Permission.SAFETY_READ)
   @ApiOperation({ summary: 'Get driver monthly safety score' })

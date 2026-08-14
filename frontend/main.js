@@ -2575,55 +2575,51 @@ window.openKPIDrillModal = async function(kpiKey, title) {
 
   // ─── DRIVER SAFETY: SAFETY SCORE BREAKDOWN (drv-kpi-score) ─────────────────────
   } else if (kpiKey === 'drv-kpi-score' || kpiKey.includes('drv-kpi-score')) {
-    if (titleEl) titleEl.textContent = 'Driver Safety Score Breakdown — Fleet Operations';
-    const [inspRes, scoreRes, assignRes] = await Promise.all([
-      apiFetch('/api/v1/driver-intelligence/inspections').catch(() => []),
+    if (titleEl) titleEl.textContent = 'Driver Safety Score & Safety Incident Ledger';
+    const [scoreRes, incidentsRes] = await Promise.all([
       apiFetch('/api/v1/safety/scores/1').catch(() => null),
-      apiFetch('/api/v1/driver-intelligence/assignments').catch(() => []),
+      apiFetch('/api/v1/safety/incidents').catch(() => []),
     ]);
 
-    const inspList = Array.isArray(inspRes) ? inspRes : (inspRes?.data || []);
-    const assignList = Array.isArray(assignRes) ? assignRes : (assignRes?.data || []);
+    const incidentsList = Array.isArray(incidentsRes) ? incidentsRes : (incidentsRes?.data || []);
     const avgScoreStr = scoreRes?.score != null ? `${scoreRes.score} / 100` : '95.0 / 100';
+    const totalPointsDeducted = incidentsList.reduce((sum, inc) => sum + (Number(inc.pointsDeducted) || 0), 0);
 
     contentHtml = `
       <div class="kpi-grid mb-3" style="grid-template-columns: repeat(4, 1fr);">
-        <div class="kpi-card kpi-primary"><div class="kpi-body"><p class="kpi-label">Avg Driver Safety Score</p><p class="kpi-value">${avgScoreStr}</p></div></div>
+        <div class="kpi-card kpi-primary"><div class="kpi-body"><p class="kpi-label">Driver Safety Score</p><p class="kpi-value">${avgScoreStr}</p></div></div>
         <div class="kpi-card kpi-success"><div class="kpi-body"><p class="kpi-label">Target Score Benchmark</p><p class="kpi-value">&ge; 92.0 / 100</p></div></div>
-        <div class="kpi-card kpi-info"><div class="kpi-body"><p class="kpi-label">Active Shift Assignments</p><p class="kpi-value">${assignList.length} Shifts</p></div></div>
-        <div class="kpi-card kpi-warning"><div class="kpi-body"><p class="kpi-label">Total Audited Trips</p><p class="kpi-value">${inspList.length} Trips</p></div></div>
+        <div class="kpi-card kpi-warning"><div class="kpi-body"><p class="kpi-label">Safety Incidents Logged</p><p class="kpi-value">${incidentsList.length} Incidents</p></div></div>
+        <div class="kpi-card kpi-danger"><div class="kpi-body"><p class="kpi-label">Total Points Deducted</p><p class="kpi-value">-${totalPointsDeducted} Pts</p></div></div>
       </div>
       <div class="table-container">
         <table>
           <thead>
             <tr>
-              <th>Driver ID / Email</th>
-              <th>Assigned Vehicle</th>
-              <th>Shift Start</th>
-              <th>Trip Inspections</th>
-              <th>Defects Reported</th>
-              <th>Safety Score</th>
-              <th>Compliance Rating</th>
+              <th>Incident #</th>
+              <th>Driver</th>
+              <th>Vehicle Reg</th>
+              <th>Incident Type</th>
+              <th>Severity</th>
+              <th>Points Deducted</th>
+              <th>Description</th>
+              <th>Occurred At</th>
             </tr>
           </thead>
           <tbody>
-            ${assignList.length === 0 ? '<tr><td colspan="7" class="text-center muted p-4">No driver shift assignment records found in database.</td></tr>' :
-              assignList.map(a => {
-                const driverInsps = inspList.filter(i => i.driverId === a.driverId);
-                const defectsCount = driverInsps.filter(i => i.hasDefects || i.isGrounded).length;
-                const score = Math.max(70, 100 - (defectsCount * 10));
-                return `
-                  <tr>
-                    <td><strong>${a.driver?.name || a.driverEmail || 'Driver #' + a.driverId}</strong></td>
-                    <td><strong>${a.vehicle?.registrationNumber || a.vehicleRegistration || 'Assigned Vehicle'}</strong></td>
-                    <td>${a.startTime ? new Date(a.startTime).toLocaleString() : 'Active'}</td>
-                    <td>${driverInsps.length} Inspections</td>
-                    <td><span class="badge-code ${defectsCount > 0 ? 'text-red' : 'text-green'}">${defectsCount} Defects</span></td>
-                    <td><strong class="text-green">${score} / 100</strong></td>
-                    <td><span class="badge success">COMPLIANT</span></td>
-                  </tr>
-                `;
-              }).join('')
+            ${incidentsList.length === 0 ? '<tr><td colspan="8" class="text-center muted p-4">No driver safety incident records logged in database.</td></tr>' :
+              incidentsList.map(inc => `
+                <tr style="border-left: 3px solid var(--danger);">
+                  <td><strong>${inc.incidentNo || (inc.id ? inc.id.slice(0, 8) : 'INC-LOG')}</strong></td>
+                  <td><strong>${inc.driver?.firstName ? inc.driver.firstName + ' ' + inc.driver.lastName : 'Driver #' + (inc.driverId || 1)}</strong></td>
+                  <td><strong>${inc.vehicle?.registrationNumber || inc.vehicleId || '—'}</strong></td>
+                  <td><span class="badge info">${inc.incidentType || 'SAFETY_VIOLATION'}</span></td>
+                  <td><span class="badge ${inc.severity === 'CRITICAL' ? 'danger' : 'warning'}">${inc.severity || 'MEDIUM'}</span></td>
+                  <td><strong class="text-red">-${inc.pointsDeducted || 5} Pts</strong></td>
+                  <td class="small">${inc.description || 'Safety policy non-compliance incident'}</td>
+                  <td>${inc.occurredAt ? new Date(inc.occurredAt).toLocaleString() : '—'}</td>
+                </tr>
+              `).join('')
             }
           </tbody>
         </table>

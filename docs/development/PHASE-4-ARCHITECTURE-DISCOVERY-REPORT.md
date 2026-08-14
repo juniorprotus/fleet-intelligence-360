@@ -1,6 +1,6 @@
 # FI360 Phase 4 — Architecture Discovery & Implementation Readiness Report
 
-**Document ID**: `FI360-PHASE4-ARCHITECTURE-DISCOVERY-REPORT-v1.0`  
+**Document ID**: `FI360-PHASE4-ARCHITECTURE-DISCOVERY-REPORT-v2.0`  
 **Date**: August 14, 2026  
 **Author**: Antigravity AI Engineering & Architecture Team  
 **Audit Mode**: **DISCOVERY & SPECIFICATION ONLY — ZERO PRODUCTION CODE MUTATION**  
@@ -17,19 +17,19 @@
 - **Phase 4 (This Phase)**: **Inventory & Procurement Intelligence (Spare Parts & Materials Supply Chain Slice)**.
 
 ### Business Problem Solved:
-In Phase 3, maintenance work orders recorded repair tasks and total parts cost numbers. However, spare parts (tyre casings, valves, rims, brake pads) were entered without itemized stock tracking, warehouse stock ledgers per workshop, requisition approvals, stock reorder point triggers, or vendor purchase orders.
+In Phase 3, work orders logged maintenance tasks and aggregate parts cost numbers. However, spare parts (tyre casings, valves, rims, brake pads) were entered without structured warehouse stock ledgers per workshop, immutable material movement ledgers (`InventoryMovement`), requisition approvals, stock reorder triggers, or vendor purchase orders.
 
-Phase 4 establishes the physical material supply chain: itemizing spare parts catalogues, tracking stock on hand per workshop, issuing parts against Work Orders, auto-triggering reorder alerts when stock drops below safety thresholds, managing vendor purchase orders (`PurchaseOrder`), receiving goods, and governing inventory valuation and turnover KPIs.
+Phase 4 establishes the material supply chain: itemizing spare parts catalogues, tracking stock on hand per workshop, recording all material movements in an auditable ledger (`RECEIPT`, `ISSUE`, `RETURN`, `TRANSFER`, `ADJUSTMENT`), issuing parts against Work Orders, auto-triggering reorder alerts when stock drops below safety thresholds, managing vendor purchase orders (`PurchaseOrder`), receiving goods, and governing inventory valuation and turnover KPIs.
 
 ---
 
 ## 2. Domain Ownership Matrix (Zero Duplicate Masters)
 
 - **Fleet & Asset Domain** owns: `Vehicle`, `Workshop`, `VehicleDowntime`, `VehicleGroundingPolicy`, `VehicleWorkshopAssignment`.
-- **Platform Foundation** owns: `Tenant`, `Organization`, `LegalEntity`, `User`, `Driver`, `AuditLog`.
+- **Platform Core** owns: `Tenant`, `Organization`, `LegalEntity`, `User`, `Driver`, `AuditLog`.
 - **Tyre Intelligence Domain** owns: `Tyre`, `TyrePosition`, `TyreFitment`, `TyreInspection`, `TyreDefect`, `TyreMovement`.
 - **Workshop Intelligence Domain** owns: `WorkOrder`, `WorkOrderTask`, `MaintenanceSchedule`.
-- **Inventory & Procurement Domain** (Phase 4) owns: `InventoryItem`, `InventoryStock`, `PartsRequisition`, `Vendor`, `PurchaseOrder`, `PurchaseOrderItem`.
+- **Inventory & Procurement Domain** (Phase 4) owns: `InventoryItem`, `InventoryStock`, `InventoryMovement`, `PartsRequisition`, `Vendor`, `PurchaseOrder`, `PurchaseOrderItem`.
 
 ---
 
@@ -40,7 +40,9 @@ Work Order Execution (Phase 3)
        ↓
 Parts Requisition (PartsRequisition created for WO)
        ↓
-Stock Verification & Deduction (InventoryStock onHand updated)
+Stock Verification & Movement Ledger Recording (InventoryMovement logged: ISSUE)
+       ↓
+Stock Deduction (InventoryStock onHand updated)
        ↓
 Reorder Threshold Evaluation (onHand < reorderPoint)
        ↓
@@ -48,7 +50,7 @@ Auto-Reorder Alert & PO Generation (PurchaseOrder created)
        ↓
 PO Approval (ApprovalWorkflowService segregation of duties)
        ↓
-Vendor Fulfillment & Goods Receipt (InventoryStock incremented)
+Vendor Fulfillment & Goods Receipt (InventoryMovement logged: RECEIPT & Stock incremented)
        ↓
 Domain Events Emitted (inventory.issued, procurement.po_received)
        ↓
@@ -60,11 +62,12 @@ Governed KPIs & Reports (INVENTORY_TURNOVER, Universal Reports)
 ## 4. Proposed Data Models (Non-Destructive Schema Additions)
 
 1. `InventoryItem` (`inventory_items` table) — Master catalogue of spare parts and tyre casings.
-2. `InventoryStock` (`inventory_stocks` table) — Workshop-specific stock ledger.
-3. `PartsRequisition` (`parts_requisitions` table) — Material requests issued against Work Orders.
-4. `Vendor` (`vendors` table) — Approved supplier master.
-5. `PurchaseOrder` (`purchase_orders` table) — Stock replenishment purchase orders.
-6. `PurchaseOrderItem` (`purchase_order_items` table) — Itemized lines within a Purchase Order.
+2. `InventoryStock` (`inventory_stocks` table) — Workshop-specific current stock position.
+3. `InventoryMovement` (`inventory_movements` table) — Immutable material movement ledger (`RECEIPT`, `ISSUE`, `RETURN`, `TRANSFER`, `ADJUSTMENT`).
+4. `PartsRequisition` (`parts_requisitions` table) — Material requests issued against Work Orders.
+5. `Vendor` (`vendors` table) — Approved supplier master.
+6. `PurchaseOrder` (`purchase_orders` table) — Stock replenishment purchase orders.
+7. `PurchaseOrderItem` (`purchase_order_items` table) — Itemized purchase order lines.
 
 ---
 
@@ -73,6 +76,7 @@ Governed KPIs & Reports (INVENTORY_TURNOVER, Universal Reports)
 - `POST /api/v1/inventory/items` (`INVENTORY_CREATE`)
 - `GET /api/v1/inventory/stock` (`INVENTORY_READ`)
 - `POST /api/v1/inventory/requisitions` (`INVENTORY_UPDATE`)
+- `GET /api/v1/inventory/movements` (`INVENTORY_READ`)
 - `POST /api/v1/procurement/vendors` (`PROCUREMENT_CREATE`)
 - `POST /api/v1/procurement/purchase-orders` (`PROCUREMENT_CREATE`)
 - `PUT /api/v1/procurement/purchase-orders/:id/receive` (`PROCUREMENT_UPDATE`)
@@ -95,7 +99,7 @@ Governed KPIs & Reports (INVENTORY_TURNOVER, Universal Reports)
 
 ---
 
-## 8. 7 Mandatory Release Gates for Phase 4
+## 8. The 7 Mandatory Release Gates for Phase 4
 
 1. `npx prisma migrate status`
 2. `npx nest build`

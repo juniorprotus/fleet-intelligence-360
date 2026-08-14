@@ -1,20 +1,21 @@
 # FI360 Phase 4 — Data Model & Migration Design Specification
 
-**Document ID**: `FI360-PHASE4-DATA-MODEL-DESIGN-v1.0`  
+**Document ID**: `FI360-PHASE4-DATA-MODEL-DESIGN-v2.0`  
 **Date**: August 14, 2026  
-**Status**: APPROVED SPECIFICATION — MIGRATION PLAN ONLY (ZERO CODE MUTATION AT THIS STAGE)  
+**Status**: APPROVED SPECIFICATION — INVENTORY MOVEMENT LEDGER ENHANCED  
 
 ---
 
 ## 1. Overview
 
-Phase 4 introduces 6 new database entities to support Inventory Management, Parts Requisitions, Vendor Procurement, and Purchase Orders:
+Phase 4 introduces 7 database entities to support Inventory Stock Control, Material Movement Ledgers, Parts Requisitions, Vendor Procurement, and Purchase Orders:
 1. **`InventoryItem`** (`inventory_items` table) — Master catalogue of spare parts and tyre casings.
-2. **`InventoryStock`** (`inventory_stocks` table) — Workshop-specific stock ledger (quantity on hand, reserved, reorder point).
-3. **`PartsRequisition`** (`parts_requisitions` table) — Material requests issued against Work Orders.
-4. **`Vendor`** (`vendors` table) — Approved supplier master.
-5. **`PurchaseOrder`** (`purchase_orders` table) — Procurement purchase orders for stock replenishment.
-6. **`PurchaseOrderItem`** (`purchase_order_items` table) — Line items within a Purchase Order.
+2. **`InventoryStock`** (`inventory_stocks` table) — Workshop-specific stock position ledger (quantity on hand, reserved, reorder point).
+3. **`InventoryMovement`** (`inventory_movements` table) — Immutable material movement ledger tracking all receipts, issues, returns, transfers, and adjustments.
+4. **`PartsRequisition`** (`parts_requisitions` table) — Material requests issued against Work Orders.
+5. **`Vendor`** (`vendors` table) — Approved supplier master.
+6. **`PurchaseOrder`** (`purchase_orders` table) — Stock replenishment purchase orders.
+7. **`PurchaseOrderItem`** (`purchase_order_items` table) — Line items within a Purchase Order.
 
 ---
 
@@ -33,6 +34,16 @@ enum InventoryCategory {
   FILTER
   FLUID
   GENERAL_SPARE
+}
+
+enum InventoryMovementType {
+  RECEIPT
+  ISSUE
+  RETURN
+  TRANSFER
+  ADJUSTMENT
+  OPENING_BALANCE
+  STOCKTAKE_ADJUSTMENT
 }
 
 enum RequisitionStatus {
@@ -55,18 +66,19 @@ enum PurchaseOrderStatus {
 /// Master catalogue of spare parts and tyre casings
 model InventoryItem {
   id             String            @id @default(uuid()) @map("item_id")
-  partNumber     String            @unique @map("part_number")                  // e.g. "PRT-TYR-315-80"
+  partNumber     String            @unique @map("part_number")
   tenantId       String            @default("TNT-DEFAULT") @map("tenant_id")
   organizationId String            @default("ORG-DEFAULT") @map("organization_id")
   name           String
   description    String?
   category       InventoryCategory @default(GENERAL_SPARE)
-  unitOfMeasure  String            @default("EA") @map("unit_of_measure")        // EA, LITRE, SET
+  unitOfMeasure  String            @default("EA") @map("unit_of_measure")
   defaultUnitCost Float            @default(0) @map("default_unit_cost")
   createdAt      DateTime          @default(now()) @map("created_at")
   updatedAt      DateTime          @updatedAt @map("updated_at")
 
   stocks         InventoryStock[]
+  movements      InventoryMovement[]
   requisitions   PartsRequisition[]
   poItems        PurchaseOrderItem[]
 
@@ -75,7 +87,7 @@ model InventoryItem {
   @@index([category])
 }
 
-/// Workshop-specific stock ledger
+/// Workshop-specific current stock position ledger
 model InventoryStock {
   id             String        @id @default(uuid()) @map("stock_id")
   tenantId       String        @default("TNT-DEFAULT") @map("tenant_id")
@@ -98,10 +110,41 @@ model InventoryStock {
   @@index([workshopId])
 }
 
+/// Immutable Inventory Movement Ledger
+model InventoryMovement {
+  id             Int                   @id @default(autoincrement())
+  tenantId       String                @default("TNT-DEFAULT") @map("tenant_id")
+  organizationId String                @default("ORG-DEFAULT") @map("organization_id")
+  workshopId     String                @map("workshop_id")
+  workshop       Workshop              @relation(fields: [workshopId], references: [id])
+  itemId         String                @map("item_id")
+  item           InventoryItem         @relation(fields: [itemId], references: [id])
+  
+  movementType   InventoryMovementType @map("movement_type")
+  quantity       Int                   // positive for receipts/returns, negative for issues
+  unitCost       Float                 @map("unit_cost")
+  totalCost      Float                 @map("total_cost")
+  balanceAfter   Int                   @map("balance_after")
+  
+  workOrderId    String?               @map("work_order_id")
+  workOrder      WorkOrder?            @relation(fields: [workOrderId], references: [id])
+  requisitionId  String?               @map("requisition_id")
+  poId           String?               @map("po_id")
+  reference      String?
+  performedById  String?               @map("performed_by_id")
+  createdAt      DateTime              @default(now()) @map("created_at")
+
+  @@map("inventory_movements")
+  @@index([tenantId, organizationId])
+  @@index([workshopId])
+  @@index([itemId])
+  @@index([movementType])
+}
+
 /// Parts Requisition for Work Order
 model PartsRequisition {
   id             String            @id @default(uuid()) @map("requisition_id")
-  reqNumber      String            @unique @map("req_number")                  // e.g. "REQ-2026-0001"
+  reqNumber      String            @unique @map("req_number")
   tenantId       String            @default("TNT-DEFAULT") @map("tenant_id")
   organizationId String            @default("ORG-DEFAULT") @map("organization_id")
   workOrderId    String            @map("work_order_id")
@@ -127,7 +170,7 @@ model PartsRequisition {
 /// Vendor Master
 model Vendor {
   id             String          @id @default(uuid()) @map("vendor_id")
-  vendorCode     String          @unique @map("vendor_code")                  // e.g. "VND-MICH-01"
+  vendorCode     String          @unique @map("vendor_code")
   tenantId       String          @default("TNT-DEFAULT") @map("tenant_id")
   organizationId String          @default("ORG-DEFAULT") @map("organization_id")
   name           String
@@ -146,7 +189,7 @@ model Vendor {
 /// Purchase Order
 model PurchaseOrder {
   id             String              @id @default(uuid()) @map("po_id")
-  poNumber       String              @unique @map("po_number")                     // e.g. "PO-2026-0001"
+  poNumber       String              @unique @map("po_number")
   tenantId       String              @default("TNT-DEFAULT") @map("tenant_id")
   organizationId String              @default("ORG-DEFAULT") @map("organization_id")
   vendorId       String              @map("vendor_id")
@@ -188,10 +231,9 @@ model PurchaseOrderItem {
 
 ---
 
-## 3. Planned Version-Controlled Migration
+## 3. Version-Controlled Migration Plan
 
-- **Migration Folder**: `backend/prisma/migrations/20260816000000_phase4_inventory_procurement/`
-- **Script Name**: `migration.sql`
+- **Folder**: `backend/prisma/migrations/20260816000000_phase4_inventory_procurement/`
 - **Execution Command**:
   ```bash
   npx prisma migrate resolve --applied 20260816000000_phase4_inventory_procurement

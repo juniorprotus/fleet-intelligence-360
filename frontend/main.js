@@ -2897,3 +2897,18 @@ window.verifyFitmentAction = async function(id, status, type) {
   }
 };
 
+// ─── Responsive Sidebar Toggle Handler ────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const toggleBtn = document.getElementById('sidebar-toggle');
+  const sidebar = document.getElementById('sidebar');
+  if (toggleBtn && sidebar) {
+    toggleBtn.addEventListener('click', () => {
+      if (window.innerWidth <= 768) {
+        sidebar.classList.toggle('mobile-open');
+      } else {
+        sidebar.classList.toggle('collapsed');
+      }
+    });
+  }
+});
+

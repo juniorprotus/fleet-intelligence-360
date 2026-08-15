@@ -646,7 +646,7 @@ async function loadFleetManagerDashboard() {
   setText('fm-tyre-kpi-tread', '7.8 mm');
   setText('fm-tyre-kpi-cost', 'KES 0.50');
 
-  setText('fm-tyre-attention-badge', `${openDefectsCount || 54} Items Requiring Action`);
+  setText('fm-tyre-attention-badge', `${openDefectsCount || 54} Open Defects & Alerts`);
   setText('fm-att-critical', openDefectsCount || 54);
   setText('fm-att-replacement', 0);
   setText('fm-att-inspection', 5);

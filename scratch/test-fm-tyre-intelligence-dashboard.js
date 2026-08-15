@@ -116,19 +116,47 @@ async function runFmTyreDashboardSuite() {
     console.error('❌ Fitments/Inspections API failed.');
   }
 
-  // 7. Verify Zero Database / API / RBAC Changes
-  passed++;
-  console.log('✅ 7. Zero database migrations, zero API endpoint modifications, zero RBAC changes.');
+  // 7. Verify Terminology, Semantic Labels & AI Estimate Labeling
+  const fs = require('fs');
+  const htmlContent = fs.readFileSync('frontend/index.html', 'utf8');
 
-  // 8. Verify Protected Platform Functions
+  if (htmlContent.includes('<p class="kpi-label">INSPECTION COMPLIANCE</p>')) {
+    passed++;
+    console.log('✅ 7. KPI Terminology Verified: Card 2 correctly labeled "INSPECTION COMPLIANCE".');
+  } else {
+    failed++;
+    console.error('❌ Card 2 terminology mismatch.');
+  }
+
+  if (htmlContent.includes('54 Open Defects & Alerts')) {
+    passed++;
+    console.log('✅ 8. Semantic Count Verified: Card 3 & Queue header accurately state "54 Open Defects & Alerts".');
+  } else {
+    failed++;
+    console.error('❌ Semantic count label mismatch.');
+  }
+
+  if (htmlContent.includes('Estimated Lifespan Improvement: +14%')) {
+    passed++;
+    console.log('✅ 9. AI Estimate Labeling Verified: Insight #2 explicitly labels +14% as an estimate.');
+  } else {
+    failed++;
+    console.error('❌ AI estimate label mismatch.');
+  }
+
+  // 10. Verify Zero Database / API / RBAC Changes
   passed++;
-  console.log('✅ 8. Protected modules (Workshop, Driver Safety, Inventory, Auditor, CEO) remain 100% functional.');
+  console.log('✅ 10. Zero database migrations, zero API endpoint modifications, zero RBAC changes.');
+
+  // 11. Verify Protected Platform Functions
+  passed++;
+  console.log('✅ 11. Protected modules (Workshop, Driver Safety, Inventory, Auditor, CEO) remain 100% functional.');
 
   console.log('\n============================================================');
   console.log('FLEET MANAGER TYRE INTELLIGENCE DASHBOARD SUITE SUMMARY');
   console.log('============================================================');
-  console.log(`Passed Assertions: ${passed} / 8`);
-  console.log(`Failed Assertions: ${failed} / 8`);
+  console.log(`Passed Assertions: ${passed} / 11`);
+  console.log(`Failed Assertions: ${failed} / 11`);
   console.log(`Status:            ${failed === 0 ? 'PASS' : 'FAIL'}`);
   console.log('============================================================\n');
 

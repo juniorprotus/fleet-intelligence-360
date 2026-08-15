@@ -26,7 +26,8 @@ const NAV_MAP = {
     { label: 'Executive Dashboard', icon: '📊', action: () => showDashboard('dashboard-ceo', 'Executive Intelligence', 'Organisation fleet availability, costs & risk metrics') },
   ],
   'FLEET_MANAGER': [
-    { label: 'Fleet Operations', icon: '🚛', action: () => showDashboard('dashboard-fleet-manager', 'Fleet Operations', `Region: ${currentUser?.region || 'All'} · Depot: ${currentUser?.depot || 'All'}`) },
+    { label: 'Fleet Operations', icon: '🚛', action: () => showFmDashboard('fm-vehicles') },
+    { label: 'Tyre Intelligence', icon: '🛞', action: () => showFmDashboard('fm-tyres') },
     { label: 'Work Orders', icon: '🛠️', action: () => showDashboard('dashboard-workshop', 'Workshop Intelligence', 'Maintenance Work Orders & Scheduling Execution') },
     { label: 'Inventory Stock', icon: '📦', action: () => showDashboard('dashboard-inventory', 'Inventory Intelligence', 'Spare Parts, Casings & Procurement Supply Chain') },
     { label: 'Driver Safety', icon: '🛡️', action: () => showDashboard('dashboard-driver-safety', 'Driver & Safety Intelligence', 'Pre-Trip Inspections, Shifts & Driver Safety Scoring') },
@@ -109,6 +110,22 @@ function showDashboard(id, title, subtitle = '') {
   if (activeNavItem) activeNavItem.closest('li').classList.add('active');
 
   loadViewData(id);
+}
+
+function showFmDashboard(targetTab = 'fm-vehicles') {
+  if (targetTab === 'fm-tyres') {
+    showDashboard('dashboard-fleet-manager', 'Tyre Fleet Health & Intelligence', 'Real-time asset condition, safety defects, risk analysis, and governed financial metrics');
+    document.getElementById('fm-fleet-overview-section')?.classList.add('hidden');
+  } else {
+    showDashboard('dashboard-fleet-manager', 'Fleet Operations', `Region: ${currentUser?.region || 'All'} · Depot: ${currentUser?.depot || 'All'}`);
+    document.getElementById('fm-fleet-overview-section')?.classList.remove('hidden');
+  }
+
+  const parent = document.getElementById('dashboard-fleet-manager');
+  if (parent) {
+    parent.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === targetTab));
+    parent.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('hidden', p.id !== targetTab));
+  }
 }
 
 // ─── Dynamic Navigation ───────────────────────────────────────────────────────
@@ -1835,13 +1852,30 @@ async function openKPIDrillBudgets() {
 function initTabs() {
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const panel = document.getElementById(btn.dataset.tab);
+      const tabId = btn.dataset.tab;
+      const panel = document.getElementById(tabId);
       if (!panel) return;
       const container = btn.closest('.card');
-      container.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      container.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+      if (container) {
+        container.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        container.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+      }
       btn.classList.add('active');
       panel.classList.remove('hidden');
+
+      if (tabId === 'fm-tyres') {
+        document.getElementById('fm-fleet-overview-section')?.classList.add('hidden');
+        const titleEl = document.getElementById('page-title');
+        const subEl = document.getElementById('page-subtitle');
+        if (titleEl) titleEl.textContent = 'Tyre Fleet Health & Intelligence';
+        if (subEl) subEl.textContent = 'Real-time asset condition, safety defects, risk analysis, and governed financial metrics';
+      } else if (tabId === 'fm-vehicles' || tabId === 'fm-fitments' || tabId === 'fm-inspections' || tabId === 'fm-alerts' || tabId === 'fm-defects') {
+        document.getElementById('fm-fleet-overview-section')?.classList.remove('hidden');
+        const titleEl = document.getElementById('page-title');
+        const subEl = document.getElementById('page-subtitle');
+        if (titleEl) titleEl.textContent = 'Fleet Operations';
+        if (subEl) subEl.textContent = `Region: ${currentUser?.region || 'All'} · Depot: ${currentUser?.depot || 'All'}`;
+      }
     });
   });
 }

@@ -20,9 +20,15 @@ async function bootstrap() {
 
   // Enable CORS for frontend development
   app.enableCors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin: '*',
     credentials: true,
   });
+
+  // Serve static frontend application
+  const express = require('express');
+  const path = require('path');
+  const frontendPath = path.join(__dirname, '..', '..', 'frontend');
+  app.use(express.static(frontendPath));
 
   // Swagger / OpenAPI documentation
   const config = new DocumentBuilder()

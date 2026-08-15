@@ -208,6 +208,22 @@ export const ROLE_MATRIX: Record<UserRole, RoleConfig> = {
     ],
   },
 
+  [UserRole.INVENTORY_MANAGER]: {
+    label: 'Inventory Manager',
+    description: 'Supply chain management, stock position, reorder points & purchase requisitions',
+    scopeLevel: ScopeLevel.WORKSHOP,
+    dashboard: DashboardId.FLEET_OPS_DASHBOARD,
+    permissions: [
+      Permission.INVENTORY_READ,
+      Permission.INVENTORY_CREATE,
+      Permission.INVENTORY_UPDATE,
+      Permission.PROCUREMENT_READ,
+      Permission.PROCUREMENT_CREATE,
+      Permission.PROCUREMENT_UPDATE,
+      Permission.REPORTS_READ,
+    ],
+  },
+
   // ────────────────────────────────────────────────────────────────
   // TYRE_SUPERVISOR — Operational Control Point for Tyres
   // Primary operational role for tyre lifecycle, stock & verification

@@ -108,6 +108,20 @@ export class AuthService implements OnModuleInit {
         region: 'Nairobi', depot: 'Nairobi Main Depot', workshopId: null, assignedVehicleId: 'KDA-123A',
       },
       {
+        email: 'workshop.manager@fi360.com',
+        firstName: 'John', lastName: 'Kamau',
+        role: UserRole.WORKSHOP_MANAGER,
+        department: 'Workshop Operations',
+        region: 'Nairobi', depot: 'Nairobi Main Depot', workshopId: mainWorkshop?.id || null, assignedVehicleId: null,
+      },
+      {
+        email: 'inventory.manager@fi360.com',
+        firstName: 'Mary', lastName: 'Achieng',
+        role: UserRole.INVENTORY_MANAGER,
+        department: 'Supply Chain & Inventory',
+        region: 'Nairobi', depot: 'Nairobi Main Depot', workshopId: null, assignedVehicleId: null,
+      },
+      {
         email: 'auditor@fi360.com',
         firstName: 'Sarah', lastName: 'Kamau',
         role: UserRole.AUDITOR,

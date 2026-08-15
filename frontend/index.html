@@ -660,16 +660,16 @@
                   </div>
                   <div class="kpi-card kpi-primary clickable" data-kpi="TYRE_ROTATION_COMPLIANCE" onclick="window.openKPIDrillModal('TYRE_ROTATION_COMPLIANCE')">
                     <div class="kpi-body">
-                      <p class="kpi-label">FLEET TYRE HEALTH</p>
+                      <p class="kpi-label">INSPECTION COMPLIANCE</p>
                       <p class="kpi-value kpi-value-lg text-green" id="fm-tyre-kpi-health">81.5%</p>
-                      <p class="kpi-sub">Inspection compliance</p>
+                      <p class="kpi-sub">Target &ge; 90.0% compliance</p>
                     </div>
                   </div>
                   <div class="kpi-card kpi-danger clickable" data-kpi="SAFETY_CRITICAL_TYRES" onclick="window.openKPIDrillModal('SAFETY_CRITICAL_TYRES')">
                     <div class="kpi-body">
                       <p class="kpi-label">ATTENTION REQUIRED</p>
                       <p class="kpi-value kpi-value-lg text-red" id="fm-tyre-kpi-attention">54</p>
-                      <p class="kpi-sub">Critical defects & alerts</p>
+                      <p class="kpi-sub">54 Open Defects & Alerts</p>
                     </div>
                   </div>
                   <div class="kpi-card kpi-warning clickable" data-kpi="TYRE_ROTATION_COMPLIANCE" onclick="window.openKPIDrillModal('TYRE_ROTATION_COMPLIANCE')">
@@ -693,14 +693,14 @@
                   <div class="card-header flex-row between items-center" style="padding: 10px 16px;">
                     <h4 style="margin: 0; color: var(--danger, #ef4444); font-size: 0.95rem;" class="flex-row items-center gap-2">
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                      ATTENTION REQUIRED — ACTIONABLE INTERVENTION QUEUE
+                      ATTENTION REQUIRED — 54 OPEN DEFECTS & ALERTS QUEUE
                     </h4>
-                    <span class="badge danger" id="fm-tyre-attention-badge">54 Items Requiring Action</span>
+                    <span class="badge danger" id="fm-tyre-attention-badge">54 Open Defects & Alerts</span>
                   </div>
                   <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr); padding: 12px; gap: 12px;">
                     <div class="kpi-card kpi-danger clickable" onclick="window.openKPIDrillModal('SAFETY_CRITICAL_TYRES')">
                       <div class="kpi-body">
-                        <p class="kpi-label">CRITICAL</p>
+                        <p class="kpi-label">CRITICAL DEFECTS</p>
                         <div class="flex-row between items-center mt-1">
                           <p class="kpi-value text-red" style="font-size: 1.4rem; margin:0;" id="fm-att-critical">54</p>
                           <button class="btn tiny outline danger">View</button>
@@ -777,9 +777,9 @@
                         </p>
                       </div>
                       <div style="background: rgba(245, 158, 11, 0.1); border-left: 3px solid #f59e0b; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
-                        <strong style="color: #fbbf24; font-size: 0.82rem; display: block; margin-bottom: 2px;">Axle Rotation Optimization</strong>
+                        <strong style="color: #fbbf24; font-size: 0.82rem; display: block; margin-bottom: 2px;">Axle Rotation Optimization (Estimated Lifespan Improvement: +14%)</strong>
                         <p class="small muted" style="margin:0; color: #cbd5e1; font-size: 0.78rem; line-height: 1.35;" id="fm-ai-insight-2">
-                          Rotation compliance stands at 81.5% (target &ge; 90%). Executing scheduled rotations extends average lifespan by 14%.
+                          Rotation compliance currently stands at 81.5% (target &ge; 90%). Executing scheduled axle rotations is estimated to improve average tread lifespan by up to +14% based on wear optimization models.
                         </p>
                       </div>
                       <div style="background: rgba(16, 185, 129, 0.1); border-left: 3px solid #10b981; padding: 10px; border-radius: 4px;">

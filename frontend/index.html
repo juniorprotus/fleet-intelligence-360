@@ -629,35 +629,35 @@
 
                 <!-- 2. Primary KPI Cards (5 Top Cards) -->
                 <div class="kpi-grid mb-4" style="grid-template-columns: repeat(5, 1fr);">
-                  <div class="kpi-card kpi-success clickable" data-kpi="TYRE_STOCK_ACCURACY" onclick="window.openKPIDrillModal('TYRE_STOCK_ACCURACY')">
+                  <div class="kpi-card kpi-success clickable" onclick="window.openKPIDrillTyres()">
                     <div class="kpi-body">
                       <p class="kpi-label">TOTAL TYRES</p>
                       <p class="kpi-value kpi-value-lg" id="fm-tyre-kpi-total">93</p>
                       <p class="kpi-sub">Managed physical assets</p>
                     </div>
                   </div>
-                  <div class="kpi-card kpi-primary clickable" data-kpi="TYRE_ROTATION_COMPLIANCE" onclick="window.openKPIDrillModal('TYRE_ROTATION_COMPLIANCE')">
+                  <div class="kpi-card kpi-primary clickable" onclick="window.openInspectionComplianceDrill()">
                     <div class="kpi-body">
                       <p class="kpi-label">INSPECTION COMPLIANCE</p>
                       <p class="kpi-value kpi-value-lg text-green" id="fm-tyre-kpi-health">81.5%</p>
                       <p class="kpi-sub">Target &ge; 90.0% compliance</p>
                     </div>
                   </div>
-                  <div class="kpi-card kpi-danger clickable" data-kpi="SAFETY_CRITICAL_TYRES" onclick="window.openKPIDrillModal('SAFETY_CRITICAL_TYRES')">
+                  <div class="kpi-card kpi-danger clickable" onclick="window.openKPIDrillDefects()">
                     <div class="kpi-body">
                       <p class="kpi-label">ATTENTION REQUIRED</p>
                       <p class="kpi-value kpi-value-lg text-red" id="fm-tyre-kpi-attention">54</p>
                       <p class="kpi-sub">54 Open Defects & Alerts</p>
                     </div>
                   </div>
-                  <div class="kpi-card kpi-warning clickable" data-kpi="TYRE_ROTATION_COMPLIANCE" onclick="window.openKPIDrillModal('TYRE_ROTATION_COMPLIANCE')">
+                  <div class="kpi-card kpi-warning clickable" onclick="window.openTreadDepthAnalysisDrill()">
                     <div class="kpi-body">
                       <p class="kpi-label">AVERAGE TREAD</p>
                       <p class="kpi-value kpi-value-lg" id="fm-tyre-kpi-tread">7.8 mm</p>
                       <p class="kpi-sub">Min limit &ge; 3.0 mm</p>
                     </div>
                   </div>
-                  <div class="kpi-card kpi-info clickable" data-kpi="TYRE_DOWNTIME_HOURS" onclick="window.openKPIDrillModal('TYRE_DOWNTIME_HOURS')">
+                  <div class="kpi-card kpi-info clickable" onclick="window.openTyreCostAnalysisDrill()">
                     <div class="kpi-body">
                       <p class="kpi-label">TYRE COST / KM</p>
                       <p class="kpi-value kpi-value-lg" id="fm-tyre-kpi-cost">KES 0.50</p>
@@ -676,7 +676,7 @@
                     <span class="badge danger" id="fm-tyre-attention-badge">54 Open Defects & Alerts</span>
                   </div>
                   <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr); padding: 12px; gap: 12px;">
-                    <div class="kpi-card kpi-danger clickable" onclick="window.openKPIDrillModal('SAFETY_CRITICAL_TYRES')">
+                    <div class="kpi-card kpi-danger clickable" onclick="window.openAttentionQueueDrill('CRITICAL')">
                       <div class="kpi-body">
                         <p class="kpi-label">CRITICAL DEFECTS</p>
                         <div class="flex-row between items-center mt-1">
@@ -685,7 +685,7 @@
                         </div>
                       </div>
                     </div>
-                    <div class="kpi-card kpi-warning clickable" onclick="window.openKPIDrillModal('REPLACEMENT_BACKLOG')">
+                    <div class="kpi-card kpi-warning clickable" onclick="window.openAttentionQueueDrill('REPLACEMENT_DUE')">
                       <div class="kpi-body">
                         <p class="kpi-label">REPLACEMENT DUE</p>
                         <div class="flex-row between items-center mt-1">
@@ -694,7 +694,7 @@
                         </div>
                       </div>
                     </div>
-                    <div class="kpi-card kpi-info clickable" onclick="window.openKPIDrillModal('TYRE_ROTATION_COMPLIANCE')">
+                    <div class="kpi-card kpi-info clickable" onclick="window.openAttentionQueueDrill('INSPECTION_DUE')">
                       <div class="kpi-body">
                         <p class="kpi-label">INSPECTION DUE</p>
                         <div class="flex-row between items-center mt-1">
@@ -703,7 +703,7 @@
                         </div>
                       </div>
                     </div>
-                    <div class="kpi-card kpi-danger clickable" onclick="window.openKPIDrillModal('SAFETY_CRITICAL_TYRES')">
+                    <div class="kpi-card kpi-danger clickable" onclick="window.openKPIDrillDefects()">
                       <div class="kpi-body">
                         <p class="kpi-label">OPEN DEFECTS</p>
                         <div class="flex-row between items-center mt-1">
@@ -748,19 +748,19 @@
                       <h4 style="margin: 0; color: #93c5fd; font-size: 0.95rem;">FI360 INTELLIGENCE RECOMMENDATIONS</h4>
                     </div>
                     <div style="padding: 14px;">
-                      <div style="background: rgba(59, 130, 246, 0.1); border-left: 3px solid #3b82f6; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+                      <div class="clickable" style="cursor: pointer; background: rgba(59, 130, 246, 0.1); border-left: 3px solid #3b82f6; padding: 10px; border-radius: 4px; margin-bottom: 10px;" onclick="window.openAiRecommendationDetail('DEFECT_CONCENTRATION')">
                         <strong style="color: #60a5fa; font-size: 0.82rem; display: block; margin-bottom: 2px;">High Defect Concentration Warning</strong>
                         <p class="small muted" style="margin:0; color: #cbd5e1; font-size: 0.78rem; line-height: 1.35;" id="fm-ai-insight-1">
                           54 open safety-critical defects are logged. 27 active fitted tyres are monitored with 81.5% inspection compliance.
                         </p>
                       </div>
-                      <div style="background: rgba(245, 158, 11, 0.1); border-left: 3px solid #f59e0b; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+                      <div class="clickable" style="cursor: pointer; background: rgba(245, 158, 11, 0.1); border-left: 3px solid #f59e0b; padding: 10px; border-radius: 4px; margin-bottom: 10px;" onclick="window.openAiRecommendationDetail('AXLE_ROTATION')">
                         <strong style="color: #fbbf24; font-size: 0.82rem; display: block; margin-bottom: 2px;">Axle Rotation Optimization (Estimated Lifespan Improvement: +14%)</strong>
                         <p class="small muted" style="margin:0; color: #cbd5e1; font-size: 0.78rem; line-height: 1.35;" id="fm-ai-insight-2">
                           Rotation compliance currently stands at 81.5% (target &ge; 90%). Executing scheduled axle rotations is estimated to improve average tread lifespan by up to +14% based on wear optimization models.
                         </p>
                       </div>
-                      <div style="background: rgba(16, 185, 129, 0.1); border-left: 3px solid #10b981; padding: 10px; border-radius: 4px;">
+                      <div class="clickable" style="cursor: pointer; background: rgba(16, 185, 129, 0.1); border-left: 3px solid #10b981; padding: 10px; border-radius: 4px;" onclick="window.openAiRecommendationDetail('STOCK_RETREAD')">
                         <strong style="color: #34d399; font-size: 0.82rem; display: block; margin-bottom: 2px;">Stock & Retread Processing</strong>
                         <p class="small muted" style="margin:0; color: #cbd5e1; font-size: 0.78rem; line-height: 1.35;" id="fm-ai-insight-3">
                           65 tyres are IN_STOCK with 100% stock ledger accuracy. 1 tyre currently processing in retread plant.

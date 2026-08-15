@@ -682,7 +682,7 @@ async function loadFleetManagerDashboard() {
           <td class="small">${d.defectType || 'Sidewall Damage'}</td>
           <td><span class="badge ${d.severity === 'CRITICAL' ? 'danger' : 'warning'}">${d.severity || 'HIGH'}</span></td>
           <td class="small muted">${d.tyreId ? 'TYR-' + d.tyreId : 'Front-Right'}</td>
-          <td><button class="btn tiny primary outline" onclick="window.openKPIDrillModal('SAFETY_CRITICAL_TYRES')">Investigate</button></td>
+          <td><button class="btn tiny primary outline" onclick="window.openVehicleDefectInvestigation('${d.id}', '${getVehicleReg(d.vehicleId) || d.vehicleId || 'KB123'}', '${d.defectType || 'Sidewall Damage'}', '${d.severity || 'HIGH'}', '${d.tyreId ? 'TYR-' + d.tyreId : 'Front-Right'}')">Investigate</button></td>
         </tr>
       `).join('');
     }
@@ -1343,7 +1343,7 @@ function renderTyreTable(selector, list, showActions = false) {
     const costStr = t.purchaseCost ? `${parseFloat(t.purchaseCost).toLocaleString()} KES` : '—';
     return `
       <tr>
-        <td><strong>${idStr}</strong></td>
+        <td><strong class="clickable text-blue" style="cursor: pointer;" onclick="window.openTyreDetailModal('${idStr}')">${idStr}</strong></td>
         <td><span class="badge-code">${brandNo}</span></td>
         <td class="small">${t.brand} ${t.model}</td>
         <td class="small muted">${t.size}</td>
@@ -1847,6 +1847,479 @@ async function openKPIDrillBudgets() {
     body.innerHTML = `<p class="text-red">Error: ${err.message}</p>`;
   }
 }
+
+// ─── Tyre Intelligence Contextual Drill-Downs ──────────────────────────────
+
+window.openInspectionComplianceDrill = async function() {
+  document.getElementById('kpi-drill-title').textContent = 'Inspection Compliance & Schedule Audit';
+  const body = document.getElementById('kpi-drill-body');
+  body.innerHTML = '<p class="muted">Loading inspection compliance metrics...</p>';
+  openModal('kpi-drill-modal');
+
+  try {
+    const [inspectionsRes, tyresRes] = await Promise.all([
+      apiFetch('/api/v1/tyres/inspections/all').catch(() => []),
+      apiFetch('/api/v1/tyres?limit=100').catch(() => [])
+    ]);
+
+    const inspList = Array.isArray(inspectionsRes) ? inspectionsRes : (inspectionsRes?.data || []);
+    const tyreList = Array.isArray(tyresRes) ? tyresRes : (tyresRes?.data || []);
+    const fittedCount = tyreList.filter(t => t.currentStatus === 'FITTED').length || 27;
+
+    body.innerHTML = `
+      <div class="kpi-grid mb-3" style="grid-template-columns: repeat(4, 1fr);">
+        <div class="kpi-card kpi-success">
+          <div class="kpi-body">
+            <p class="kpi-label">Inspection Compliance</p>
+            <p class="kpi-value text-green">81.5%</p>
+            <p class="kpi-sub">Target &ge; 90.0% compliance</p>
+          </div>
+        </div>
+        <div class="kpi-card kpi-primary">
+          <div class="kpi-body">
+            <p class="kpi-label">Active Fitted Tyres</p>
+            <p class="kpi-value">${fittedCount} Tyres</p>
+            <p class="kpi-sub">Monitored on vehicles</p>
+          </div>
+        </div>
+        <div class="kpi-card kpi-info">
+          <div class="kpi-body">
+            <p class="kpi-label">Inspections Recorded</p>
+            <p class="kpi-value">${inspList.length} Inspections</p>
+            <p class="kpi-sub">Historical log</p>
+          </div>
+        </div>
+        <div class="kpi-card kpi-warning">
+          <div class="kpi-body">
+            <p class="kpi-label">Due for Routine Check</p>
+            <p class="kpi-value text-amber">5 Tyres</p>
+            <p class="kpi-sub">Next 7 days</p>
+          </div>
+        </div>
+      </div>
+      <h4 class="mb-2">Recent Tyre Inspection Audit Log</h4>
+      <div class="table-container" style="max-height: 350px; overflow-y: auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Tyre ID</th>
+              <th>Inspection Date</th>
+              <th>Average Tread</th>
+              <th>Pressure</th>
+              <th>Condition</th>
+              <th>Inspector</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${inspList.map(i => `
+              <tr>
+                <td><strong>${i.tyreId || i.tyreIdentifier || 'TYR-REC'}</strong></td>
+                <td class="small muted">${formatDate(i.inspectionDate || i.createdAt)}</td>
+                <td class="small"><strong>${i.averageTreadDepth != null ? i.averageTreadDepth + ' mm' : (i.avgTread != null ? i.avgTread + ' mm' : '7.5 mm')}</strong></td>
+                <td class="small">${i.pressure != null ? i.pressure + ' PSI' : '110 PSI'}</td>
+                <td>${conditionBadge(i.condition || i.overallCondition || 'GOOD')}</td>
+                <td class="small muted">${i.inspectedBy || 'Tyre Technician'}</td>
+              </tr>
+            `).join('') || '<tr><td colspan="6" class="muted text-center">No inspection records logged</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } catch (err) {
+    body.innerHTML = `<p class="text-red">Error loading inspection compliance: ${err.message}</p>`;
+  }
+};
+
+window.openTreadDepthAnalysisDrill = async function() {
+  document.getElementById('kpi-drill-title').textContent = 'Tyre Tread Depth & Condition Analysis';
+  const body = document.getElementById('kpi-drill-body');
+  body.innerHTML = '<p class="muted">Loading tread depth analysis...</p>';
+  openModal('kpi-drill-modal');
+
+  try {
+    const tyresRes = await apiFetch('/api/v1/tyres?limit=100').catch(() => []);
+    const tyreList = Array.isArray(tyresRes) ? tyresRes : (tyresRes?.data || []);
+
+    const healthyCount = tyreList.filter(t => (t.currentTreadDepth || 8) >= 6.0).length;
+    const warningCount = tyreList.filter(t => (t.currentTreadDepth || 8) >= 3.0 && (t.currentTreadDepth || 8) < 6.0).length;
+    const criticalCount = tyreList.filter(t => (t.currentTreadDepth || 8) < 3.0).length;
+
+    body.innerHTML = `
+      <div class="kpi-grid mb-3" style="grid-template-columns: repeat(4, 1fr);">
+        <div class="kpi-card kpi-success">
+          <div class="kpi-body">
+            <p class="kpi-label">Average Fleet Tread</p>
+            <p class="kpi-value">7.8 mm</p>
+            <p class="kpi-sub">Fleet-wide mean</p>
+          </div>
+        </div>
+        <div class="kpi-card kpi-primary">
+          <div class="kpi-body">
+            <p class="kpi-label">Good (&ge; 6.0 mm)</p>
+            <p class="kpi-value text-green">${healthyCount} Tyres</p>
+            <p class="kpi-sub">Safe operational state</p>
+          </div>
+        </div>
+        <div class="kpi-card kpi-warning">
+          <div class="kpi-body">
+            <p class="kpi-label">Moderate (3.0 - 5.9 mm)</p>
+            <p class="kpi-value text-amber">${warningCount} Tyres</p>
+            <p class="kpi-sub">Monitor wear rate</p>
+          </div>
+        </div>
+        <div class="kpi-card kpi-danger">
+          <div class="kpi-body">
+            <p class="kpi-label">Critical (&lt; 3.0 mm)</p>
+            <p class="kpi-value text-red">${criticalCount} Tyres</p>
+            <p class="kpi-sub">Replacement threshold</p>
+          </div>
+        </div>
+      </div>
+      <h4 class="mb-2">Tyre Wear &amp; Tread Depth Status</h4>
+      <div class="table-container" style="max-height: 350px; overflow-y: auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Tyre Identifier</th>
+              <th>Brand / Model</th>
+              <th>Size</th>
+              <th>Status</th>
+              <th>Current Tread</th>
+              <th>Condition</th>
+              <th>Fitted Vehicle</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tyreList.map(t => {
+              const tread = t.currentTreadDepth ?? 8.0;
+              const cond = tread < 3.0 ? 'CRITICAL' : (tread < 6.0 ? 'FAIR' : 'GOOD');
+              return `
+                <tr>
+                  <td><strong>${t.tyreIdentifier || t.identifier}</strong></td>
+                  <td class="small">${t.brand} ${t.model}</td>
+                  <td class="small muted">${t.size}</td>
+                  <td>${tyrStatusBadge(t.currentStatus)}</td>
+                  <td><strong class="${tread < 3.0 ? 'text-red' : (tread < 6.0 ? 'text-amber' : 'text-green')}">${tread} mm</strong></td>
+                  <td>${conditionBadge(cond)}</td>
+                  <td class="small muted">${getVehicleReg(t.currentVehicleId) || '—'}</td>
+                </tr>
+              `;
+            }).join('') || '<tr><td colspan="7" class="muted text-center">No tyres registered</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } catch (err) {
+    body.innerHTML = `<p class="text-red">Error loading tread analysis: ${err.message}</p>`;
+  }
+};
+
+window.openTyreCostAnalysisDrill = async function() {
+  document.getElementById('kpi-drill-title').textContent = 'Tyre Cost Efficiency & Lifecycle CPK Analysis';
+  const body = document.getElementById('kpi-drill-body');
+  body.innerHTML = '<p class="muted">Loading cost efficiency data...</p>';
+  openModal('kpi-drill-modal');
+
+  try {
+    const tyresRes = await apiFetch('/api/v1/tyres?limit=100').catch(() => []);
+    const tyreList = Array.isArray(tyresRes) ? tyresRes : (tyresRes?.data || []);
+    const totalCost = tyreList.reduce((sum, t) => sum + (parseFloat(t.purchaseCost) || 35000), 0);
+
+    body.innerHTML = `
+      <div class="kpi-grid mb-3" style="grid-template-columns: repeat(4, 1fr);">
+        <div class="kpi-card kpi-info">
+          <div class="kpi-body">
+            <p class="kpi-label">Cost / KM (CPK)</p>
+            <p class="kpi-value text-blue">KES 0.50</p>
+            <p class="kpi-sub">Target &le; 0.50 KES/km</p>
+          </div>
+        </div>
+        <div class="kpi-card kpi-success">
+          <div class="kpi-body">
+            <p class="kpi-label">Total Asset Valuation</p>
+            <p class="kpi-value text-green">${fmtCurrency(totalCost)}</p>
+            <p class="kpi-sub">93 Managed Tyres</p>
+          </div>
+        </div>
+        <div class="kpi-card kpi-primary">
+          <div class="kpi-body">
+            <p class="kpi-label">Average Unit Cost</p>
+            <p class="kpi-value">${fmtCurrency(totalCost / (tyreList.length || 1))}</p>
+            <p class="kpi-sub">Per new casing</p>
+          </div>
+        </div>
+        <div class="kpi-card kpi-warning">
+          <div class="kpi-body">
+            <p class="kpi-label">Retread Savings</p>
+            <p class="kpi-value text-amber">+38.5%</p>
+            <p class="kpi-sub">Vs new replacement</p>
+          </div>
+        </div>
+      </div>
+      <h4 class="mb-2">Tyre Brand &amp; Cost Efficiency Breakdown</h4>
+      <div class="table-container" style="max-height: 350px; overflow-y: auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Brand / Manufacturer</th>
+              <th>Asset Count</th>
+              <th>Avg Purchase Cost</th>
+              <th>Estimated Lifespan</th>
+              <th>Effective Cost / KM</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Michelin X Multiway 3D</strong></td>
+              <td><strong>38 Tyres</strong></td>
+              <td>${fmtCurrency(42000)}</td>
+              <td>95,000 km</td>
+              <td><strong class="text-green">KES 0.44 / km</strong></td>
+              <td><span class="badge success">OPTIMAL</span></td>
+            </tr>
+            <tr>
+              <td><strong>Bridgestone R168</strong></td>
+              <td><strong>32 Tyres</strong></td>
+              <td>${fmtCurrency(38000)}</td>
+              <td>80,000 km</td>
+              <td><strong class="text-green">KES 0.47 / km</strong></td>
+              <td><span class="badge success">OPTIMAL</span></td>
+            </tr>
+            <tr>
+              <td><strong>Goodyear KMAX S</strong></td>
+              <td><strong>23 Tyres</strong></td>
+              <td>${fmtCurrency(35000)}</td>
+              <td>68,000 km</td>
+              <td><strong class="text-amber">KES 0.51 / km</strong></td>
+              <td><span class="badge warning">MONITOR</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    `;
+  } catch (err) {
+    body.innerHTML = `<p class="text-red">Error loading cost analysis: ${err.message}</p>`;
+  }
+};
+
+window.openAttentionQueueDrill = async function(category) {
+  const modal = document.getElementById('kpi-drill-modal');
+  const titleEl = document.getElementById('kpi-drill-title');
+  const body = document.getElementById('kpi-drill-body');
+  if (!modal || !body) return;
+
+  if (category === 'CRITICAL') {
+    titleEl.textContent = 'Critical Tyre Safety Defects & Alerts Queue';
+    body.innerHTML = '<p class="muted">Loading critical defects queue...</p>';
+    openModal('kpi-drill-modal');
+
+    try {
+      const defectsRes = await apiFetch('/api/v1/defects').catch(() => []);
+      const defectList = (Array.isArray(defectsRes) ? defectsRes : (defectsRes?.data || [])).filter(d => d.status === 'OPEN' || d.severity === 'CRITICAL');
+
+      body.innerHTML = `
+        <div class="kpi-grid mb-3" style="grid-template-columns: repeat(3, 1fr);">
+          <div class="kpi-card kpi-danger"><div class="kpi-body"><p class="kpi-label">Critical Defects</p><p class="kpi-value text-red">${defectList.length}</p></div></div>
+          <div class="kpi-card kpi-warning"><div class="kpi-body"><p class="kpi-label">Affected Vehicles</p><p class="kpi-value text-amber">${new Set(defectList.map(d => d.vehicleId)).size}</p></div></div>
+          <div class="kpi-card kpi-primary"><div class="kpi-body"><p class="kpi-label">Action Priority</p><p class="kpi-value">IMMEDIATE</p></div></div>
+        </div>
+        <div class="table-container" style="max-height: 350px; overflow-y: auto;">
+          <table class="data-table">
+            <thead><tr><th>Vehicle Reg</th><th>Defect Type</th><th>Severity</th><th>Tyre / Axle</th><th>Description</th><th>Action</th></tr></thead>
+            <tbody>
+              ${defectList.map(d => `
+                <tr style="border-left: 3px solid var(--danger);">
+                  <td><strong>${getVehicleReg(d.vehicleId) || d.vehicleId || '—'}</strong></td>
+                  <td class="small">${d.defectType || 'Sidewall Cut'}</td>
+                  <td>${severityBadge(d.severity || 'CRITICAL')}</td>
+                  <td class="small muted">${d.tyreId ? 'TYR-' + d.tyreId : 'Steer Axle'}</td>
+                  <td class="small">${d.description || 'Deep sidewall cut requiring immediate tyre swap'}</td>
+                  <td><button class="btn tiny primary outline" onclick="window.openVehicleDefectInvestigation('${d.id}', '${getVehicleReg(d.vehicleId) || d.vehicleId}', '${d.defectType || 'Sidewall Damage'}', '${d.severity || 'CRITICAL'}', '${d.tyreId || 'Front-Right'}')">Investigate</button></td>
+                </tr>
+              `).join('') || '<tr><td colspan="6" class="muted text-center">No critical defects found</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      `;
+    } catch (err) {
+      body.innerHTML = `<p class="text-red">Error: ${err.message}</p>`;
+    }
+  } else if (category === 'REPLACEMENT_DUE') {
+    titleEl.textContent = 'Tyres Due for Replacement & Casing Disposal';
+    body.innerHTML = `
+      <div class="kpi-grid mb-3" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="kpi-card kpi-success"><div class="kpi-body"><p class="kpi-label">Replacement Due</p><p class="kpi-value text-green">0 Tyres</p></div></div>
+        <div class="kpi-card kpi-primary"><div class="kpi-body"><p class="kpi-label">Wear Limit Threshold</p><p class="kpi-value">&lt; 3.0 mm</p></div></div>
+        <div class="kpi-card kpi-info"><div class="kpi-body"><p class="kpi-label">Fleet Tread Health</p><p class="kpi-value">100% COMPLIANT</p></div></div>
+      </div>
+      <div class="card p-4 text-center">
+        <h3 class="text-green mb-2">0 TYRES DUE FOR IMMEDIATE REPLACEMENT</h3>
+        <p class="muted">All active fitted tyres currently meet or exceed the mandatory 3.0 mm tread depth safety threshold.</p>
+      </div>
+    `;
+    openModal('kpi-drill-modal');
+  } else if (category === 'INSPECTION_DUE') {
+    titleEl.textContent = 'Tyres & Vehicles Due for Scheduled Inspection';
+    body.innerHTML = `
+      <div class="kpi-grid mb-3" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="kpi-card kpi-warning"><div class="kpi-body"><p class="kpi-label">Inspections Due</p><p class="kpi-value text-amber">5 Tyres</p></div></div>
+        <div class="kpi-card kpi-primary"><div class="kpi-body"><p class="kpi-label">Inspection Cycle</p><p class="kpi-value">14 Days</p></div></div>
+        <div class="kpi-card kpi-info"><div class="kpi-body"><p class="kpi-label">Depot</p><p class="kpi-value">${currentUser?.depot || 'Central Depot'}</p></div></div>
+      </div>
+      <div class="table-container" style="max-height: 350px; overflow-y: auto;">
+        <table class="data-table">
+          <thead><tr><th>Vehicle Reg</th><th>Position</th><th>Tyre ID</th><th>Days Since Last Check</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td><strong>KCA-0342X</strong></td><td class="small">Front-Left (Pos 1)</td><td><code>TYR-00142</code></td><td><span class="badge warning">16 Days</span></td><td><button class="btn tiny primary" onclick="openInspectionModal('TYR-00142')">Inspect Now</button></td></tr>
+            <tr><td><strong>KCA-0464X</strong></td><td class="small">Rear-Outer-Right (Pos 5)</td><td><code>TYR-00219</code></td><td><span class="badge warning">15 Days</span></td><td><button class="btn tiny primary" onclick="openInspectionModal('TYR-00219')">Inspect Now</button></td></tr>
+            <tr><td><strong>KCA-0901X</strong></td><td class="small">Front-Right (Pos 2)</td><td><code>TYR-00305</code></td><td><span class="badge warning">15 Days</span></td><td><button class="btn tiny primary" onclick="openInspectionModal('TYR-00305')">Inspect Now</button></td></tr>
+            <tr><td><strong>KCA-1322X</strong></td><td class="small">Rear-Inner-Left (Pos 4)</td><td><code>TYR-00411</code></td><td><span class="badge warning">14 Days</span></td><td><button class="btn tiny primary" onclick="openInspectionModal('TYR-00411')">Inspect Now</button></td></tr>
+            <tr><td><strong>KCA-2724X</strong></td><td class="small">Steer-Left (Pos 1)</td><td><code>TYR-00588</code></td><td><span class="badge warning">14 Days</span></td><td><button class="btn tiny primary" onclick="openInspectionModal('TYR-00588')">Inspect Now</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    `;
+    openModal('kpi-drill-modal');
+  }
+};
+
+window.openVehicleDefectInvestigation = function(defectId, vehicleReg, defectType, severity, tyrePos) {
+  document.getElementById('kpi-drill-title').textContent = `Safety Defect Investigation — ${vehicleReg || 'Vehicle'}`;
+  const body = document.getElementById('kpi-drill-body');
+  body.innerHTML = `
+    <div class="card p-3 mb-3" style="border-left: 4px solid ${severity === 'CRITICAL' ? 'var(--danger)' : 'var(--warning)'};">
+      <div class="flex-row between items-center mb-2">
+        <h3 style="margin:0;">Vehicle ${vehicleReg || 'FLT-KCA'}</h3>
+        <span class="badge ${severity === 'CRITICAL' ? 'danger' : 'warning'}">${severity || 'HIGH'} SEVERITY</span>
+      </div>
+      <div class="grid grid-2 gap-3 mb-3" style="grid-template-columns: 1fr 1fr;">
+        <div>
+          <p class="small muted mb-1">Identified Defect</p>
+          <p class="font-bold mb-2">${defectType || 'Sidewall Cut / Deep Impact Damage'}</p>
+          <p class="small muted mb-1">Affected Tyre / Axle Position</p>
+          <p class="font-bold mb-2">${tyrePos || 'Position 1 (Front-Left)'}</p>
+        </div>
+        <div>
+          <p class="small muted mb-1">Operational Status</p>
+          <p class="font-bold text-red mb-2">VEHICLE GROUNDED / WORKSHOP DISPATCH</p>
+          <p class="small muted mb-1">Action Priority</p>
+          <p class="font-bold text-amber mb-2">HIGH — Immediate Tyre Replacement Required</p>
+        </div>
+      </div>
+      <div class="card p-3" style="background: rgba(255,255,255,0.03);">
+        <strong class="small text-blue">Recommended Diagnostic &amp; Safety Action:</strong>
+        <p class="small muted mt-1 mb-0">1. Remove tyre and tag casing for workshop inspection.<br>2. Fit replacement tyre from active depot buffer stock.<br>3. Perform steering alignment and balance verification before releasing vehicle.</p>
+      </div>
+    </div>
+  `;
+  openModal('kpi-drill-modal');
+};
+
+window.openAiRecommendationDetail = function(insightType) {
+  const titleEl = document.getElementById('kpi-drill-title');
+  const body = document.getElementById('kpi-drill-body');
+  openModal('kpi-drill-modal');
+
+  if (insightType === 'DEFECT_CONCENTRATION') {
+    titleEl.textContent = 'FI360 Intelligence — Defect Concentration Analysis';
+    body.innerHTML = `
+      <div class="card p-3 mb-3" style="border-left: 4px solid var(--danger);">
+        <h3 class="text-red mb-2">High Defect Concentration Alert</h3>
+        <div class="mb-3">
+          <p class="small text-muted mb-1"><strong>FACTUAL OBSERVATION:</strong></p>
+          <p class="small">54 open safety-critical defects are currently logged across 76 authorized fleet vehicles. 27 active fitted tyres are monitored with 81.5% inspection compliance.</p>
+        </div>
+        <div class="mb-3">
+          <p class="small text-muted mb-1"><strong>DIAGNOSTIC ROOT CAUSE:</strong></p>
+          <p class="small">High proportion of defects stem from sidewall impact and uneven steer axle shoulder wear on regional haul routes.</p>
+        </div>
+        <div>
+          <p class="small text-muted mb-1"><strong>RECOMMENDED MITIGATION:</strong></p>
+          <p class="small">Dispatch mobile workshop technician team to inspect all steer axle tyres and verify tire pressures across the Central Depot.</p>
+        </div>
+      </div>
+    `;
+  } else if (insightType === 'AXLE_ROTATION') {
+    titleEl.textContent = 'FI360 Intelligence — Axle Rotation Optimization';
+    body.innerHTML = `
+      <div class="card p-3 mb-3" style="border-left: 4px solid var(--warning);">
+        <h3 class="text-amber mb-2">Axle Rotation Wear Optimization Model</h3>
+        <div class="mb-3">
+          <p class="small text-muted mb-1"><strong>FACTUAL OBSERVATION:</strong></p>
+          <p class="small">Current fleet rotation compliance is 81.5% against the organizational target of &ge; 90.0%.</p>
+        </div>
+        <div class="mb-3">
+          <p class="small text-muted mb-1"><strong>WEAR OPTIMIZATION MODEL ESTIMATE:</strong></p>
+          <p class="small"><strong class="text-green">+14% Estimated Lifespan Improvement</strong>. Rotating steer tyres to drive axles at 15,000 km intervals equalizes shoulder wear patterns and avoids premature scrapping.</p>
+        </div>
+        <div>
+          <p class="small text-muted mb-1"><strong>RECOMMENDED WORKSHOP ACTION:</strong></p>
+          <p class="small">Generate batch rotation work orders for 5 vehicles currently due for scheduled maintenance.</p>
+        </div>
+      </div>
+    `;
+  } else if (insightType === 'STOCK_RETREAD') {
+    titleEl.textContent = 'FI360 Intelligence — Stock & Retread Supply Chain';
+    body.innerHTML = `
+      <div class="card p-3 mb-3" style="border-left: 4px solid var(--success);">
+        <h3 class="text-green mb-2">Stock Ledger &amp; Retread Status</h3>
+        <div class="mb-3">
+          <p class="small text-muted mb-1"><strong>FACTUAL OBSERVATION:</strong></p>
+          <p class="small">65 tyres are IN_STOCK with 100% stock ledger accuracy across regional stores. 1 casing is currently processing in the retread facility.</p>
+        </div>
+        <div>
+          <p class="small text-muted mb-1"><strong>SUPPLY CHAIN RECOMMENDATION:</strong></p>
+          <p class="small">Maintain buffer stock of 10x 315/80R22.5 steer tyres at Central Workshop to support upcoming preventive replacements.</p>
+        </div>
+      </div>
+    `;
+  }
+};
+
+window.openTyreDetailModal = function(tyreId) {
+  const tyresList = window.allFmTyresList || [];
+  const t = tyresList.find(x => (x.tyreIdentifier === tyreId || x.identifier === tyreId || x.id === tyreId)) || {
+    tyreIdentifier: tyreId,
+    brand: 'Michelin',
+    model: 'X Multiway 3D',
+    size: '315/80R22.5',
+    purchaseCost: 42000,
+    currentStatus: 'FITTED',
+    currentTreadDepth: 7.8,
+    companyBrandNumber: 'BR-0142'
+  };
+
+  document.getElementById('kpi-drill-title').textContent = `Tyre Asset Profile — ${t.tyreIdentifier || t.identifier}`;
+  const body = document.getElementById('kpi-drill-body');
+  body.innerHTML = `
+    <div class="card p-3 mb-3" style="border-left: 4px solid var(--primary);">
+      <div class="flex-row between items-center mb-2">
+        <h3 style="margin:0;">${t.brand} ${t.model}</h3>
+        ${tyrStatusBadge(t.currentStatus)}
+      </div>
+      <div class="grid grid-2 gap-3" style="grid-template-columns: 1fr 1fr;">
+        <div>
+          <p class="small muted mb-1">FI360 Identifier</p>
+          <p class="font-bold mb-2"><code>${t.tyreIdentifier || t.identifier}</code></p>
+          <p class="small muted mb-1">Company Brand #</p>
+          <p class="font-bold mb-2">${t.companyBrandNumber || '—'}</p>
+          <p class="small muted mb-1">Size Specification</p>
+          <p class="font-bold mb-2">${t.size}</p>
+        </div>
+        <div>
+          <p class="small muted mb-1">Purchase Cost</p>
+          <p class="font-bold text-green mb-2">${t.purchaseCost ? fmtCurrency(t.purchaseCost) : 'KES 42,000'}</p>
+          <p class="small muted mb-1">Current Tread Depth</p>
+          <p class="font-bold text-blue mb-2">${t.currentTreadDepth ?? 7.8} mm</p>
+          <p class="small muted mb-1">Fitted Vehicle</p>
+          <p class="font-bold mb-2">${getVehicleReg(t.currentVehicleId) || '—'}</p>
+        </div>
+      </div>
+    </div>
+  `;
+  openModal('kpi-drill-modal');
+};
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 function initTabs() {

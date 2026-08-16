@@ -1602,6 +1602,7 @@ window.initKPIDrillListeners = function initKPIDrillListeners() {
   // Handle clickable KPI cards without data-kpi (fallback to id)
   document.querySelectorAll('.kpi-card.clickable').forEach(card => {
     if (card.dataset.kpi) return; // already handled above
+    if (card.getAttribute('onclick')) return; // skip if card has inline onclick
     if (card._drillBound) return; // avoid duplicate listeners
     card._drillBound = true;
     card.style.cursor = 'pointer';
@@ -4356,4 +4357,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
+window.openKPIDrillTyres = openKPIDrillTyres;
+window.openKPIDrillDefects = openKPIDrillDefects;
+
 

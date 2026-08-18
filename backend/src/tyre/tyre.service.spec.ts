@@ -12,6 +12,10 @@ const mockPrismaService = {
     count: jest.fn(),
     update: jest.fn(),
   },
+  vehicle: {
+    findFirst: jest.fn().mockResolvedValue({ id: 'V1', registrationNumber: 'KDA123A', expectedTyres: 10 }),
+    findUnique: jest.fn().mockResolvedValue({ id: 'V1', registrationNumber: 'KDA123A', expectedTyres: 10 }),
+  },
   tyreMovement: {
     create: jest.fn(),
     findMany: jest.fn(),
@@ -19,13 +23,29 @@ const mockPrismaService = {
   tyreFitment: {
     create: jest.fn(),
     findUnique: jest.fn(),
+    findFirst: jest.fn().mockResolvedValue(null),
     update: jest.fn(),
-    findMany: jest.fn(),
+    findMany: jest.fn().mockResolvedValue([]),
   },
   tyreInspection: {
     create: jest.fn(),
     findMany: jest.fn(),
   },
+};
+
+import { KpiGovernanceService } from '../kpi/kpi-governance.service';
+import { EventPublisherService } from '../events/event-publisher.service';
+import { ApprovalWorkflowService } from '../workflow/approval-workflow.service';
+
+const mockKpiGovernance = {
+  calculateKPI: jest.fn(),
+  evaluateKPIStatus: jest.fn(),
+};
+const mockEventPublisher = {
+  publish: jest.fn(),
+};
+const mockWorkflowService = {
+  validateSegregationOfDuties: jest.fn(),
 };
 
 describe('TyreService', () => {
@@ -37,6 +57,9 @@ describe('TyreService', () => {
       providers: [
         TyreService,
         { provide: PrismaService, useValue: mockPrismaService },
+        { provide: KpiGovernanceService, useValue: mockKpiGovernance },
+        { provide: EventPublisherService, useValue: mockEventPublisher },
+        { provide: ApprovalWorkflowService, useValue: mockWorkflowService },
       ],
     }).compile();
 
@@ -71,7 +94,7 @@ describe('TyreService', () => {
       expect(result).toBeDefined();
       expect(prisma.tyre.create).toHaveBeenCalled();
       expect(prisma.tyreMovement.create).toHaveBeenCalledWith(expect.objectContaining({
-        data: expect.objectContaining({ movementType: TyreMovementType.RECEIPT })
+        data: expect.objectContaining({ movementType: TyreMovementType.REGISTRATION })
       }));
     });
   });

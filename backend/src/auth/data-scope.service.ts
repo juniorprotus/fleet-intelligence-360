@@ -8,6 +8,8 @@ import { getScopeLevelForRole } from './permissions.matrix';
  */
 export interface DataScopeContext {
   scopeLevel: ScopeLevel;
+  tenantId?: string;
+  organizationId?: string;
   region?: string;
   depot?: string;
   workshopId?: string;
@@ -39,6 +41,8 @@ export class DataScopeService {
     const scopeLevel = getScopeLevelForRole(user.role);
     return {
       scopeLevel,
+      tenantId: user.tenantId || 'TNT-DEFAULT',
+      organizationId: user.organizationId || 'ORG-DEFAULT',
       region: user.region,
       depot: user.depot,
       workshopId: user.workshopId,
@@ -52,8 +56,12 @@ export class DataScopeService {
   vehicleWhere(ctx: DataScopeContext): Record<string, any> {
     switch (ctx.scopeLevel) {
       case ScopeLevel.SYSTEM:
-      case ScopeLevel.ORGANISATION:
         return {};
+      case ScopeLevel.ORGANISATION:
+        return {
+          tenantId: ctx.tenantId,
+          organizationId: ctx.organizationId,
+        };
       case ScopeLevel.REGION:
         return ctx.region ? { region: ctx.region } : {};
       case ScopeLevel.DEPOT:
@@ -76,7 +84,10 @@ export class DataScopeService {
   tyreWhere(ctx: DataScopeContext): Record<string, any> {
     switch (ctx.scopeLevel) {
       case ScopeLevel.SYSTEM:
+        return {};
       case ScopeLevel.ORGANISATION:
+        // Future: limit to current vehicles in org or tyres linked to this org's workshop/inventory
+        // To be implemented fully in Tyre Integration, but restricting to org's workshop helps
         return {};
       case ScopeLevel.WORKSHOP:
         if (!ctx.workshopId) return {};

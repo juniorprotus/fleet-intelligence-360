@@ -64,6 +64,12 @@ export class CreateVehicleDto {
   @IsOptional()
   @IsDateString()
   acquisitionDate?: string;
+
+  @ApiPropertyOptional({ example: '1HGBH41JXMN109186', description: 'Vehicle Identification Number (VIN / Chassis Number)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  vin?: string;
 }
 
 export class UpdateVehicleDto {

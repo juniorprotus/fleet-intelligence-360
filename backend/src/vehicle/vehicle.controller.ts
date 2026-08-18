@@ -32,8 +32,13 @@ export class VehicleController {
   @RequirePermissions(Permission.VEHICLE_CREATE)
   @ApiOperation({ summary: 'Register a vehicle in Vehicle Master' })
   @ApiResponse({ status: 201, description: 'Vehicle registered successfully' })
-  async create(@Body() dto: CreateVehicleDto) {
-    return this.vehicleService.create(dto);
+  async create(@Request() req, @Body() dto: CreateVehicleDto) {
+    // Derive tenant context from authenticated JWT — NEVER trust client-supplied tenantId
+    const scopeCtx = this.dataScopeService.buildContext(req.user);
+    return this.vehicleService.create(dto, req.user?.email || req.user?.id, {
+      tenantId: scopeCtx.tenantId || 'TNT-DEFAULT',
+      organizationId: scopeCtx.organizationId || 'ORG-DEFAULT',
+    });
   }
 
   @Get()
@@ -51,6 +56,7 @@ export class VehicleController {
     const scopeFilter = this.dataScopeService.vehicleWhere(scopeCtx);
 
     return this.vehicleService.findAll({
+      ...scopeFilter,
       region: region ?? scopeFilter.region,
       depot: depot ?? scopeFilter.depot,
       vehicleClass,

@@ -28,6 +28,9 @@ import {
   TelemetryQualityStatus,
 } from '@prisma/client';
 
+import { CryptoService } from '../crypto/crypto.service';
+import { GeotabProviderAdapter } from './adapters/geotab/geotab-provider.adapter';
+
 @Injectable()
 export class TelematicsService {
   private readonly logger = new Logger(TelematicsService.name);
@@ -37,6 +40,8 @@ export class TelematicsService {
     private readonly eventPublisher: EventPublisherService,
     private readonly auditService: AuditService,
     private readonly genericAdapter: GenericProviderAdapter,
+    private readonly cryptoService: CryptoService,
+    private readonly geotabAdapter: GeotabProviderAdapter,
   ) {}
 
   /**
@@ -68,7 +73,7 @@ export class TelematicsService {
     }
 
     const encryptedCredentials = dto.credentials
-      ? Buffer.from(JSON.stringify(dto.credentials)).toString('base64')
+      ? this.cryptoService.encryptJson(dto.credentials)
       : undefined;
 
     const connection = await this.prisma.integrationConnection.create({
@@ -112,32 +117,23 @@ export class TelematicsService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return connections.map((c) => this.maskConnectionSecrets(c));
+    return connections.map((conn) => this.maskConnectionSecrets(conn));
   }
 
   async findConnectionOne(id: string, scopeCtx?: DataScopeContext) {
-    const connection = await this.prisma.integrationConnection.findFirst({
-      where: {
-        id,
-        ...(scopeCtx?.tenantId && { tenantId: scopeCtx.tenantId }),
-      },
-      include: {
-        externalIdentities: {
-          include: {
-            vehicle: {
-              select: { id: true, registrationNumber: true, vin: true, fleetNumber: true },
-            },
-          },
-        },
-        externalDevices: true,
-      },
+    const connection = await this.prisma.integrationConnection.findUnique({
+      where: { id },
     });
 
     if (!connection) {
-      throw new NotFoundException(`Integration Connection #${id} not found or access denied.`);
+      throw new NotFoundException(`Integration connection with ID ${id} not found`);
     }
 
-    return this.maskConnectionSecrets(connection);
+    if (scopeCtx?.tenantId && connection.tenantId !== scopeCtx.tenantId) {
+      throw new ForbiddenException('Cross-tenant connection access denied');
+    }
+
+    return connection;
   }
 
   async updateConnection(
@@ -149,7 +145,7 @@ export class TelematicsService {
     const existing = await this.findConnectionOne(id, scopeCtx);
 
     const encryptedCredentials = dto.credentials
-      ? Buffer.from(JSON.stringify(dto.credentials)).toString('base64')
+      ? this.cryptoService.encryptJson(dto.credentials)
       : undefined;
 
     const updated = await this.prisma.integrationConnection.update({
@@ -183,6 +179,8 @@ export class TelematicsService {
 
     if (connection.provider === IntegrationProvider.GENERIC) {
       health = await this.genericAdapter.healthCheck(connection.encryptedCredentials);
+    } else if (connection.provider === IntegrationProvider.GEOTAB) {
+      health = await this.geotabAdapter.healthCheck(connection.encryptedCredentials);
     }
 
     const now = new Date();

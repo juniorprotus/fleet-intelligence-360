@@ -16,16 +16,23 @@ export class VehicleService {
     private readonly workflowService: ApprovalWorkflowService,
   ) {}
 
-  async create(dto: CreateVehicleDto, userId?: string) {
-    const existing = await this.prisma.vehicle.findUnique({
-      where: { registrationNumber: dto.registrationNumber },
+  async create(dto: CreateVehicleDto, userId?: string, tenantContext?: { tenantId: string; organizationId: string }) {
+    // Resolve tenant — server-derived context is authoritative
+    const tenantId = tenantContext?.tenantId || 'TNT-DEFAULT';
+    const organizationId = tenantContext?.organizationId || 'ORG-DEFAULT';
+
+    // Check for duplicate registration within the same tenant
+    const existing = await this.prisma.vehicle.findFirst({
+      where: { tenantId, registrationNumber: dto.registrationNumber },
     });
     if (existing) {
-      throw new ConflictException(`Vehicle ${dto.registrationNumber} already exists`);
+      throw new ConflictException(`Vehicle ${dto.registrationNumber} already exists in this tenant`);
     }
     const vehicle = await this.prisma.vehicle.create({
       data: {
         ...dto,
+        tenantId,
+        organizationId,
         acquisitionDate: dto.acquisitionDate ? new Date(dto.acquisitionDate) : undefined,
         createdBy: userId,
         updatedBy: userId,
@@ -42,14 +49,18 @@ export class VehicleService {
         fleetNumber: vehicle.fleetNumber,
         vehicleClass: vehicle.vehicleClass,
         workshopId: vehicle.workshopId,
+        tenantId: vehicle.tenantId,
+        organizationId: vehicle.organizationId,
       },
     });
 
-    this.logger.log(`Vehicle created: ${vehicle.registrationNumber} (${vehicle.id})`);
+    this.logger.log(`Vehicle created: ${vehicle.registrationNumber} (${vehicle.id}) tenant=${tenantId}`);
     return vehicle;
   }
 
   async findAll(filters?: {
+    tenantId?: string;
+    organizationId?: string;
     region?: string;
     depot?: string;
     vehicleClass?: string;
@@ -58,6 +69,8 @@ export class VehicleService {
     const vehicles = await this.prisma.vehicle.findMany({
       where: {
         isActive: true,
+        ...(filters?.tenantId && { tenantId: filters.tenantId }),
+        ...(filters?.organizationId && { organizationId: filters.organizationId }),
         ...(filters?.region && { region: filters.region }),
         ...(filters?.depot && { depot: filters.depot }),
         ...(filters?.vehicleClass && { vehicleClass: filters.vehicleClass }),
@@ -535,12 +548,12 @@ export class VehicleService {
     });
 
     try {
-      // Create VehicleDowntime domain ledger entry
+      // Create VehicleDowntime domain ledger entry — use vehicle's own tenant context
       const downtime = await this.prisma.vehicleDowntime.create({
         data: {
           vehicleId: vehicle.id,
-          tenantId: 'TNT-DEFAULT',
-          organizationId: 'ORG-DEFAULT',
+          tenantId: vehicle.tenantId,
+          organizationId: vehicle.organizationId,
           workshopId: vehicle.workshopId,
           downtimeType: 'UNPLANNED',
           reason: dto.reason,

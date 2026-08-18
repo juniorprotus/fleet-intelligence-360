@@ -23,6 +23,7 @@ import { DriverModule } from './driver/driver.module';
 import { SafetyModule } from './safety/safety.module';
 import { VehicleFinanceModule } from './vehicle-finance/vehicle-finance.module';
 import { TelematicsModule } from './telematics/telematics.module';
+import { CryptoModule } from './crypto/crypto.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { TelematicsModule } from './telematics/telematics.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    CryptoModule,
     PrismaModule,
     AuthModule,
     UserModule,

@@ -846,4 +846,129 @@ export class TelematicsService {
         : null,
     };
   }
+
+  // ─────────────────────────────────────────────────────────────
+  // 5E.1B GEOTAB DISCOVERY & INCREMENTAL SYNC
+  // ─────────────────────────────────────────────────────────────
+
+  async discoverGeotabAssets(connectionId: string, scopeCtx?: DataScopeContext) {
+    const connection = await this.findConnectionOne(connectionId, scopeCtx);
+
+    if (connection.provider !== IntegrationProvider.GEOTAB) {
+      throw new BadRequestException(`Connection #${connectionId} is not a Geotab connection`);
+    }
+
+    if (!connection.encryptedCredentials) {
+      throw new BadRequestException(`Connection #${connectionId} has no credentials configured`);
+    }
+
+    // Fetch existing Vehicles and Mappings for candidate matching
+    const vehicles = await this.prisma.vehicle.findMany({
+      where: { tenantId: connection.tenantId },
+      select: { id: true, vin: true, registrationNumber: true },
+    });
+
+    const mappings = await this.prisma.vehicleExternalIdentity.findMany({
+      where: { integrationConnectionId: connection.id },
+      select: { externalVehicleId: true, vehicleId: true },
+    });
+
+    return this.geotabAdapter.discoverGeotabAssets(
+      connection.encryptedCredentials,
+      connection.id,
+      vehicles,
+      mappings,
+    );
+  }
+
+  async syncGeotabIncremental(connectionId: string, scopeCtx?: DataScopeContext) {
+    const connection = await this.findConnectionOne(connectionId, scopeCtx);
+
+    if (connection.provider !== IntegrationProvider.GEOTAB) {
+      throw new BadRequestException(`Connection #${connectionId} is not a Geotab connection`);
+    }
+
+    if (!connection.encryptedCredentials) {
+      throw new BadRequestException(`Connection #${connectionId} has no credentials configured`);
+    }
+
+    // Fetch incremental feed using lastSyncCursor
+    const feed = await this.geotabAdapter.fetchIncrementalFeed(
+      connection.encryptedCredentials,
+      connection.id,
+      connection.lastSyncCursor || undefined,
+    );
+
+    let ingestedCount = 0;
+
+    for (const item of feed.records) {
+      const extId = item.logRecord?.device?.id || 'UNKNOWN';
+      const eventId = item.logRecord?.id || `gtb_${extId}_${Date.now()}`;
+
+      // Ingest raw payload
+      const rawRes = await this.ingestRawPayload(
+        {
+          integrationConnectionId: connection.id,
+          providerEventId: eventId,
+          eventType: 'GEOTAB_FEED_ITEM',
+          occurredAt: item.logRecord?.dateTime ? new Date(item.logRecord.dateTime) : new Date(),
+          payload: item as any,
+        },
+        scopeCtx,
+      );
+
+      if (rawRes.status === 'INGESTED') {
+        // Normalize using adapter
+        const normalizedList = this.geotabAdapter.normalizePayload({
+          externalVehicleId: extId,
+          providerEventId: eventId,
+          occurredAt: item.logRecord?.dateTime ? new Date(item.logRecord.dateTime) : new Date(),
+          rawPayload: item,
+        });
+
+        for (const norm of normalizedList) {
+          await this.ingestNormalizedTelemetry(
+            rawRes.rawPayloadId,
+            {
+              externalVehicleId: norm.externalVehicleId,
+              serialNumber: norm.serialNumber,
+              providerEventId: norm.providerEventId,
+              occurredAt: norm.occurredAt,
+              latitude: norm.latitude,
+              longitude: norm.longitude,
+              speedKmh: norm.speedKmh,
+              odometerKm: norm.odometerKm,
+              engineHours: norm.engineHours,
+              ignitionStatus: norm.ignitionStatus,
+              fuelLevelPercent: norm.fuelLevelPercent,
+              qualityStatus: norm.qualityStatus,
+              qualityReason: norm.qualityReason,
+            },
+            scopeCtx,
+          );
+          ingestedCount++;
+        }
+      }
+    }
+
+    // CURSOR SAFETY: Advance cursor ONLY AFTER all records process successfully
+    const now = new Date();
+    await this.prisma.integrationConnection.update({
+      where: { id: connection.id },
+      data: {
+        lastSyncCursor: feed.nextCursor,
+        lastSyncAt: now,
+        lastSuccessfulSyncAt: now,
+        status: IntegrationConnectionStatus.CONNECTED,
+      },
+    });
+
+    return {
+      connectionId: connection.id,
+      recordsProcessed: feed.records.length,
+      telemetryIngested: ingestedCount,
+      newCursor: feed.nextCursor,
+    };
+  }
 }
+

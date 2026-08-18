@@ -82,6 +82,22 @@ export class TelematicsController {
     return this.telematicsService.testConnection(id, scopeCtx);
   }
 
+  @Post('integrations/:id/discover')
+  @RequirePermissions(Permission.INTEGRATION_CONFIGURE)
+  @ApiOperation({ summary: 'Discover Geotab devices and produce candidate vehicle matches' })
+  async discoverGeotabAssets(@Request() req, @Param('id') id: string) {
+    const scopeCtx = this.dataScopeService.buildContext(req.user);
+    return this.telematicsService.discoverGeotabAssets(id, scopeCtx);
+  }
+
+  @Post('integrations/:id/sync')
+  @RequirePermissions(Permission.INTEGRATION_CONFIGURE)
+  @ApiOperation({ summary: 'Execute incremental sync (GetFeed) for Geotab integration' })
+  async syncGeotabIncremental(@Request() req, @Param('id') id: string) {
+    const scopeCtx = this.dataScopeService.buildContext(req.user);
+    return this.telematicsService.syncGeotabIncremental(id, scopeCtx);
+  }
+
   // ─────────────────────────────────────────────────────────────
   // VEHICLE EXTERNAL IDENTITY MAPPING & CANDIDATES
   // ─────────────────────────────────────────────────────────────

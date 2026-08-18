@@ -10,33 +10,22 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
   </head>
   <body>
-    <div class="app-container">
-
-      <!-- ═══════════════════════════════════════════════
-           SIDEBAR
-      ═══════════════════════════════════════════════ -->
-      <nav class="sidebar" id="sidebar">
-        <div class="logo">
-          <div class="logo-header">
-            <img src="/logo.png" alt="FI360 Logo" class="sidebar-logo">
-            <button id="mobile-nav-close" class="mobile-nav-close" aria-label="Close navigation" title="Close navigation">✕</button>
-          </div>
-          <div class="logo-text">
-            <span class="logo-title">FI360</span>
-            <span class="logo-sub">Fleet Intelligence 360</span>
-          </div>
+    <!-- Unified Fullscreen Login Container (Visible when not authenticated) -->
+    <div id="login-container" class="login-container">
+      <div class="login-card">
+        <div class="login-logo-header">
+          <img src="/logo.png" alt="FI360 Logo" class="login-logo">
+          <h2>FI360</h2>
+          <p>Fleet Intelligence 360</p>
         </div>
-
-        <!-- Dynamic nav items injected by JS based on role -->
-        <ul class="nav-links" id="nav-links"></ul>
-
-        <div class="sidebar-footer">
-          <!-- Login form (pre-auth) -->
-          <div id="login-form-container">
-            <label class="form-label mb-1">Quick Role Switcher</label>
-            <select id="quick-role-select" class="form-select mb-2">
+        
+        <div id="login-form-container">
+          <div class="form-group">
+            <label class="form-label" for="quick-role-select">Quick Role Switcher</label>
+            <select id="quick-role-select" class="form-select">
               <option value="admin@fi360.com">System Admin</option>
               <option value="ceo@fi360.com">CEO / Executive</option>
               <option value="fleet.manager@fi360.com">Fleet Manager</option>
@@ -48,50 +37,152 @@
               <option value="driver@fi360.com">Driver</option>
               <option value="auditor@fi360.com">Auditor</option>
             </select>
-            <form id="login-form">
-              <input type="email" id="email" placeholder="Email" value="admin@fi360.com" required>
-              <input type="password" id="password" placeholder="Password" value="Pinkypinky@40" required>
-              <button type="submit" class="btn primary mt-2" id="login-btn">Sign In</button>
-            </form>
-            <div id="auth-error" class="error-text"></div>
           </div>
-
-          <!-- User info (post-auth) -->
-          <div id="user-info" class="hidden">
-            <div class="user-profile-mini">
-              <div class="user-avatar" id="user-avatar">SA</div>
-              <div class="user-meta">
-                <span class="user-display-name" id="user-name">Loading...</span>
-                <span class="role-badge" id="user-role-badge">ROLE</span>
-              </div>
+          
+          <form id="login-form">
+            <div class="form-group">
+              <label class="form-label" for="email">Email</label>
+              <input type="email" id="email" placeholder="Email" value="admin@fi360.com" required>
             </div>
-            <div class="user-scope-info" id="user-scope-info"></div>
-            <button id="logout-btn" class="btn small outline mt-2">Sign Out</button>
+            <div class="form-group">
+              <label class="form-label" for="password">Password</label>
+              <input type="password" id="password" placeholder="Password" value="Pinkypinky@40" required>
+            </div>
+            <button type="submit" class="btn primary mt-2 w-100" id="login-btn">Sign In</button>
+          </form>
+          <div id="auth-error" class="error-text"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Application Shell Container -->
+    <div class="app-container">
+
+      <!-- Left Collapsible Sidebar -->
+      <aside class="sidebar" id="sidebar">
+        <div class="logo">
+          <div class="logo-header">
+            <img src="/logo.png" alt="FI360 Logo" class="sidebar-logo">
+            <button id="mobile-nav-close" class="mobile-nav-close" aria-label="Close navigation" title="Close navigation">✕</button>
+          </div>
+          <div class="logo-text">
+            <span class="logo-title">FI360</span>
+            <span class="logo-sub">Fleet Intelligence 360</span>
           </div>
         </div>
-      </nav>
+
+        <!-- Dynamic grouped navigation links -->
+        <div class="nav-links-wrapper" id="nav-links-wrapper">
+          <ul class="nav-links" id="nav-links"></ul>
+        </div>
+
+        <!-- Sidebar Collapse Button -->
+        <div class="sidebar-footer">
+          <button class="sidebar-collapse-btn" id="sidebar-collapse-btn" aria-label="Collapse sidebar" title="Collapse sidebar">
+            <i data-lucide="chevron-left"></i>
+            <span>Collapse Sidebar</span>
+          </button>
+        </div>
+      </aside>
 
       <!-- Mobile Navigation Overlay -->
       <div id="mobile-nav-overlay" class="mobile-nav-overlay" aria-hidden="true"></div>
 
-      <!-- ═══════════════════════════════════════════════
-           MAIN CONTENT AREA
-      ═══════════════════════════════════════════════ -->
+      <!-- Main Stage -->
       <main class="main-content">
 
         <!-- Top Header Bar -->
         <header class="header">
           <div class="header-left">
             <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Open navigation" title="Open navigation">☰</button>
-            <div>
-              <h1 id="page-title">Dashboard</h1>
-              <p class="page-subtitle" id="page-subtitle"></p>
+            <div class="breadcrumbs-container">
+              <span class="breadcrumb-item">FI360</span>
+              <span class="breadcrumb-separator">/</span>
+              <span class="breadcrumb-item active" id="breadcrumb-current">Dashboard</span>
             </div>
+          </div>
+          
+          <!-- Center-Left Global Search -->
+          <div class="header-center">
+            <div class="global-search-container">
+              <i data-lucide="search" class="search-icon"></i>
+              <input type="text" id="global-search" placeholder="Search vehicles, drivers, tyres... (press '/')">
+              <!-- Search Results Dropdown -->
+              <div class="search-results-dropdown hidden" id="search-results-dropdown">
+                <div class="search-section">
+                  <div class="search-section-header">Quick Navigation</div>
+                  <ul id="search-results-nav">
+                    <li class="search-result-item" data-action="dashboard">Go to Dashboard</li>
+                    <li class="search-result-item" data-action="vehicles">Go to Vehicles</li>
+                    <li class="search-result-item" data-action="tyres">Go to Tyre Control</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="header-right">
+            <!-- Quick Add Action Dropdown -->
+            <div class="dropdown-wrapper" id="quick-add-wrapper">
+              <button class="btn primary quick-add-btn" id="quick-add-btn">
+                <i data-lucide="plus"></i>
+                <span>Add</span>
+              </button>
+              <div class="dropdown-menu hidden" id="quick-add-menu">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+
+            <!-- Notifications Bell -->
+            <div class="dropdown-wrapper" id="notifications-wrapper">
+              <button class="topbar-icon-btn" id="notifications-btn" aria-label="Notifications" title="Notifications">
+                <i data-lucide="bell"></i>
+                <span class="badge-dot hidden" id="notification-badge-dot"></span>
+              </button>
+              <div class="dropdown-menu dropdown-menu-lg hidden" id="notifications-menu">
+                <div class="dropdown-header">
+                  <span>Notifications</span>
+                  <button class="btn text-only small" id="clear-notifications-btn">Mark read</button>
+                </div>
+                <ul class="notification-list" id="notification-list">
+                  <li class="empty-state">No active notifications</li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- User Info Post-Auth -->
+            <div class="dropdown-wrapper" id="profile-wrapper">
+              <button class="profile-trigger-btn" id="profile-btn">
+                <div class="user-avatar" id="user-avatar">SA</div>
+                <div class="user-meta-topbar">
+                  <span class="user-name-text" id="user-name">Loading...</span>
+                  <span class="role-badge" id="user-role-badge">ROLE</span>
+                </div>
+                <i data-lucide="chevron-down" class="chevron-icon"></i>
+              </button>
+              <div class="dropdown-menu hidden" id="profile-menu">
+                <div class="profile-header-dropdown">
+                  <div id="user-scope-info" class="user-scope-info">Scope: Global</div>
+                </div>
+                <hr class="dropdown-divider">
+                <button class="dropdown-item" id="logout-btn">
+                  <i data-lucide="log-out"></i><span>Sign Out</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <!-- Page Header Block -->
+        <div class="workspace-page-header">
+          <div class="page-header-info">
+            <h2 id="page-title">Dashboard</h2>
+            <p class="page-subtitle" id="page-subtitle"></p>
           </div>
           <div class="header-actions" id="header-actions">
             <!-- Injected dynamically per role -->
           </div>
-        </header>
+        </div>
 
         <!-- ───────────────────────────────────────────
              VIEWS: each role gets a dedicated section
@@ -536,55 +627,361 @@
           ──────────────────────────────────────────── -->
           <div id="dashboard-fleet-manager" class="view hidden">
             <div id="fm-fleet-overview-section">
-            <div class="kpi-grid">
-              <div class="kpi-card kpi-primary clickable" id="card-fm-fleet" data-kpi="card-fm-fleet">
-                <div class="kpi-icon-svg svg-blue">
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-5l-3-4h-4v10Z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
-                </div>
-                <div class="kpi-body">
-                  <p class="kpi-label">Total Managed Fleet</p>
-                  <p class="kpi-value kpi-value-lg" id="fm-fleet-total">--</p>
-                  <p class="kpi-sub" id="fm-scope-label">Vehicles in scope</p>
+              <!-- 1. Global Filter & Quick Stats Bar -->
+              <div class="card p-3 mb-4 filter-bar-card">
+                <div class="flex-row between items-center flex-wrap gap-3">
+                  <div class="flex-row items-center gap-3 flex-wrap">
+                    <div class="filter-group">
+                      <label class="filter-label"><i data-lucide="calendar" class="icon-inline"></i> Period</label>
+                      <select id="fm-filter-period" class="form-control select-sm" onchange="window.reloadFmDashboardFiltered()">
+                        <option value="ALL">All Time / Real-time</option>
+                        <option value="TODAY">Today</option>
+                        <option value="WEEK">This Week</option>
+                        <option value="MONTH" selected>This Month</option>
+                        <option value="QUARTER">This Quarter</option>
+                      </select>
+                    </div>
+                    <div class="filter-group">
+                      <label class="filter-label"><i data-lucide="map-pin" class="icon-inline"></i> Region</label>
+                      <select id="fm-filter-region" class="form-control select-sm" onchange="window.reloadFmDashboardFiltered()">
+                        <option value="ALL">All Regions</option>
+                        <option value="Nairobi">Nairobi</option>
+                        <option value="Coast">Coast</option>
+                        <option value="Western">Western</option>
+                        <option value="Central">Central</option>
+                        <option value="Rift Valley">Rift Valley</option>
+                      </select>
+                    </div>
+                    <div class="filter-group">
+                      <label class="filter-label"><i data-lucide="activity" class="icon-inline"></i> Status</label>
+                      <select id="fm-filter-status" class="form-control select-sm" onchange="window.reloadFmDashboardFiltered()">
+                        <option value="ALL">All Statuses</option>
+                        <option value="ACTIVE">Active / Operational</option>
+                        <option value="GROUNDED">Grounded</option>
+                        <option value="MAINTENANCE">In Maintenance</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="flex-row items-center gap-2">
+                    <span class="small muted" id="fm-last-updated-text"><i data-lucide="clock" class="icon-inline"></i> Updated just now</span>
+                    <button class="btn tiny secondary outline" id="fm-refresh-btn" onclick="window.reloadFmDashboardFiltered()">
+                      <i data-lucide="refresh-cw" class="icon-inline"></i> Refresh
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <div class="kpi-card kpi-success" id="card-fm-tyres" data-kpi="view-tyres">
-                <div class="kpi-icon-svg svg-green">
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v5M12 16v5M3 12h5M16 12h5"/></svg>
+              <!-- 2. Fleet Health Summary (KPI Cards Grid) -->
+              <div class="kpi-grid mb-4" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+                <!-- Fleet Availability -->
+                <div class="kpi-card kpi-success clickable" id="card-fm-availability" data-kpi="chart-fm-status" onclick="window.handleKPIDrillClick(event)">
+                  <div class="kpi-body">
+                    <div class="flex-row between items-center mb-1">
+                      <p class="kpi-label">Fleet Availability</p>
+                      <span class="badge success small" id="fm-kpi-avail-badge">HEALTHY</span>
+                    </div>
+                    <p class="kpi-value kpi-value-lg text-green" id="fm-availability-val">94.7%</p>
+                    <p class="kpi-sub" id="fm-availability-sub"><i data-lucide="trending-up" class="icon-inline text-green"></i> Target &ge; 95.0%</p>
+                  </div>
                 </div>
-                <div class="kpi-body">
-                  <p class="kpi-label">Active Tyre Inventory</p>
-                  <p class="kpi-value kpi-value-lg" id="fm-tyre-total">--</p>
-                  <p class="kpi-sub">All operational statuses</p>
+
+                <!-- Active Fleet -->
+                <div class="kpi-card kpi-primary clickable" id="card-fm-fleet" data-kpi="card-fm-fleet" onclick="window.handleKPIDrillClick(event)">
+                  <div class="kpi-body">
+                    <div class="flex-row between items-center mb-1">
+                      <p class="kpi-label">Active / Total Fleet</p>
+                      <span class="badge primary small" id="fm-scope-badge">SCOPE</span>
+                    </div>
+                    <p class="kpi-value kpi-value-lg" id="fm-fleet-total">72 / 76</p>
+                    <p class="kpi-sub" id="fm-scope-label">Nairobi Main Depot</p>
+                  </div>
+                </div>
+
+                <!-- Vehicles Grounded -->
+                <div class="kpi-card kpi-danger clickable" id="card-fm-grounded" onclick="window.filterFmGroundedVehicles()">
+                  <div class="kpi-body">
+                    <div class="flex-row between items-center mb-1">
+                      <p class="kpi-label">Vehicles Grounded</p>
+                      <span class="badge danger small" id="fm-grounded-badge">CRITICAL</span>
+                    </div>
+                    <p class="kpi-value kpi-value-lg text-red" id="fm-grounded-count">4</p>
+                    <p class="kpi-sub" id="fm-grounded-pct">5.3% of fleet grounded</p>
+                  </div>
+                </div>
+
+                <!-- In Workshop -->
+                <div class="kpi-card kpi-warning clickable" onclick="showDashboard('dashboard-workshop', 'Workshop Intelligence', 'Work orders, maintenance schedules, and bay management')">
+                  <div class="kpi-body">
+                    <div class="flex-row between items-center mb-1">
+                      <p class="kpi-label">In Workshop</p>
+                      <span class="badge warning small" id="fm-workshop-badge">ACTIVE</span>
+                    </div>
+                    <p class="kpi-value kpi-value-lg text-amber" id="fm-workshop-count">1</p>
+                    <p class="kpi-sub" id="fm-workshop-sub">1 Open Work Order</p>
+                  </div>
+                </div>
+
+                <!-- Critical Defects -->
+                <div class="kpi-card kpi-warning clickable" id="card-fm-alerts" data-kpi="kpi-critical-alerts" onclick="window.openKPIDrillDefects()">
+                  <div class="kpi-body">
+                    <div class="flex-row between items-center mb-1">
+                      <p class="kpi-label">Critical Defects</p>
+                      <span class="badge danger small">SAFETY</span>
+                    </div>
+                    <p class="kpi-value kpi-value-lg text-amber" id="fm-critical-alerts">1</p>
+                    <p class="kpi-sub" id="fm-critical-alerts-subtext">1 Unresolved Defect</p>
+                  </div>
+                </div>
+
+                <!-- Fleet Utilization -->
+                <div class="kpi-card kpi-info">
+                  <div class="kpi-body">
+                    <div class="flex-row between items-center mb-1">
+                      <p class="kpi-label">Fleet Utilization</p>
+                      <span class="badge info small">OPERATIONAL</span>
+                    </div>
+                    <p class="kpi-value kpi-value-lg text-blue" id="fm-utilization-val">94.7%</p>
+                    <p class="kpi-sub" id="fm-utilization-sub">72 Active / 4 Inactive</p>
+                  </div>
                 </div>
               </div>
 
-              <div class="kpi-card kpi-warning clickable" id="card-fm-alerts" data-kpi="kpi-critical-alerts">
-                <div class="kpi-icon-svg svg-amber">
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                </div>
-                <div class="kpi-body">
-                  <p class="kpi-label">CRITICAL RISK ALERTS</p>
-                  <p class="kpi-value kpi-value-lg text-amber" id="fm-critical-alerts">--</p>
-                </div>
-              </div>
-            </div>
+              <!-- 3. Middle Grid: Action Center (Left) & Operations Charts (Right) -->
+              <div class="grid grid-2 gap-4 mb-4" style="grid-template-columns: 1.3fr 1fr;">
+                <!-- Action Center -->
+                <div class="card p-4 action-center-card">
+                  <div class="flex-row between items-center mb-3">
+                    <div>
+                      <h3 style="margin:0; font-size:1.1rem; display:flex; align-items:center; gap:0.5rem;">
+                        <i data-lucide="alert-triangle" class="text-amber"></i> Action Center
+                      </h3>
+                      <p class="muted small" style="margin:2px 0 0 0;">Prioritized operational exceptions requiring fleet manager decision</p>
+                    </div>
+                    <span class="badge warning font-bold" id="fm-action-center-count">3 Pending Actions</span>
+                  </div>
 
-            <div class="charts-row mt-4">
-              <div class="card chart-card flex-1" data-kpi="chart-fm-status" style="cursor: pointer;" onclick="window.handleKPIDrillClick(event)">
-                <h3>Vehicle Status Distribution</h3>
-                <div class="chart-container" style="height:220px;">
-                  <canvas id="fmVehicleStatusChart"></canvas>
+                  <div id="fm-action-center-list" class="action-items-list flex-col gap-2">
+                    <div class="p-3 text-center muted small">Loading action queue...</div>
+                  </div>
+                </div>
+
+                <!-- Fleet Status & Location Distribution -->
+                <div class="card p-4">
+                  <div class="flex-row between items-center mb-3">
+                    <h3 style="margin:0; font-size:1.1rem; display:flex; align-items:center; gap:0.5rem;">
+                      <i data-lucide="pie-chart" class="text-blue"></i> Fleet Status Distribution
+                    </h3>
+                    <button class="btn tiny secondary outline" onclick="window.openKPIDrillModal('chart-fm-status', 'Vehicle Status Distribution')">
+                      Drill Down
+                    </button>
+                  </div>
+                  <div class="chart-container" style="height:210px; position:relative;">
+                    <canvas id="fmVehicleStatusChart"></canvas>
+                  </div>
+                  <div class="flex-row between items-center mt-3 pt-2 border-top small muted" id="fm-status-chart-legend">
+                    <span><span class="legend-dot bg-green"></span> Active (72)</span>
+                    <span><span class="legend-dot bg-red"></span> Grounded (4)</span>
+                    <span><span class="legend-dot bg-amber"></span> Maintenance (0)</span>
+                  </div>
                 </div>
               </div>
-              <div class="card chart-card flex-1">
-                <h3>Tyre Inventory Status</h3>
-                <div class="chart-container" style="height:220px;">
-                  <canvas id="fmTyreStatusChart"></canvas>
+
+              <!-- 4. Domain Summaries: Maintenance, Tyres, Fuel, Financials -->
+              <div class="grid grid-4 gap-4 mb-4" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+                <!-- Maintenance & Reliability Summary -->
+                <div class="card p-3">
+                  <div class="flex-row between items-center mb-2">
+                    <h4 style="margin:0; font-size:0.95rem; display:flex; align-items:center; gap:0.4rem;">
+                      <i data-lucide="wrench" class="text-blue"></i> Maintenance
+                    </h4>
+                    <span class="badge info small">WORKSHOP</span>
+                  </div>
+                  <div class="mb-2">
+                    <div class="flex-row between items-center mb-1">
+                      <span class="small muted">Open Work Orders</span>
+                      <span class="font-bold text-amber" id="fm-maint-open-wo">1 Active</span>
+                    </div>
+                    <div class="flex-row between items-center mb-1">
+                      <span class="small muted">PM Schedule Compliance</span>
+                      <span class="font-bold text-green" id="fm-maint-pm-comp">100% Monitored</span>
+                    </div>
+                    <div class="flex-row between items-center">
+                      <span class="small muted">Recent Downtime Recovery</span>
+                      <span class="font-bold" id="fm-maint-recovery">WO-136135</span>
+                    </div>
+                  </div>
+                  <button class="btn tiny secondary outline w-100 mt-2" onclick="showDashboard('dashboard-workshop', 'Workshop Intelligence', 'Work orders, maintenance schedules, and bay management')">
+                    Open Workshop Ops
+                  </button>
+                </div>
+
+                <!-- Tyre Intelligence Summary -->
+                <div class="card p-3">
+                  <div class="flex-row between items-center mb-2">
+                    <h4 style="margin:0; font-size:0.95rem; display:flex; align-items:center; gap:0.4rem;">
+                      <i data-lucide="disc" class="text-green"></i> Tyre Intelligence
+                    </h4>
+                    <span class="badge success small">GOVERNED</span>
+                  </div>
+                  <div class="mb-2">
+                    <div class="flex-row between items-center mb-1">
+                      <span class="small muted">Fleet Tyre Health Index</span>
+                      <span class="font-bold text-green" id="fm-summary-tyre-health">98.9% (GREEN)</span>
+                    </div>
+                    <div class="flex-row between items-center mb-1">
+                      <span class="small muted">Active Fitted / In-Stock</span>
+                      <span class="font-bold" id="fm-summary-tyre-counts">27 / 65</span>
+                    </div>
+                    <div class="flex-row between items-center">
+                      <span class="small muted">In Retread Plant</span>
+                      <span class="font-bold text-amber" id="fm-summary-tyre-retread">1 Tyre</span>
+                    </div>
+                  </div>
+                  <button class="btn tiny secondary outline w-100 mt-2" onclick="showFmDashboard('fm-tyres')">
+                    Open Tyre Intelligence
+                  </button>
+                </div>
+
+                <!-- Fuel Intelligence (Clearly Labeled Future Module) -->
+                <div class="card p-3" style="background: var(--panel-bg); border-style: dashed;">
+                  <div class="flex-row between items-center mb-2">
+                    <h4 style="margin:0; font-size:0.95rem; display:flex; align-items:center; gap:0.4rem;">
+                      <i data-lucide="fuel" class="text-amber"></i> Fuel Intelligence
+                    </h4>
+                    <span class="badge secondary small">COMING SOON</span>
+                  </div>
+                  <p class="small muted mb-3" style="line-height:1.4;">
+                    Fuel consumption (L/100km), fuel disbursements, and anomaly tracking will become available when the FI360 Fuel Intelligence module is enabled.
+                  </p>
+                  <button class="btn tiny secondary outline w-100" disabled style="opacity:0.65; cursor:not-allowed;">
+                    Module Integration Ready
+                  </button>
+                </div>
+
+                <!-- Financial Performance & Budget Variance -->
+                <div class="card p-3">
+                  <div class="flex-row between items-center mb-2">
+                    <h4 style="margin:0; font-size:0.95rem; display:flex; align-items:center; gap:0.4rem;">
+                      <i data-lucide="dollar-sign" class="text-green"></i> Financials & Budget
+                    </h4>
+                    <span class="badge primary small">OPEX</span>
+                  </div>
+                  <div class="mb-2" id="fm-budget-variance-list">
+                    <div class="flex-row between items-center mb-1">
+                      <span class="small muted">Operating Budget</span>
+                      <span class="font-bold text-green">Under Budget</span>
+                    </div>
+                    <div class="progress-bar-container mb-1">
+                      <div class="progress-bar-fill bg-blue" style="width: 45%;"></div>
+                    </div>
+                    <div class="flex-row between items-center small muted">
+                      <span>45% Consumed</span>
+                      <span>KES 4.2M / 9.5M</span>
+                    </div>
+                  </div>
+                  <button class="btn tiny secondary outline w-100 mt-2" onclick="showDashboard('dashboard-finance', 'Financial Intelligence', 'Budget variance, cost-per-km, asset ROI, and procurement spend')">
+                    View Financial Intel
+                  </button>
                 </div>
               </div>
-             </div>
-            </div>
+
+              <!-- 5. Trends & Operational Intelligence Section -->
+              <div class="grid grid-2 gap-4 mb-4" style="grid-template-columns: 1.4fr 1fr;">
+                <!-- Trends & Performance Chart with Selector -->
+                <div class="card p-4">
+                  <div class="flex-row between items-center mb-3">
+                    <div>
+                      <h3 style="margin:0; font-size:1.1rem; display:flex; align-items:center; gap:0.5rem;">
+                        <i data-lucide="trending-up" class="text-blue"></i> Fleet Trends & Historical Performance
+                      </h3>
+                      <p class="muted small" style="margin:2px 0 0 0;">Track availability rate, defect resolution, and maintenance events</p>
+                    </div>
+                    <div class="flex-row gap-1">
+                      <button class="btn tiny primary" id="fm-trend-btn-avail" onclick="window.switchFmTrendChart('availability')">Availability</button>
+                      <button class="btn tiny secondary outline" id="fm-trend-btn-maint" onclick="window.switchFmTrendChart('maintenance')">Maintenance</button>
+                    </div>
+                  </div>
+                  <div class="chart-container" style="height:220px; position:relative;">
+                    <canvas id="fmTrendsChart"></canvas>
+                  </div>
+                </div>
+
+                <!-- FI360 Operational Intelligence -->
+                <div class="card p-4" style="border-left: 4px solid var(--primary);">
+                  <div class="flex-row between items-center mb-3">
+                    <h3 style="margin:0; font-size:1.1rem; display:flex; align-items:center; gap:0.5rem;">
+                      <i data-lucide="sparkles" class="text-primary"></i> FI360 Operational Intelligence
+                    </h3>
+                    <span class="badge primary small">RULE-BASED</span>
+                  </div>
+
+                  <div class="operational-insights-list flex-col gap-3">
+                    <div class="insight-item p-2 rounded" style="background: var(--primary-light);">
+                      <p class="small font-bold mb-1" style="color: var(--primary);">
+                        <i data-lucide="check-circle" class="icon-inline"></i> High Availability Benchmark Maintained
+                      </p>
+                      <p class="small muted" style="margin:0; line-height:1.35;" id="fm-ai-insight-text-1">
+                        Fleet Availability is at 94.7% with 72 of 76 authorized vehicles operational across Nairobi Main Depot.
+                      </p>
+                    </div>
+
+                    <div class="insight-item p-2 rounded" style="background: var(--danger-light);">
+                      <p class="small font-bold mb-1" style="color: var(--danger);">
+                        <i data-lucide="shield-alert" class="icon-inline"></i> Grounded Safety Risk Concentration
+                      </p>
+                      <p class="small muted" style="margin:0; line-height:1.35;" id="fm-ai-insight-text-2">
+                        4 vehicles currently grounded due to safety-critical tyre blowout & sidewall defects. Expediting casing replacement recovers 5.3% fleet availability.
+                      </p>
+                    </div>
+
+                    <div class="insight-item p-2 rounded" style="background: var(--success-light);">
+                      <p class="small font-bold mb-1" style="color: var(--success);">
+                        <i data-lucide="check-check" class="icon-inline"></i> Tyre Health Compliance
+                      </p>
+                      <p class="small muted" style="margin:0; line-height:1.35;" id="fm-ai-insight-text-3">
+                        Tyre Health Score is 98.9% with 92/93 tyres operating above the 3.0mm legal minimum tread depth threshold.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 6. Compact Operational Fleet Exceptions Table -->
+              <div class="card p-4 mb-4">
+                <div class="flex-row between items-center mb-3">
+                  <div>
+                    <h3 style="margin:0; font-size:1.1rem; display:flex; align-items:center; gap:0.5rem;">
+                      <i data-lucide="alert-octagon" class="text-amber"></i> Vehicles Requiring Management Attention
+                    </h3>
+                    <p class="muted small" style="margin:2px 0 0 0;">Priority list of grounded assets, active defects, and open work orders</p>
+                  </div>
+                  <button class="btn small primary outline" onclick="showFmDashboard('fm-vehicles')">
+                    View All 76 Vehicles &rarr;
+                  </button>
+                </div>
+
+                <div class="table-container">
+                  <table id="fm-exceptions-table">
+                    <thead>
+                      <tr>
+                        <th>Registration</th>
+                        <th>Fleet #</th>
+                        <th>Class</th>
+                        <th>Depot</th>
+                        <th>Status</th>
+                        <th>Critical Reason</th>
+                        <th>Assigned Driver</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="fm-exceptions-table-body">
+                      <tr><td colspan="8" class="text-center muted p-3">Loading exception records...</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div> <!-- /#fm-fleet-overview-section -->
 
             <!-- Tabbed sub-views -->
             <div class="card mt-4">
@@ -609,121 +1006,176 @@
                 </div>
               </div>
               <div id="fm-tyres" class="tab-panel hidden">
-                <!-- 1. Header & Filters -->
-                <div class="flex-row between items-center mb-3">
+                <!-- 1. Header & Filter Bar -->
+                <div class="tyre-cc-header flex-row between items-center mb-3">
                   <div>
-                    <h3 style="margin: 0; font-size: 1.15rem;">Tyre Fleet Health & Operational Intelligence</h3>
-                    <p class="muted small" style="margin: 2px 0 0 0;">Real-time asset condition, safety defects, risk analysis, and governed financial metrics</p>
+                    <h3 class="m-0 font-bold" style="font-size: 1.2rem;">Tyre Intelligence Command Center</h3>
+                    <p class="muted text-xs m-0 mt-1">Real-time asset condition, safety defects, inventory position, and governed lifecycle analytics</p>
                   </div>
-                  <div class="flex-row gap-2">
-                    <select id="fm-tyre-filter-status" class="form-control input-sm" style="width: 140px;" onchange="window.filterFmTyreTable()">
-                      <option value="">All Statuses</option>
-                      <option value="IN_STOCK">In Stock</option>
-                      <option value="FITTED">Fitted</option>
-                      <option value="IN_RETREAD">In Retread</option>
-                      <option value="SCRAPPED">Scrapped</option>
-                    </select>
-                    <button class="btn small primary" id="btn-fm-add-tyre">+ Add Tyre</button>
+                  <div class="flex-row gap-2 items-center">
+                    <button class="btn small outline" onclick="window.reloadFmTyresCommandCenter()">
+                      <i data-lucide="refresh-cw" class="icon-inline"></i> Refresh
+                    </button>
+                    <button class="btn small secondary outline" onclick="window.exportTyreReport()">
+                      <i data-lucide="download" class="icon-inline"></i> Export
+                    </button>
+                    <button class="btn small primary" onclick="openRegisterTyreModal()">
+                      <i data-lucide="plus" class="icon-inline"></i> + Register Tyre
+                    </button>
                   </div>
                 </div>
 
-                <!-- 2. Primary KPI Cards (5 Top Cards) -->
+                <!-- Global Filter Bar -->
+                <div class="card p-3 mb-4 filter-bar-card">
+                  <div class="flex-row between items-center flex-wrap gap-2">
+                    <div class="flex-row items-center gap-3 flex-wrap">
+                      <div class="filter-group">
+                        <label class="filter-label">Search</label>
+                        <input type="text" id="fm-tyre-search" class="input-sm form-control" placeholder="ID, Serial, Brand..." style="width: 150px;" oninput="window.debounceTyreSearch()">
+                      </div>
+                      <div class="filter-group">
+                        <label class="filter-label">Status</label>
+                        <select id="fm-tyre-filter-status" class="select-sm" onchange="window.filterFmTyreTable()">
+                          <option value="">All Statuses</option>
+                          <option value="IN_STOCK">In Stock</option>
+                          <option value="FITTED">Fitted / In Service</option>
+                          <option value="IN_RETREAD">In Retread</option>
+                          <option value="IN_REPAIR">In Repair</option>
+                          <option value="SCRAP">Scrapped</option>
+                        </select>
+                      </div>
+                      <div class="filter-group">
+                        <label class="filter-label">Brand</label>
+                        <select id="fm-tyre-filter-brand" class="select-sm" onchange="window.filterFmTyreTable()">
+                          <option value="">All Brands</option>
+                          <option value="Michelin">Michelin</option>
+                          <option value="Bridgestone">Bridgestone</option>
+                          <option value="Goodyear">Goodyear</option>
+                          <option value="Pirelli">Pirelli</option>
+                        </select>
+                      </div>
+                      <div class="filter-group">
+                        <label class="filter-label">Size</label>
+                        <select id="fm-tyre-filter-size" class="select-sm" onchange="window.filterFmTyreTable()">
+                          <option value="">All Sizes</option>
+                          <option value="315/80R22.5">315/80R22.5</option>
+                          <option value="295/80R22.5">295/80R22.5</option>
+                          <option value="11R22.5">11R22.5</option>
+                        </select>
+                      </div>
+                    </div>
+                    <button class="btn tiny outline" onclick="window.resetTyreFilters()">Reset Filters</button>
+                  </div>
+                </div>
+
+                <!-- 2. Top Governed Headline KPI Row (5 Cards) -->
                 <div class="kpi-grid mb-4" style="grid-template-columns: repeat(5, 1fr);">
-                  <div class="kpi-card kpi-success clickable" onclick="window.openKPIDrillTyres()">
+                  <!-- KPI 1: Fleet Tyre Health -->
+                  <div class="kpi-card kpi-success clickable" onclick="window.openKPIDrillTyres()" title="Governed Fleet Tyre Health Score">
                     <div class="kpi-body">
-                      <p class="kpi-label">TOTAL TYRES</p>
-                      <p class="kpi-value kpi-value-lg" id="fm-tyre-kpi-total">93</p>
-                      <p class="kpi-sub">Managed physical assets</p>
+                      <p class="kpi-label">FLEET TYRE HEALTH</p>
+                      <p class="kpi-value kpi-value-lg text-green" id="fm-tyre-kpi-health">--%</p>
+                      <p class="kpi-sub" id="fm-tyre-kpi-health-sub">Target &ge; 95.0%</p>
                     </div>
                   </div>
-                  <div class="kpi-card kpi-primary clickable" onclick="window.openInspectionComplianceDrill()">
+                  <!-- KPI 2: Weekly Inspection Compliance -->
+                  <div class="kpi-card kpi-primary clickable" onclick="window.openInspectionComplianceDrill()" title="Governed Weekly Inspection Compliance">
                     <div class="kpi-body">
                       <p class="kpi-label">INSPECTION COMPLIANCE</p>
-                      <p class="kpi-value kpi-value-lg text-green" id="fm-tyre-kpi-health">81.5%</p>
-                      <p class="kpi-sub">Target &ge; 90.0% compliance</p>
+                      <p class="kpi-value kpi-value-lg text-blue" id="fm-tyre-kpi-compliance">--%</p>
+                      <p class="kpi-sub" id="fm-tyre-kpi-compliance-sub">Target &ge; 90.0%</p>
                     </div>
                   </div>
-                  <div class="kpi-card kpi-danger clickable" onclick="window.openKPIDrillDefects()">
+                  <!-- KPI 3: Tyres Requiring Attention -->
+                  <div class="kpi-card kpi-danger clickable" onclick="window.openKPIDrillDefects()" title="Open Safety Defects & Attention Queue">
                     <div class="kpi-body">
                       <p class="kpi-label">ATTENTION REQUIRED</p>
-                      <p class="kpi-value kpi-value-lg text-red" id="fm-tyre-kpi-attention">54</p>
-                      <p class="kpi-sub">54 Open Defects & Alerts</p>
+                      <p class="kpi-value kpi-value-lg text-red" id="fm-tyre-kpi-attention">--</p>
+                      <p class="kpi-sub" id="fm-tyre-kpi-attention-sub">Defects & Alerts</p>
                     </div>
                   </div>
-                  <div class="kpi-card kpi-warning clickable" onclick="window.openTreadDepthAnalysisDrill()">
+                  <!-- KPI 4: Retread Ratio -->
+                  <div class="kpi-card kpi-info clickable" onclick="window.openRetreadDrill()" title="Governed Tyre Retread Ratio">
                     <div class="kpi-body">
-                      <p class="kpi-label">AVERAGE TREAD</p>
-                      <p class="kpi-value kpi-value-lg" id="fm-tyre-kpi-tread">7.8 mm</p>
-                      <p class="kpi-sub">Min limit &ge; 3.0 mm</p>
+                      <p class="kpi-label">RETREAD RATIO</p>
+                      <p class="kpi-value kpi-value-lg text-cyan" id="fm-tyre-kpi-retread">--%</p>
+                      <p class="kpi-sub" id="fm-tyre-kpi-retread-sub">Target &ge; 25.0%</p>
                     </div>
                   </div>
-                  <div class="kpi-card kpi-info clickable" onclick="window.openTyreCostAnalysisDrill()">
+                  <!-- KPI 5: Tyre Cost / KM (Governed Insufficient Data) -->
+                  <div class="kpi-card kpi-purple clickable" onclick="window.openTyreCostAnalysisDrill()" title="Governed Tyre Cost per KM">
                     <div class="kpi-body">
                       <p class="kpi-label">TYRE COST / KM</p>
-                      <p class="kpi-value kpi-value-lg" id="fm-tyre-kpi-cost">KES 0.50</p>
-                      <p class="kpi-sub">Target &le; 0.50 KES/km</p>
+                      <p class="kpi-value kpi-value-lg text-purple" id="fm-tyre-kpi-cost">N/A</p>
+                      <p class="kpi-sub" id="fm-tyre-kpi-cost-sub">Insufficient Data</p>
                     </div>
                   </div>
                 </div>
 
-                <!-- 3. Attention Required Category Cards -->
-                <div class="card mb-4" style="background: rgba(239, 68, 68, 0.04); border-left: 4px solid var(--danger, #ef4444);">
+                <!-- 3. Tyre Action Center (Operational Priority Cards) -->
+                <div class="card mb-4" style="background: rgba(239, 68, 68, 0.03); border: 1px solid rgba(239, 68, 68, 0.2); border-left: 4px solid var(--danger);">
                   <div class="card-header flex-row between items-center" style="padding: 10px 16px;">
-                    <h4 style="margin: 0; color: var(--danger, #ef4444); font-size: 0.95rem;" class="flex-row items-center gap-2">
+                    <h4 style="margin: 0; color: var(--danger); font-size: 0.95rem;" class="flex-row items-center gap-2">
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                      ATTENTION REQUIRED — 54 OPEN DEFECTS & ALERTS QUEUE
+                      TYRE ACTION CENTER — OPERATIONAL PRIORITY QUEUE
                     </h4>
-                    <span class="badge danger" id="fm-tyre-attention-badge">54 Open Defects & Alerts</span>
+                    <span class="badge danger" id="fm-tyre-action-count-badge">-- Actions</span>
                   </div>
-                  <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr); padding: 12px; gap: 12px;">
-                    <div class="kpi-card kpi-danger clickable" onclick="window.openAttentionQueueDrill('CRITICAL')">
-                      <div class="kpi-body">
-                        <p class="kpi-label">CRITICAL DEFECTS</p>
-                        <div class="flex-row between items-center mt-1">
-                          <p class="kpi-value text-red" style="font-size: 1.4rem; margin:0;" id="fm-att-critical">54</p>
-                          <button class="btn tiny outline danger">View</button>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="kpi-card kpi-warning clickable" onclick="window.openAttentionQueueDrill('REPLACEMENT_DUE')">
-                      <div class="kpi-body">
-                        <p class="kpi-label">REPLACEMENT DUE</p>
-                        <div class="flex-row between items-center mt-1">
-                          <p class="kpi-value text-amber" style="font-size: 1.4rem; margin:0;" id="fm-att-replacement">0</p>
-                          <button class="btn tiny outline warning">View</button>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="kpi-card kpi-info clickable" onclick="window.openAttentionQueueDrill('INSPECTION_DUE')">
-                      <div class="kpi-body">
-                        <p class="kpi-label">INSPECTION DUE</p>
-                        <div class="flex-row between items-center mt-1">
-                          <p class="kpi-value text-blue" style="font-size: 1.4rem; margin:0;" id="fm-att-inspection">5</p>
-                          <button class="btn tiny outline info">View</button>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="kpi-card kpi-danger clickable" onclick="window.openKPIDrillDefects()">
-                      <div class="kpi-body">
-                        <p class="kpi-label">OPEN DEFECTS</p>
-                        <div class="flex-row between items-center mt-1">
-                          <p class="kpi-value text-red" style="font-size: 1.4rem; margin:0;" id="fm-att-defects">54</p>
-                          <button class="btn tiny outline danger">View</button>
-                        </div>
-                      </div>
-                    </div>
+                  <div id="fm-tyre-action-cards-grid" class="kpi-grid" style="grid-template-columns: repeat(4, 1fr); padding: 12px; gap: 12px;">
+                    <!-- Populated dynamically: Critical Defects, Overdue Inspections, Low Tread, Retread Processing -->
                   </div>
                 </div>
 
-                <!-- 4. Vehicles Requiring Attention & FI360 Intelligence Panel -->
+                <!-- 4. Fleet Tyre Risk & Inventory Position (2-Column Grid) -->
                 <div class="grid grid-2 gap-4 mb-4" style="grid-template-columns: 1fr 1fr;">
-                  <!-- Vehicles Requiring Attention Table -->
-                  <div class="card">
-                    <div class="card-header flex-row between items-center">
-                      <h4 style="margin: 0; font-size: 0.95rem;">Vehicles Requiring Tyre Attention</h4>
-                      <span class="badge warning" id="fm-risk-vehicles-count">High & Medium Risk</span>
+                  <!-- Inventory Position Panel -->
+                  <div class="card p-3">
+                    <div class="card-header flex-row between items-center mb-3" style="padding: 0 0 10px 0; border-bottom: 1px solid var(--panel-border);">
+                      <h4 style="margin: 0; font-size: 0.95rem;" class="flex-row items-center gap-2">
+                        <i data-lucide="package" style="width: 16px; height: 16px;"></i> Fleet Tyre Inventory Position
+                      </h4>
+                      <span class="badge info" id="fm-tyre-total-catalogued">-- Total Tyres</span>
                     </div>
-                    <div class="table-container" style="max-height: 260px; overflow-y: auto;">
+                    <!-- Segmented Bar -->
+                    <div class="tyre-inventory-bar-container mb-3">
+                      <div class="tyre-bar-segment bg-green" id="bar-stock" style="width: 70%;" title="In Stock"></div>
+                      <div class="tyre-bar-segment bg-blue" id="bar-fitted" style="width: 25%;" title="Fitted"></div>
+                      <div class="tyre-bar-segment bg-purple" id="bar-retread" style="width: 3%;" title="Retread"></div>
+                      <div class="tyre-bar-segment bg-red" id="bar-scrap" style="width: 2%;" title="Scrap"></div>
+                    </div>
+                    <div class="grid grid-4 gap-2 text-center" id="fm-inventory-stats-grid">
+                      <div class="p-2 card-flat clickable" onclick="window.filterFmTyreByStatus('IN_STOCK')">
+                        <span class="legend-dot bg-green"></span>
+                        <span class="text-xs muted block">IN STOCK</span>
+                        <strong class="text-sm" id="stat-instock">--</strong>
+                      </div>
+                      <div class="p-2 card-flat clickable" onclick="window.filterFmTyreByStatus('FITTED')">
+                        <span class="legend-dot bg-blue"></span>
+                        <span class="text-xs muted block">FITTED</span>
+                        <strong class="text-sm" id="stat-fitted">--</strong>
+                      </div>
+                      <div class="p-2 card-flat clickable" onclick="window.filterFmTyreByStatus('IN_RETREAD')">
+                        <span class="legend-dot bg-purple"></span>
+                        <span class="text-xs muted block">RETREAD</span>
+                        <strong class="text-sm" id="stat-retread">--</strong>
+                      </div>
+                      <div class="p-2 card-flat clickable" onclick="window.filterFmTyreByStatus('SCRAP')">
+                        <span class="legend-dot bg-red"></span>
+                        <span class="text-xs muted block">SCRAP</span>
+                        <strong class="text-sm" id="stat-scrap">--</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Vehicles Requiring Attention Table -->
+                  <div class="card p-3">
+                    <div class="card-header flex-row between items-center mb-3" style="padding: 0 0 10px 0; border-bottom: 1px solid var(--panel-border);">
+                      <h4 style="margin: 0; font-size: 0.95rem;" class="flex-row items-center gap-2">
+                        <i data-lucide="shield-alert" style="width: 16px; height: 16px;" class="text-red"></i> Vehicles with Tyre Exceptions
+                      </h4>
+                      <span class="badge danger" id="fm-risk-vehicles-count">-- Vehicles</span>
+                    </div>
+                    <div class="table-container" style="max-height: 210px; overflow-y: auto;">
                       <table id="fm-tyre-risk-vehicles-table">
                         <thead>
                           <tr>
@@ -740,40 +1192,15 @@
                       </table>
                     </div>
                   </div>
-
-                  <!-- FI360 Intelligence Panel -->
-                  <div class="card" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98)); border: 1px solid rgba(59, 130, 246, 0.3);">
-                    <div class="card-header flex-row items-center gap-2" style="border-bottom: 1px solid rgba(255,255,255,0.1); padding: 10px 16px;">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                      <h4 style="margin: 0; color: #93c5fd; font-size: 0.95rem;">FI360 INTELLIGENCE RECOMMENDATIONS</h4>
-                    </div>
-                    <div style="padding: 14px;">
-                      <div class="clickable" style="cursor: pointer; background: rgba(59, 130, 246, 0.1); border-left: 3px solid #3b82f6; padding: 10px; border-radius: 4px; margin-bottom: 10px;" onclick="window.openAiRecommendationDetail('DEFECT_CONCENTRATION')">
-                        <strong style="color: #60a5fa; font-size: 0.82rem; display: block; margin-bottom: 2px;">High Defect Concentration Warning</strong>
-                        <p class="small muted" style="margin:0; color: #cbd5e1; font-size: 0.78rem; line-height: 1.35;" id="fm-ai-insight-1">
-                          54 open safety-critical defects are logged. 27 active fitted tyres are monitored with 81.5% inspection compliance.
-                        </p>
-                      </div>
-                      <div class="clickable" style="cursor: pointer; background: rgba(245, 158, 11, 0.1); border-left: 3px solid #f59e0b; padding: 10px; border-radius: 4px; margin-bottom: 10px;" onclick="window.openAiRecommendationDetail('AXLE_ROTATION')">
-                        <strong style="color: #fbbf24; font-size: 0.82rem; display: block; margin-bottom: 2px;">Axle Rotation Optimization (Estimated Lifespan Improvement: +14%)</strong>
-                        <p class="small muted" style="margin:0; color: #cbd5e1; font-size: 0.78rem; line-height: 1.35;" id="fm-ai-insight-2">
-                          Rotation compliance currently stands at 81.5% (target &ge; 90%). Executing scheduled axle rotations is estimated to improve average tread lifespan by up to +14% based on wear optimization models.
-                        </p>
-                      </div>
-                      <div class="clickable" style="cursor: pointer; background: rgba(16, 185, 129, 0.1); border-left: 3px solid #10b981; padding: 10px; border-radius: 4px;" onclick="window.openAiRecommendationDetail('STOCK_RETREAD')">
-                        <strong style="color: #34d399; font-size: 0.82rem; display: block; margin-bottom: 2px;">Stock & Retread Processing</strong>
-                        <p class="small muted" style="margin:0; color: #cbd5e1; font-size: 0.78rem; line-height: 1.35;" id="fm-ai-insight-3">
-                          65 tyres are IN_STOCK with 100% stock ledger accuracy. 1 tyre currently processing in retread plant.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
                 </div>
 
-                <!-- 5. Master Physical Tyre Inventory Table -->
-                <div class="card">
-                  <div class="card-header flex-row between items-center">
-                    <h4 style="margin: 0; font-size: 0.95rem;">Master Physical Tyre Inventory</h4>
+                <!-- 5. Master Tyre Ledger Table (Paginated) -->
+                <div class="card p-3">
+                  <div class="card-header flex-row between items-center mb-3" style="padding: 0 0 10px 0; border-bottom: 1px solid var(--panel-border);">
+                    <div>
+                      <h4 style="margin: 0; font-size: 0.95rem;">Master Physical Tyre Inventory Ledger</h4>
+                      <p class="muted text-xs m-0 mt-1">Complete physical tyre register with live wheel fitments, current tread, and maintenance status</p>
+                    </div>
                     <span class="muted small" id="fm-tyre-table-count">Loading master inventory...</span>
                   </div>
                   <div class="table-container">
@@ -782,16 +1209,28 @@
                         <tr>
                           <th>FI360 ID</th>
                           <th>Company Brand #</th>
-                          <th>Brand/Model</th>
+                          <th>Brand & Model</th>
                           <th>Size</th>
                           <th>Purchase Cost</th>
                           <th>Status</th>
-                          <th>Tread (mm)</th>
-                          <th>Vehicle</th>
+                          <th>Current Tread</th>
+                          <th>Fitted Vehicle</th>
+                          <th>Axle Position</th>
+                          <th>Actions</th>
                         </tr>
                       </thead>
-                      <tbody><tr><td colspan="8" class="text-center muted">Loading tyres...</td></tr></tbody>
+                      <tbody id="fm-tyres-table-body">
+                        <tr><td colspan="10" class="text-center muted py-4">Loading tyre ledger...</td></tr>
+                      </tbody>
                     </table>
+                  </div>
+                  <!-- Pagination Bar -->
+                  <div class="flex-row between items-center mt-3 pt-2" style="border-top: 1px solid var(--panel-border);">
+                    <span class="text-xs muted" id="fm-tyre-page-info">Showing 1 to 20 of 94 tyres</span>
+                    <div class="flex-row gap-2">
+                      <button class="btn tiny outline" id="btn-tyre-prev-page" onclick="window.changeTyrePage(-1)" disabled>&larr; Previous</button>
+                      <button class="btn tiny outline" id="btn-tyre-next-page" onclick="window.changeTyrePage(1)">Next &rarr;</button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1681,7 +2120,7 @@
           <!-- ─────────────────────────────────────────
                DASHBOARD-TECHNICIAN (Tyre Operational Key-In Workspace)
           ──────────────────────────────────────────── -->
-          <div id="dashboard-technician" class="view hidden">
+          <div id="dashboard-technician-tyre-ops" class="view hidden">
             <div class="card-header mb-3" style="display: flex; justify-content: space-between; align-items: center;">
               <div>
                 <h2>🔧 Tyre Technician Operational Workspace</h2>
@@ -1753,7 +2192,7 @@
           <!-- ─────────────────────────────────────────
                DASHBOARD-TYRE-SUPERVISOR (Tyre Intelligence Control Center)
           ──────────────────────────────────────────── -->
-          <div id="dashboard-tyre-supervisor" class="view hidden">
+          <div id="dashboard-tyre-supervisor-ops" class="view hidden">
             <div class="card-header mb-3" style="display: flex; justify-content: space-between; align-items: center;">
               <div>
                 <h2>🛡️ Tyre Intelligence &amp; Supervision Center</h2>
@@ -1833,6 +2272,1055 @@
               </div>
             </div>
           </div>
+
+          <!-- ============================================================
+               VEHICLE WORKSPACE — STEP 3 (Unified Operational View)
+               ============================================================ -->
+          <div id="vehicle-workspace-view" class="view hidden">
+            <!-- 1. Header (FI360VehicleHeader) -->
+            <div class="vw-header-card card mb-3">
+              <div class="vw-header-top flex-row between items-center mb-2">
+                <div class="flex-row items-center gap-2">
+                  <button class="btn tiny secondary outline" id="btn-vw-back" onclick="window.backFromVehicleWorkspace()">
+                    <i data-lucide="arrow-left"></i> Back to Fleet
+                  </button>
+                  <span class="vw-breadcrumb text-xs muted">Fleet Operations / Vehicles / <strong id="vw-breadcrumb-reg" class="text-main">--</strong></span>
+                </div>
+                <div class="flex-row items-center gap-2">
+                  <span id="vw-header-status-badge" class="badge status-badge">ACTIVE</span>
+                </div>
+              </div>
+
+              <div class="vw-header-main flex-row between items-center">
+                <div class="vw-identity-block">
+                  <div class="flex-row items-center gap-3">
+                    <div class="vw-avatar">
+                      <i data-lucide="truck" class="text-primary" style="width: 28px; height: 28px;"></i>
+                    </div>
+                    <div>
+                      <h1 id="vw-header-reg" class="vw-title m-0">KCA-0342X</h1>
+                      <p id="vw-header-sub" class="vw-subtitle muted text-sm m-0">Scania R560 · Fleet #FLT-0342 · 6x4 Prime Mover / Tractor · Nairobi Main Depot</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Action Controls Bar -->
+                <div class="vw-action-bar flex-row gap-2 items-center" id="vw-action-bar">
+                  <button class="btn small secondary outline" id="btn-vw-edit" onclick="window.openEditVehicleModal()">
+                    <i data-lucide="edit-3"></i> Edit
+                  </button>
+                  <button class="btn small danger outline" id="btn-vw-ground" onclick="window.openGroundVehicleModal()">
+                    <i data-lucide="shield-alert"></i> Ground
+                  </button>
+                  <button class="btn small success" id="btn-vw-recover" onclick="window.openRecoverVehicleModal()">
+                    <i data-lucide="check-circle-2"></i> Recover
+                  </button>
+                  <button class="btn small primary outline" id="btn-vw-assign-driver" onclick="window.openAssignDriverModalFromWorkspace()">
+                    <i data-lucide="user-plus"></i> Assign Driver
+                  </button>
+                  <button class="btn small secondary outline" id="btn-vw-transfer-workshop" onclick="window.openTransferWorkshopModal()">
+                    <i data-lucide="arrow-right-left"></i> Transfer Workshop
+                  </button>
+                </div>
+              </div>
+
+              <!-- Workspace Navigation Tabs -->
+              <div class="vw-nav-tabs mt-3" id="vw-tabs-nav">
+                <button class="vw-tab-btn active" data-vw-tab="overview"><i data-lucide="layout-dashboard"></i> Overview</button>
+                <button class="vw-tab-btn" data-vw-tab="maintenance"><i data-lucide="wrench"></i> Maintenance <span class="badge-pill" id="vw-tab-badge-maintenance">0</span></button>
+                <button class="vw-tab-btn" data-vw-tab="tyres"><i data-lucide="disc"></i> Tyres <span class="badge-pill" id="vw-tab-badge-tyres">0</span></button>
+                <button class="vw-tab-btn" data-vw-tab="driver"><i data-lucide="user"></i> Driver</button>
+                <button class="vw-tab-btn" data-vw-tab="inspections"><i data-lucide="clipboard-check"></i> Inspections</button>
+                <button class="vw-tab-btn" data-vw-tab="costs"><i data-lucide="dollar-sign"></i> Costs</button>
+                <button class="vw-tab-btn" data-vw-tab="financial"><i data-lucide="banknote"></i> Financial &amp; Acquisition</button>
+                <button class="vw-tab-btn" data-vw-tab="telematics" id="vw-tab-telematics"><i data-lucide="radio"></i> Telematics &amp; IoT</button>
+                <button class="vw-tab-btn" data-vw-tab="history"><i data-lucide="history"></i> History</button>
+              </div>
+            </div>
+
+            <!-- 2. Two-Column Workspace Body -->
+            <div class="vw-body-grid">
+              <!-- Left Column: Quick Profile -->
+              <div class="vw-profile-col">
+                <div class="card p-3 vw-quick-profile-card">
+                  <div class="card-header border-b pb-2 mb-3">
+                    <h3 class="text-sm font-semibold m-0"><i data-lucide="info"></i> Quick Vehicle Profile</h3>
+                  </div>
+                  
+                  <div class="vw-profile-list">
+                    <div class="vw-profile-item">
+                      <span class="vw-profile-label">Odometer</span>
+                      <strong class="vw-profile-val" id="vw-qp-odometer">-- km</strong>
+                    </div>
+                    <div class="vw-profile-item">
+                      <span class="vw-profile-label">Assigned Driver</span>
+                      <span class="vw-profile-val" id="vw-qp-driver">--</span>
+                    </div>
+                    <div class="vw-profile-item">
+                      <span class="vw-profile-label">Current Workshop</span>
+                      <span class="vw-profile-val" id="vw-qp-workshop">--</span>
+                    </div>
+                    <div class="vw-profile-item">
+                      <span class="vw-profile-label">Vehicle Class</span>
+                      <span class="vw-profile-val" id="vw-qp-class">--</span>
+                    </div>
+                    <div class="vw-profile-item">
+                      <span class="vw-profile-label">Department</span>
+                      <span class="vw-profile-val" id="vw-qp-dept">--</span>
+                    </div>
+                    <div class="vw-profile-item">
+                      <span class="vw-profile-label">Region / Depot</span>
+                      <span class="vw-profile-val" id="vw-qp-location">--</span>
+                    </div>
+                    <div class="vw-profile-item">
+                      <span class="vw-profile-label">Expected Tyres</span>
+                      <span class="vw-profile-val" id="vw-qp-tyres">--</span>
+                    </div>
+                    <div class="vw-profile-item">
+                      <span class="vw-profile-label">Acquisition Date</span>
+                      <span class="vw-profile-val" id="vw-qp-acq-date">--</span>
+                    </div>
+                  </div>
+
+                  <div class="vw-profile-badges mt-3 pt-3 border-t flex-row gap-2">
+                    <div class="badge-box text-center flex-1 p-2 rounded" style="background: var(--bg-muted, #f1f5f9);">
+                      <div class="text-xs muted">Open Defects</div>
+                      <strong class="text-red" id="vw-qp-defects-count">0</strong>
+                    </div>
+                    <div class="badge-box text-center flex-1 p-2 rounded" style="background: var(--bg-muted, #f1f5f9);">
+                      <div class="text-xs muted">Open Alerts</div>
+                      <strong class="text-amber" id="vw-qp-alerts-count">0</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right Column: Active Tab Panels -->
+              <div class="vw-content-col" id="vw-tab-content-container">
+
+                <!-- Tab 1: Overview -->
+                <div id="vw-panel-overview" class="vw-panel active">
+                  <!-- Problem callout banner if issues exist -->
+                  <div id="vw-overview-problem-banner" class="card p-3 mb-3 hidden" style="border-left: 4px solid var(--danger, #ef4444); background: #fef2f2;">
+                    <div class="flex-row items-center gap-2">
+                      <i data-lucide="alert-triangle" class="text-danger"></i>
+                      <strong class="text-danger" id="vw-problem-title">Vehicle Requires Attention</strong>
+                    </div>
+                    <p class="text-xs text-danger m-0 mt-1" id="vw-problem-desc">--</p>
+                  </div>
+
+                  <!-- Domain Snapshots Grid -->
+                  <div class="grid grid-3 gap-3 mb-3">
+                    <div class="card p-3">
+                      <div class="flex-row between items-center mb-1">
+                        <span class="text-xs uppercase muted font-semibold">Maintenance</span>
+                        <i data-lucide="wrench" class="text-muted" style="width: 16px;"></i>
+                      </div>
+                      <h4 class="m-0 mb-1" id="vw-ov-maint-status">No Open Work Orders</h4>
+                      <p class="text-xs muted m-0" id="vw-ov-maint-desc">Vehicle operating normally</p>
+                    </div>
+
+                    <div class="card p-3">
+                      <div class="flex-row between items-center mb-1">
+                        <span class="text-xs uppercase muted font-semibold">Tyres</span>
+                        <i data-lucide="disc" class="text-muted" style="width: 16px;"></i>
+                      </div>
+                      <h4 class="m-0 mb-1" id="vw-ov-tyre-status">-- / -- Fitted</h4>
+                      <p class="text-xs muted m-0" id="vw-ov-tyre-desc">Average tread depth: -- mm</p>
+                    </div>
+
+                    <div class="card p-3">
+                      <div class="flex-row between items-center mb-1">
+                        <span class="text-xs uppercase muted font-semibold">Driver &amp; Safety</span>
+                        <i data-lucide="user-check" class="text-muted" style="width: 16px;"></i>
+                      </div>
+                      <h4 class="m-0 mb-1" id="vw-ov-driver-status">--</h4>
+                      <p class="text-xs muted m-0" id="vw-ov-driver-desc">Active shift status</p>
+                    </div>
+                  </div>
+
+                  <!-- Recent Problems & Defects Table -->
+                  <div class="card p-3 mb-3">
+                    <div class="flex-row between items-center mb-2">
+                      <h4 class="text-sm font-semibold m-0">Current Operational Exceptions &amp; Defects</h4>
+                      <button class="btn tiny primary outline" onclick="window.switchVehicleWorkspaceTab('tyres')">Inspect Tyres &rarr;</button>
+                    </div>
+                    <div class="table-container">
+                      <table id="vw-overview-defects-table">
+                        <thead><tr><th>Severity</th><th>Type / Defect</th><th>Reported At</th><th>Status</th><th>Action</th></tr></thead>
+                        <tbody><tr><td colspan="5" class="text-center muted">No open defects reported for this vehicle</td></tr></tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tab 2: Maintenance -->
+                <div id="vw-panel-maintenance" class="vw-panel hidden">
+                  <!-- Grounding Downtime Banner if grounded -->
+                  <div id="vw-maint-downtime-card" class="card p-3 mb-3 hidden" style="background: #fff1f2; border: 1px solid #fecdd3;">
+                    <div class="flex-row between items-center">
+                      <div>
+                        <strong class="text-danger"><i data-lucide="alert-octagon"></i> Active Downtime Incident</strong>
+                        <p class="text-xs text-danger m-0 mt-1" id="vw-downtime-details">Grounded under policy</p>
+                      </div>
+                      <button class="btn small success" id="btn-vw-maint-recover" onclick="window.openRecoverVehicleModal()">
+                        <i data-lucide="check-circle-2"></i> Close Downtime &amp; Recover
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="card p-3 mb-3">
+                    <div class="flex-row between items-center mb-3">
+                      <h4 class="text-sm font-semibold m-0">Maintenance Work Orders</h4>
+                      <button class="btn tiny primary" onclick="window.showDashboard('dashboard-workshop')">+ Create Work Order</button>
+                    </div>
+                    <div class="table-container">
+                      <table id="vw-work-orders-table">
+                        <thead>
+                          <tr>
+                            <th>WO #</th>
+                            <th>Title / Description</th>
+                            <th>Type</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Labor / Parts</th>
+                            <th>Total Cost</th>
+                            <th>Opened</th>
+                            <th>Action</th>
+                          </tr>
+                        </thead>
+                        <tbody><tr><td colspan="9" class="text-center muted">Loading work orders...</td></tr></tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tab 3: Tyres (Interactive Visual Axle Map) -->
+                <div id="vw-panel-tyres" class="vw-panel hidden">
+                  <div class="card p-3 mb-3">
+                    <div class="flex-row between items-center mb-2">
+                      <div>
+                        <h4 class="text-sm font-semibold m-0">Interactive Tyre Axle Configuration</h4>
+                        <p class="text-xs muted m-0">Click any tyre node to view fitment history, inspection tread depth, and defect severity</p>
+                      </div>
+                      <div class="flex-row gap-2 items-center">
+                        <span class="badge-code text-green">● Healthy (&ge; 4.0mm)</span>
+                        <span class="badge-code text-amber">● Monitor (3.0-3.9mm)</span>
+                        <span class="badge-code text-red">● Critical (&lt; 3.0mm / Defect)</span>
+                        <span class="badge-code muted">○ Empty</span>
+                      </div>
+                    </div>
+
+                    <!-- Axle Map Container -->
+                    <div class="vw-axle-map-wrapper p-4 my-2" id="vw-axle-map-container">
+                      <!-- Rendered dynamically by renderVehicleTyreAxleMap -->
+                    </div>
+                  </div>
+
+                  <!-- Fitted Tyres List Table -->
+                  <div class="card p-3">
+                    <div class="flex-row between items-center mb-2">
+                      <h4 class="text-sm font-semibold m-0">Currently Fitted Tyres Ledger</h4>
+                      <button class="btn tiny primary" onclick="window.openFitmentModal()">+ Fit Tyre</button>
+                    </div>
+                    <div class="table-container">
+                      <table id="vw-fitted-tyres-table">
+                        <thead>
+                          <tr>
+                            <th>Position</th>
+                            <th>Tyre ID</th>
+                            <th>Brand &amp; Model</th>
+                            <th>Size</th>
+                            <th>Tread Depth</th>
+                            <th>Status</th>
+                            <th>Fitted Date</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody><tr><td colspan="8" class="text-center muted">Loading fitted tyres...</td></tr></tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tab 4: Driver -->
+                <div id="vw-panel-driver" class="vw-panel hidden">
+                  <div class="card p-3 mb-3">
+                    <div class="flex-row between items-center mb-3">
+                      <h4 class="text-sm font-semibold m-0">Active Driver Assignment</h4>
+                      <button class="btn tiny primary outline" onclick="window.openAssignDriverModalFromWorkspace()">Assign / Change Driver</button>
+                    </div>
+                    <div id="vw-driver-active-card" class="p-3 rounded" style="background: var(--bg-muted, #f8fafc);">
+                      <!-- Rendered by renderVehicleDriverTab -->
+                    </div>
+                  </div>
+
+                  <div class="card p-3">
+                    <div class="card-header pb-2 mb-2">
+                      <h4 class="text-sm font-semibold m-0">Driver Shift Assignment History</h4>
+                    </div>
+                    <div class="table-container">
+                      <table id="vw-driver-history-table">
+                        <thead>
+                          <tr>
+                            <th>Driver Name</th>
+                            <th>Shift Start</th>
+                            <th>Shift End</th>
+                            <th>Start Odometer</th>
+                            <th>End Odometer</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody><tr><td colspan="6" class="text-center muted">Loading driver history...</td></tr></tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tab 5: Inspections -->
+                <div id="vw-panel-inspections" class="vw-panel hidden">
+                  <div class="card p-3">
+                    <div class="flex-row between items-center mb-3">
+                      <h4 class="text-sm font-semibold m-0">Digital Pre-Trip &amp; Post-Trip Vehicle Inspections</h4>
+                    </div>
+                    <div class="table-container">
+                      <table id="vw-inspections-table">
+                        <thead>
+                          <tr>
+                            <th>Inspection #</th>
+                            <th>Type</th>
+                            <th>Driver</th>
+                            <th>Status</th>
+                            <th>Odometer</th>
+                            <th>Has Defects</th>
+                            <th>Grounded</th>
+                            <th>Submitted At</th>
+                          </tr>
+                        </thead>
+                        <tbody><tr><td colspan="8" class="text-center muted">Loading trip inspections...</td></tr></tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tab 6: Costs -->
+                <div id="vw-panel-costs" class="vw-panel hidden">
+                  <div class="grid grid-3 gap-3 mb-3">
+                    <div class="card p-3">
+                      <span class="text-xs uppercase muted font-semibold">Maintenance Spend</span>
+                      <h3 class="text-primary m-0 my-1" id="vw-cost-maintenance">0 KES</h3>
+                      <p class="text-xs muted m-0">Cumulative parts + labor from work orders</p>
+                    </div>
+                    <div class="card p-3">
+                      <span class="text-xs uppercase muted font-semibold">Tyre Asset Spend</span>
+                      <h3 class="text-green m-0 my-1" id="vw-cost-tyres">0 KES</h3>
+                      <p class="text-xs muted m-0">Purchase value of active tyres</p>
+                    </div>
+                    <div class="card p-3" style="background: rgba(241, 245, 249, 0.5);">
+                      <div class="flex-row between items-center">
+                        <span class="text-xs uppercase muted font-semibold">Fuel Intelligence</span>
+                        <span class="badge-code text-blue">COMING SOON</span>
+                      </div>
+                      <h3 class="text-muted m-0 my-1">Integration Ready</h3>
+                      <p class="text-xs muted m-0">Real fuel telemetry will connect in future phase</p>
+                    </div>
+                  </div>
+
+                  <div class="card p-3">
+                    <h4 class="text-sm font-semibold m-0 mb-2">Itemized Vehicle Expense Ledger</h4>
+                    <div class="table-container">
+                      <table id="vw-costs-table">
+                        <thead>
+                          <tr>
+                            <th>Date</th>
+                            <th>Domain</th>
+                            <th>Item Reference</th>
+                            <th>Description</th>
+                            <th>Cost (KES)</th>
+                          </tr>
+                        </thead>
+                        <tbody><tr><td colspan="5" class="text-center muted">No expense items logged</td></tr></tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tab 7: Financial & Acquisition (Step 5D) -->
+                <div id="vw-panel-financial" class="vw-panel hidden">
+                  <!-- 1. Headline Financial Metrics -->
+                  <div class="grid grid-4 gap-3 mb-3">
+                    <div class="card p-3">
+                      <span class="text-xs uppercase muted font-semibold">Acquisition / Capitalized Cost</span>
+                      <h3 class="text-primary m-0 my-1" id="vw-fin-capitalized-cost">— KES</h3>
+                      <p class="text-xs muted m-0" id="vw-fin-acq-details">In-Service: — · Ownership: —</p>
+                    </div>
+                    <div class="card p-3">
+                      <div class="flex-row between items-center">
+                        <span class="text-xs uppercase muted font-semibold">Net Book Value</span>
+                        <span class="badge" id="vw-fin-authority-badge">FI360</span>
+                      </div>
+                      <h3 class="text-green m-0 my-1" id="vw-fin-book-value">— KES</h3>
+                      <p class="text-xs muted m-0" id="vw-fin-book-value-sub">Calculated via active profile</p>
+                    </div>
+                    <div class="card p-3">
+                      <span class="text-xs uppercase muted font-semibold">Accumulated Depreciation</span>
+                      <h3 class="text-amber m-0 my-1" id="vw-fin-depreciation">— KES</h3>
+                      <p class="text-xs muted m-0" id="vw-fin-dep-method">Method: — · Residual: —</p>
+                    </div>
+                    <div class="card p-3">
+                      <span class="text-xs uppercase muted font-semibold">Active Finance Balance</span>
+                      <h3 class="text-blue m-0 my-1" id="vw-fin-finance-balance">— KES</h3>
+                      <p class="text-xs muted m-0" id="vw-fin-repayment-sub">Monthly Repayment: —</p>
+                    </div>
+                  </div>
+
+                  <!-- 2. Financial Profile Card -->
+                  <div class="card p-3 mb-3">
+                    <div class="flex-row between items-center pb-2 border-b mb-3">
+                      <div>
+                        <h4 class="text-sm font-semibold m-0"><i data-lucide="shield-check"></i> Vehicle Financial &amp; Acquisition Profile</h4>
+                        <p class="text-xs muted m-0">Governed depreciation method, useful life parameters, and valuation authority</p>
+                      </div>
+                      <button class="btn small primary outline" id="btn-vw-edit-fin-profile" onclick="window.openVehicleFinancialProfileModal()">
+                        <i data-lucide="edit-3"></i> Set / Edit Profile
+                      </button>
+                    </div>
+
+                    <div id="vw-fin-profile-details">
+                      <div class="grid grid-3 gap-3" id="vw-fin-profile-grid">
+                        <div class="p-2 rounded" style="background: var(--bg-muted, #f8fafc);">
+                          <span class="text-xs muted block">Acquisition Date</span>
+                          <strong class="text-sm" id="vfp-acq-date">—</strong>
+                        </div>
+                        <div class="p-2 rounded" style="background: var(--bg-muted, #f8fafc);">
+                          <span class="text-xs muted block">In-Service Date</span>
+                          <strong class="text-sm" id="vfp-in-service-date">—</strong>
+                        </div>
+                        <div class="p-2 rounded" style="background: var(--bg-muted, #f8fafc);">
+                          <span class="text-xs muted block">Ownership Type</span>
+                          <strong class="text-sm" id="vfp-ownership-type">—</strong>
+                        </div>
+                        <div class="p-2 rounded" style="background: var(--bg-muted, #f8fafc);">
+                          <span class="text-xs muted block">Depreciation Method</span>
+                          <strong class="text-sm text-primary" id="vfp-dep-method">—</strong>
+                        </div>
+                        <div class="p-2 rounded" style="background: var(--bg-muted, #f8fafc);">
+                          <span class="text-xs muted block">Annual Depreciation Rate</span>
+                          <strong class="text-sm" id="vfp-dep-rate">—</strong>
+                        </div>
+                        <div class="p-2 rounded" style="background: var(--bg-muted, #f8fafc);">
+                          <span class="text-xs muted block">Useful Life (Years / KM)</span>
+                          <strong class="text-sm" id="vfp-useful-life">—</strong>
+                        </div>
+                        <div class="p-2 rounded" style="background: var(--bg-muted, #f8fafc);">
+                          <span class="text-xs muted block">Residual Value Floor</span>
+                          <strong class="text-sm" id="vfp-residual-value">—</strong>
+                        </div>
+                        <div class="p-2 rounded" style="background: var(--bg-muted, #f8fafc);">
+                          <span class="text-xs muted block">Book Value Authority</span>
+                          <strong class="text-sm" id="vfp-authority">—</strong>
+                        </div>
+                        <div class="p-2 rounded" style="background: var(--bg-muted, #f8fafc);">
+                          <span class="text-xs muted block">External ERP Book Value</span>
+                          <strong class="text-sm" id="vfp-external-value">—</strong>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 3. Finance Agreements Card -->
+                  <div class="card p-3 mb-3">
+                    <div class="flex-row between items-center pb-2 border-b mb-3">
+                      <div>
+                        <h4 class="text-sm font-semibold m-0"><i data-lucide="file-text"></i> Finance Agreements &amp; Leases</h4>
+                        <p class="text-xs muted m-0">Commercial vehicle loans, chattel mortgages, and operating leases</p>
+                      </div>
+                      <button class="btn small secondary" id="btn-vw-add-agreement" onclick="window.openVehicleFinanceAgreementModal()">
+                        <i data-lucide="plus"></i> Add Finance Agreement
+                      </button>
+                    </div>
+
+                    <div class="table-container">
+                      <table id="vw-agreements-table">
+                        <thead>
+                          <tr>
+                            <th>Agreement #</th>
+                            <th>Type</th>
+                            <th>Lender / Lessor</th>
+                            <th>Principal / Financed</th>
+                            <th>Rate</th>
+                            <th>Term</th>
+                            <th>Monthly</th>
+                            <th>Outstanding</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                          </tr>
+                        </thead>
+                        <tbody><tr><td colspan="10" class="text-center muted">No finance agreements registered for this vehicle.</td></tr></tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <!-- 4. Disposal Records Card -->
+                  <div class="card p-3">
+                    <div class="flex-row between items-center pb-2 border-b mb-3">
+                      <div>
+                        <h4 class="text-sm font-semibold m-0"><i data-lucide="trash-2"></i> Vehicle Disposal &amp; Asset Write-Off</h4>
+                        <p class="text-xs muted m-0">End-of-life disposal, commercial resale, and transactional write-offs</p>
+                      </div>
+                      <button class="btn small danger outline" id="btn-vw-record-disposal" onclick="window.openVehicleDisposalModal()">
+                        <i data-lucide="archive"></i> Record Vehicle Disposal
+                      </button>
+                    </div>
+
+                    <div class="table-container">
+                      <table id="vw-disposals-table">
+                        <thead>
+                          <tr>
+                            <th>Disposal Date</th>
+                            <th>Method</th>
+                            <th>Buyer / Recipient</th>
+                            <th>Proceeds</th>
+                            <th>Costs</th>
+                            <th>Book Value at Disposal</th>
+                            <th>Gain / Loss</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                          </tr>
+                        </thead>
+                        <tbody><tr><td colspan="9" class="text-center muted">No disposal records registered.</td></tr></tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tab 9: Telematics & IoT Foundation (Step 5E) -->
+                <div id="vw-panel-telematics" class="vw-panel hidden">
+                  <!-- 1. Headline Telematics Metrics -->
+                  <div class="grid grid-4 gap-3 mb-3">
+                    <div class="card p-3">
+                      <div class="flex-row between items-center">
+                        <span class="text-xs uppercase muted font-semibold">Integration Connection</span>
+                        <span class="badge" id="vw-telem-status-badge">NOT_CONNECTED</span>
+                      </div>
+                      <h3 class="text-primary m-0 my-1" id="vw-telem-provider-name">Generic Adapter</h3>
+                      <p class="text-xs muted m-0" id="vw-telem-last-sync">Last Sync: —</p>
+                    </div>
+                    <div class="card p-3">
+                      <span class="text-xs uppercase muted font-semibold">Live GPS Location</span>
+                      <h3 class="text-green m-0 my-1 text-sm font-semibold" id="vw-telem-gps-coords">—, —</h3>
+                      <p class="text-xs muted m-0" id="vw-telem-gps-time">Speed: — km/h · Signal: —</p>
+                    </div>
+                    <div class="card p-3">
+                      <span class="text-xs uppercase muted font-semibold">CAN / ECU Odometer</span>
+                      <h3 class="text-amber m-0 my-1" id="vw-telem-odometer-val">— km</h3>
+                      <p class="text-xs muted m-0" id="vw-telem-odometer-sub">Authority: Trusted ECU Stream</p>
+                    </div>
+                    <div class="card p-3">
+                      <span class="text-xs uppercase muted font-semibold">Engine Hours &amp; Ignition</span>
+                      <h3 class="text-blue m-0 my-1" id="vw-telem-engine-val">— hrs</h3>
+                      <p class="text-xs muted m-0" id="vw-telem-ignition-sub">Ignition: — · Fuel: —%</p>
+                    </div>
+                  </div>
+
+                  <!-- 2. External Provider Identities Card -->
+                  <div class="card p-3 mb-3">
+                    <div class="flex-row between items-center pb-2 border-b mb-3">
+                      <div>
+                        <h4 class="text-sm font-semibold m-0"><i data-lucide="link"></i> External Vehicle Identities</h4>
+                        <p class="text-xs muted m-0">Provider-agnostic mappings linking external telematics IDs to immutable Vehicle.id</p>
+                      </div>
+                      <button class="btn small primary outline" id="btn-vw-map-ext-identity" onclick="window.openMapExternalIdentityModal()">
+                        <i data-lucide="plus"></i> Map External Provider ID
+                      </button>
+                    </div>
+
+                    <div class="table-container">
+                      <table id="vw-external-identities-table">
+                        <thead>
+                          <tr>
+                            <th>Provider</th>
+                            <th>Connection Name</th>
+                            <th>External Vehicle ID</th>
+                            <th>External Registration</th>
+                            <th>External VIN</th>
+                            <th>Mapping Status</th>
+                            <th>Connection State</th>
+                            <th>Last Sync</th>
+                          </tr>
+                        </thead>
+                        <tbody><tr><td colspan="8" class="text-center muted">No external provider identities mapped.</td></tr></tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <!-- 3. Physical Devices & Assignment Lineage Card -->
+                  <div class="card p-3">
+                    <div class="flex-row between items-center pb-2 border-b mb-3">
+                      <div>
+                        <h4 class="text-sm font-semibold m-0"><i data-lucide="cpu"></i> Assigned Telematics &amp; IoT Devices</h4>
+                        <p class="text-xs muted m-0">GPS trackers, OBD gateways, TPMS receivers, and historical reassignment ledger</p>
+                      </div>
+                      <button class="btn small secondary" id="btn-vw-assign-device" onclick="window.openAssignDeviceModal()">
+                        <i data-lucide="plus"></i> Assign Device
+                      </button>
+                    </div>
+
+                    <div class="table-container">
+                      <table id="vw-devices-table">
+                        <thead>
+                          <tr>
+                            <th>Serial Number</th>
+                            <th>Device Type</th>
+                            <th>Manufacturer &amp; Model</th>
+                            <th>Status</th>
+                            <th>Assigned At</th>
+                            <th>Ended At</th>
+                            <th>Assigned By</th>
+                            <th>Reason</th>
+                          </tr>
+                        </thead>
+                        <tbody><tr><td colspan="8" class="text-center muted">No physical devices assigned to this vehicle.</td></tr></tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tab 8: History -->
+                <div id="vw-panel-history" class="vw-panel hidden">
+                  <div class="card p-3">
+                    <div class="flex-row between items-center mb-3">
+                      <div>
+                        <h4 class="text-sm font-semibold m-0">Consolidated Vehicle Activity Timeline</h4>
+                        <p class="text-xs muted m-0">Chronological ledger of transfers, maintenance, inspections, downtime, and audit actions</p>
+                      </div>
+                    </div>
+                    <div class="vw-timeline" id="vw-activity-timeline">
+                      <!-- Rendered dynamically by renderVehicleHistoryTimeline -->
+                      <p class="text-center muted py-4">Loading vehicle timeline...</p>
+                    </div>
+                  </div>
+                </div>
+
+              </div><!-- .vw-content-col -->
+            </div><!-- .vw-body-grid -->
+          </div><!-- #vehicle-workspace-view -->
+
+          <!-- ============================================================
+               INDIVIDUAL TYRE WORKSPACE — STEP 4B (Unified Lifecycle View)
+               ============================================================ -->
+          <div id="tyre-workspace-view" class="view hidden">
+            <!-- 1. Header (FI360TyreHeader) -->
+            <div class="tw-header-card card mb-3">
+              <div class="tw-header-top flex-row between items-center mb-2">
+                <div class="flex-row items-center gap-2">
+                  <button class="btn tiny secondary outline" id="btn-tw-back" onclick="window.backFromTyreWorkspace()">
+                    <i data-lucide="arrow-left"></i> Back to Tyres
+                  </button>
+                  <span class="tw-breadcrumb text-xs muted">Tyre Intelligence / Tyres / <strong id="tw-breadcrumb-id" class="text-main">--</strong></span>
+                </div>
+                <div class="flex-row items-center gap-2">
+                  <span id="tw-header-status-badge" class="badge status-badge">IN_STOCK</span>
+                </div>
+              </div>
+
+              <div class="tw-header-main flex-row between items-center">
+                <div class="tw-identity-block">
+                  <div class="flex-row items-center gap-3">
+                    <div class="tw-avatar">
+                      <i data-lucide="disc" class="text-primary" style="width: 28px; height: 28px;"></i>
+                    </div>
+                    <div>
+                      <h1 id="tw-header-title" class="tw-title m-0">TYR-000039</h1>
+                      <p id="tw-header-sub" class="tw-subtitle muted text-sm m-0">
+                        Michelin X Multiway 3D · 315/80R22.5 · <span id="tw-header-veh-ctx">Vehicle: KCA-0342X</span> · <span id="tw-header-dept-ctx">Department: Transport</span> · <span id="tw-header-pos-ctx">Pos: AX1-L</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Action Controls Bar -->
+                <div class="tw-action-bar flex-row gap-2 items-center" id="tw-action-bar">
+                  <button class="btn small primary" id="btn-tw-inspect" onclick="window.openTyreInspectFromWorkspace()">
+                    <i data-lucide="activity"></i> Inspect
+                  </button>
+                  <button class="btn small secondary outline" id="btn-tw-fit" onclick="window.openTyreFitFromWorkspace()">
+                    <i data-lucide="plus-circle"></i> Fit
+                  </button>
+                  <button class="btn small warning outline" id="btn-tw-rotate" onclick="window.openTyreRotateModal()">
+                    <i data-lucide="refresh-cw"></i> Rotate
+                  </button>
+                  <button class="btn small danger outline" id="btn-tw-remove" onclick="window.openTyreRemoveFromWorkspace()">
+                    <i data-lucide="minus-circle"></i> Remove
+                  </button>
+                  <button class="btn small secondary outline" id="btn-tw-repair" onclick="window.openTyreRepairModal()">
+                    <i data-lucide="wrench"></i> Repair
+                  </button>
+                  <button class="btn small outline danger" id="btn-tw-dispose" onclick="window.openTyreDisposeModal()">
+                    <i data-lucide="trash-2"></i> Dispose
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Workspace Body: 2-Column Grid -->
+            <div class="tw-body-grid">
+              <!-- Left Column: Quick Profile (FI360TyreQuickProfile) -->
+              <div class="tw-profile-col">
+                <div class="card p-3 mb-3" id="tw-quick-profile-card">
+                  <h4 class="text-sm font-semibold m-0 mb-3 flex-row items-center gap-2">
+                    <i data-lucide="info" style="width: 16px; height: 16px;"></i> Quick Tyre Profile
+                  </h4>
+
+                  <!-- Tread Health Gauge / Progress -->
+                  <div class="tw-tread-gauge-box p-3 mb-3" style="background: var(--input-bg); border-radius: var(--radius-sm); border: 1px solid var(--panel-border);">
+                    <div class="flex-row between items-center mb-1">
+                      <span class="text-xs font-semibold muted">Tread Depth Remaining</span>
+                      <strong class="text-sm text-primary" id="tw-profile-tread-val">14.2 mm</strong>
+                    </div>
+                    <div class="progress-bar mb-2" style="height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden;">
+                      <div id="tw-profile-tread-bar" style="height: 100%; width: 75%; background: var(--success); transition: width 0.3s ease;"></div>
+                    </div>
+                    <div class="flex-row between text-xs muted">
+                      <span>Min: <strong id="tw-profile-min-tread">3.0 mm</strong></span>
+                      <span>Original: <strong id="tw-profile-orig-tread">18.0 mm</strong></span>
+                    </div>
+                  </div>
+
+                  <!-- Metadata Spec Items -->
+                  <div class="tw-spec-list">
+                    <div class="tw-spec-item flex-row between py-1" style="border-bottom: 1px solid var(--panel-border);">
+                      <span class="text-xs muted">Brand / Model</span>
+                      <strong class="text-xs text-right" id="tw-qp-brand">Michelin X Multiway 3D</strong>
+                    </div>
+                    <div class="tw-spec-item flex-row between py-1" style="border-bottom: 1px solid var(--panel-border);">
+                      <span class="text-xs muted">Size Spec</span>
+                      <strong class="text-xs text-right" id="tw-qp-size">315/80R22.5</strong>
+                    </div>
+                    <div class="tw-spec-item flex-row between py-1" style="border-bottom: 1px solid var(--panel-border);">
+                      <span class="text-xs muted">Serial Number</span>
+                      <strong class="text-xs text-right font-mono" id="tw-qp-serial">SN-934821</strong>
+                    </div>
+                    <div class="tw-spec-item flex-row between py-1" style="border-bottom: 1px solid var(--panel-border);">
+                      <span class="text-xs muted">Fleet Brand #</span>
+                      <strong class="text-xs text-right font-mono" id="tw-qp-brand-no">BN-0142</strong>
+                    </div>
+                    <div class="tw-spec-item flex-row between py-1" style="border-bottom: 1px solid var(--panel-border);">
+                      <span class="text-xs muted">Pattern / Axle Type</span>
+                      <strong class="text-xs text-right" id="tw-qp-pattern">STEER</strong>
+                    </div>
+                    <div class="tw-spec-item flex-row between py-1" style="border-bottom: 1px solid var(--panel-border);">
+                      <span class="text-xs muted">Current Pressure</span>
+                      <strong class="text-xs text-right text-blue" id="tw-qp-pressure">120 PSI</strong>
+                    </div>
+                    <div class="tw-spec-item flex-row between py-1" style="border-bottom: 1px solid var(--panel-border);">
+                      <span class="text-xs muted">Current Vehicle</span>
+                      <strong class="text-xs text-right" id="tw-qp-vehicle">KCA-0342X</strong>
+                    </div>
+                    <div class="tw-spec-item flex-row between py-1" style="border-bottom: 1px solid var(--panel-border);">
+                      <span class="text-xs muted">Department</span>
+                      <strong class="text-xs text-right text-primary" id="tw-qp-department">Transport</strong>
+                    </div>
+                    <div class="tw-spec-item flex-row between py-1" style="border-bottom: 1px solid var(--panel-border);">
+                      <span class="text-xs muted">Wheel Position</span>
+                      <strong class="text-xs text-right" id="tw-qp-position">AX1-L (Front Steer)</strong>
+                    </div>
+                    <div class="tw-spec-item flex-row between py-1" style="border-bottom: 1px solid var(--panel-border);">
+                      <span class="text-xs muted">Purchase Cost</span>
+                      <strong class="text-xs text-right text-green" id="tw-qp-cost">KES 42,000</strong>
+                    </div>
+                    <div class="tw-spec-item flex-row between py-1" style="border-bottom: 1px solid var(--panel-border);">
+                      <span class="text-xs muted">Purchase Date</span>
+                      <strong class="text-xs text-right" id="tw-qp-purchase-date">15 Jan 2024</strong>
+                    </div>
+                    <div class="tw-spec-item flex-row between py-1" style="border-bottom: 1px solid var(--panel-border);">
+                      <span class="text-xs muted">Supplier</span>
+                      <strong class="text-xs text-right" id="tw-qp-supplier">Michelin Kenya Ltd</strong>
+                    </div>
+                    <div class="tw-spec-item flex-row between py-1" style="border-bottom: 1px solid var(--panel-border);">
+                      <span class="text-xs muted">Casing Condition</span>
+                      <strong class="text-xs text-right" id="tw-qp-casing">EXCELLENT</strong>
+                    </div>
+                    <div class="tw-spec-item flex-row between py-1">
+                      <span class="text-xs muted">Retreads / Repairs</span>
+                      <strong class="text-xs text-right" id="tw-qp-cycles">0 Retreads · 0 Repairs</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right Column: Tabs & Content Panels -->
+              <div class="tw-content-col">
+                <!-- Tabs Bar (FI360TyreTabsNav) -->
+                <div class="tw-tabs-card card mb-3">
+                  <div class="tw-tabs-nav flex-row gap-1" id="tw-tabs-nav">
+                    <button class="tw-tab-btn active" data-tw-tab="overview" onclick="window.switchTyreWorkspaceTab('overview')">Overview</button>
+                    <button class="tw-tab-btn" data-tw-tab="inspections" onclick="window.switchTyreWorkspaceTab('inspections')">Inspections &amp; Tread</button>
+                    <button class="tw-tab-btn" data-tw-tab="fitments" onclick="window.switchTyreWorkspaceTab('fitments')">Fitments &amp; Axle</button>
+                    <button class="tw-tab-btn" data-tw-tab="defects" onclick="window.switchTyreWorkspaceTab('defects')">Defects &amp; Safety</button>
+                    <button class="tw-tab-btn" data-tw-tab="retread" onclick="window.switchTyreWorkspaceTab('retread')">Casing &amp; Retread</button>
+                    <button class="tw-tab-btn" data-tw-tab="costs" onclick="window.switchTyreWorkspaceTab('costs')">Costs &amp; Value</button>
+                    <button class="tw-tab-btn" data-tw-tab="timeline" onclick="window.switchTyreWorkspaceTab('timeline')">Digital Thread</button>
+                  </div>
+                </div>
+
+                <!-- Tab 1: Overview -->
+                <div id="tw-panel-overview" class="tw-panel">
+                  <div class="grid grid-3 gap-3 mb-3">
+                    <div class="card p-3">
+                      <span class="text-xs uppercase muted font-semibold">Current Tread</span>
+                      <h3 class="text-primary m-0 my-1" id="tw-ov-tread">14.2 mm</h3>
+                      <p class="text-xs muted m-0">Legal limit: ≥ 3.0 mm</p>
+                    </div>
+                    <div class="card p-3">
+                      <span class="text-xs uppercase muted font-semibold">Current Position</span>
+                      <h3 class="text-blue m-0 my-1" id="tw-ov-position">AX1-L</h3>
+                      <p class="text-xs muted m-0" id="tw-ov-veh-link">Fitted on KCA-0342X</p>
+                    </div>
+                    <div class="card p-3">
+                      <span class="text-xs uppercase muted font-semibold">Department</span>
+                      <h3 class="text-green m-0 my-1" id="tw-ov-department">Transport</h3>
+                      <p class="text-xs muted m-0" id="tw-ov-depot">Nairobi Main Depot</p>
+                    </div>
+                  </div>
+
+                  <!-- Current Problems / Safety Alert Banner -->
+                  <div class="card p-3 mb-3" id="tw-ov-problems-card">
+                    <div class="flex-row between items-center mb-2">
+                      <h4 class="text-sm font-semibold m-0 flex-row items-center gap-2">
+                        <i data-lucide="alert-triangle" class="text-amber" style="width: 16px; height: 16px;"></i> Active Exceptions &amp; Condition Snapshot
+                      </h4>
+                      <span class="badge warning" id="tw-ov-problems-badge">0 Exceptions</span>
+                    </div>
+                    <div id="tw-ov-problems-list">
+                      <p class="text-xs muted m-0">No active defects or pressure loss anomalies detected. Asset operating within safety tolerance.</p>
+                    </div>
+                  </div>
+
+                  <!-- Recent Activity & Historical Snapshot -->
+                  <div class="grid grid-2 gap-3 mb-3" style="grid-template-columns: 1fr 1fr;">
+                    <div class="card p-3">
+                      <h4 class="text-sm font-semibold m-0 mb-2">Recent Physical Inspections</h4>
+                      <div id="tw-ov-recent-inspections" class="text-xs muted">Loading recent checks...</div>
+                    </div>
+                    <div class="card p-3">
+                      <h4 class="text-sm font-semibold m-0 mb-2">Recent Wheel Movements</h4>
+                      <div id="tw-ov-recent-movements" class="text-xs muted">Loading movements...</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tab 2: Inspections & Tread History -->
+                <div id="tw-panel-inspections" class="tw-panel hidden">
+                  <!-- Tread Decay Chart -->
+                  <div class="card p-3 mb-3">
+                    <div class="flex-row between items-center mb-2">
+                      <div>
+                        <h4 class="text-sm font-semibold m-0">Historical Tread Depth Wear Decay</h4>
+                        <p class="text-xs muted m-0">Factual millimeter measurements over time against legal minimum threshold</p>
+                      </div>
+                      <button class="btn tiny primary" onclick="window.openTyreInspectFromWorkspace()">+ Record Inspection</button>
+                    </div>
+                    <div class="chart-container" style="height: 240px; position: relative;">
+                      <canvas id="twTreadDecayChart"></canvas>
+                    </div>
+                  </div>
+
+                  <!-- Inspections Table -->
+                  <div class="card p-3">
+                    <h4 class="text-sm font-semibold m-0 mb-2">Inspection History Ledger</h4>
+                    <div class="table-container">
+                      <table id="tw-inspections-table">
+                        <thead>
+                          <tr>
+                            <th>Date</th>
+                            <th>Odometer</th>
+                            <th>Tread L</th>
+                            <th>Tread C</th>
+                            <th>Tread R</th>
+                            <th>Average</th>
+                            <th>PSI</th>
+                            <th>Condition</th>
+                            <th>Inspector</th>
+                            <th>Verification</th>
+                          </tr>
+                        </thead>
+                        <tbody id="tw-inspections-tbody">
+                          <tr><td colspan="10" class="text-center muted py-3">Loading inspections...</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tab 3: Fitments & Axle Position -->
+                <div id="tw-panel-fitments" class="tw-panel hidden">
+                  <!-- Active Fitment Highlight -->
+                  <div class="card p-3 mb-3" style="border-left: 4px solid var(--primary);">
+                    <div class="flex-row between items-center mb-2">
+                      <span class="badge primary">ACTIVE FITMENT</span>
+                      <button class="btn tiny secondary outline" onclick="window.openTyreRotateModal()">Rotate Position</button>
+                    </div>
+                    <div class="grid grid-4 gap-3 text-center" id="tw-active-fitment-box">
+                      <div><span class="text-xs muted block">Host Vehicle</span><strong class="text-sm" id="tw-fit-veh">--</strong></div>
+                      <div><span class="text-xs muted block">Department</span><strong class="text-sm text-primary" id="tw-fit-dept">--</strong></div>
+                      <div><span class="text-xs muted block">Axle &amp; Position</span><strong class="text-sm" id="tw-fit-pos">--</strong></div>
+                      <div><span class="text-xs muted block">Odometer at Fitment</span><strong class="text-sm" id="tw-fit-odo">--</strong></div>
+                    </div>
+                  </div>
+
+                  <!-- Fitment History Table -->
+                  <div class="card p-3">
+                    <h4 class="text-sm font-semibold m-0 mb-2">Complete Fitment &amp; Wheel Position History</h4>
+                    <div class="table-container">
+                      <table id="tw-fitments-table">
+                        <thead>
+                          <tr>
+                            <th>Vehicle</th>
+                            <th>Position</th>
+                            <th>Fitment Date</th>
+                            <th>Fitment Odo</th>
+                            <th>Fitment Tread</th>
+                            <th>Removal Date</th>
+                            <th>Removal Odo</th>
+                            <th>Removal Reason</th>
+                            <th>Fitted By</th>
+                            <th>Verification</th>
+                          </tr>
+                        </thead>
+                        <tbody id="tw-fitments-tbody">
+                          <tr><td colspan="10" class="text-center muted py-3">Loading fitments...</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tab 4: Defects & Safety -->
+                <div id="tw-panel-defects" class="tw-panel hidden">
+                  <div class="card p-3 mb-3">
+                    <h4 class="text-sm font-semibold m-0 mb-2">Safety Defects &amp; Anomaly Record</h4>
+                    <div class="table-container">
+                      <table id="tw-defects-table">
+                        <thead>
+                          <tr>
+                            <th>Defect Type</th>
+                            <th>Severity</th>
+                            <th>Reported Date</th>
+                            <th>Position</th>
+                            <th>Status</th>
+                            <th>Reporter</th>
+                            <th>Resolution</th>
+                          </tr>
+                        </thead>
+                        <tbody id="tw-defects-tbody">
+                          <tr><td colspan="7" class="text-center muted py-3">No defects recorded for this tyre</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tab 5: Casing & Retread -->
+                <div id="tw-panel-retread" class="tw-panel hidden">
+                  <div class="grid grid-3 gap-3 mb-3">
+                    <div class="card p-3">
+                      <span class="text-xs uppercase muted font-semibold">Casing Condition</span>
+                      <h3 class="text-primary m-0 my-1" id="tw-ret-casing">EXCELLENT</h3>
+                      <p class="text-xs muted m-0">Buffable structural grade</p>
+                    </div>
+                    <div class="card p-3">
+                      <span class="text-xs uppercase muted font-semibold">Retread Count</span>
+                      <h3 class="text-blue m-0 my-1" id="tw-ret-count">0</h3>
+                      <p class="text-xs muted m-0">Max recommended: 3 cycles</p>
+                    </div>
+                    <div class="card p-3">
+                      <span class="text-xs uppercase muted font-semibold">Repair Count</span>
+                      <h3 class="text-amber m-0 my-1" id="tw-ret-repairs">0</h3>
+                      <p class="text-xs muted m-0">Vulcanizations logged</p>
+                    </div>
+                  </div>
+
+                  <div class="card p-3">
+                    <h4 class="text-sm font-semibold m-0 mb-2">Casing Lifecycle &amp; Retread Journey</h4>
+                    <div class="table-container">
+                      <table id="tw-retread-table">
+                        <thead>
+                          <tr>
+                            <th>Event Date</th>
+                            <th>Lifecycle Transition</th>
+                            <th>Supplier / Workshop</th>
+                            <th>Notes</th>
+                            <th>Recorded By</th>
+                          </tr>
+                        </thead>
+                        <tbody id="tw-retread-tbody">
+                          <tr><td colspan="5" class="text-center muted py-3">No retread cycles recorded</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tab 6: Costs & Value -->
+                <div id="tw-panel-costs" class="tw-panel hidden">
+                  <div class="grid grid-3 gap-3 mb-3">
+                    <div class="card p-3">
+                      <span class="text-xs uppercase muted font-semibold">Purchase Cost</span>
+                      <h3 class="text-green m-0 my-1" id="tw-cost-purchase">KES 42,000</h3>
+                      <p class="text-xs muted m-0" id="tw-cost-supplier">Supplier: Michelin Kenya Ltd</p>
+                    </div>
+                    <div class="card p-3">
+                      <span class="text-xs uppercase muted font-semibold">Maintenance &amp; Repairs</span>
+                      <h3 class="text-primary m-0 my-1" id="tw-cost-repairs">0 KES</h3>
+                      <p class="text-xs muted m-0">Cumulative repair investment</p>
+                    </div>
+                    <div class="card p-3">
+                      <span class="text-xs uppercase muted font-semibold">Governed Cost / KM</span>
+                      <h3 class="text-purple m-0 my-1" id="tw-cost-cpk">N/A</h3>
+                      <p class="text-xs muted m-0">Insufficient lifecycle closure</p>
+                    </div>
+                  </div>
+
+                  <div class="card p-3">
+                    <h4 class="text-sm font-semibold m-0 mb-2">Tyre Financial Ledger</h4>
+                    <div class="table-container">
+                      <table id="tw-costs-table">
+                        <thead>
+                          <tr>
+                            <th>Date</th>
+                            <th>Cost Category</th>
+                            <th>Description</th>
+                            <th>Amount</th>
+                            <th>Reference</th>
+                          </tr>
+                        </thead>
+                        <tbody id="tw-costs-tbody">
+                          <tr><td colspan="5" class="text-center muted py-3">Loading cost items...</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tab 7: Digital Thread Timeline -->
+                <div id="tw-panel-timeline" class="tw-panel hidden">
+                  <div class="card p-3">
+                    <div class="flex-row between items-center mb-3">
+                      <div>
+                        <h4 class="text-sm font-semibold m-0">Immutable Physical Tyre Digital Thread</h4>
+                        <p class="text-xs muted m-0">Append-only chronological record of registrations, fitments, rotations, repairs, retreads, and scrap actions</p>
+                      </div>
+                    </div>
+                    <div class="vw-timeline" id="tw-activity-timeline">
+                      <p class="text-center muted py-4">Loading tyre timeline...</p>
+                    </div>
+                  </div>
+                </div>
+
+              </div><!-- .tw-content-col -->
+            </div><!-- .tw-body-grid -->
+          </div><!-- #tyre-workspace-view -->
 
         </div><!-- .content-area -->
       </main>
@@ -2527,6 +4015,654 @@
             </div>
           </form>
         </div>
+      </div>
+    </div>
+
+    <!-- Edit Vehicle Modal -->
+    <div id="edit-vehicle-modal" class="modal hidden">
+      <div class="modal-content card">
+        <div class="modal-header">
+          <h2>Edit Vehicle Master Details</h2>
+          <button class="close-modal" id="close-edit-vehicle-modal" onclick="window.closeModal('edit-vehicle-modal')" aria-label="Close">✕</button>
+        </div>
+        <form id="edit-vehicle-form" onsubmit="window.submitEditVehicle(event)">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="edit-registrationNumber">Registration (Read Only)</label>
+              <input type="text" id="edit-registrationNumber" class="form-input" disabled />
+            </div>
+            <div class="form-group">
+              <label for="edit-fleetNumber">Fleet Number</label>
+              <input type="text" id="edit-fleetNumber" class="form-input" placeholder="FLT-001" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="edit-vehicleClass">Vehicle Class</label>
+              <select id="edit-vehicleClass" class="form-select">
+                <option value="6x4 Prime Mover / Tractor">🚛 6x4 Prime Mover / Tractor Head (10 Tyres)</option>
+                <option value="3-Axle Semi-Trailer / Flatbed">📦 3-Axle Semi-Trailer / Container Flatbed (12 Tyres)</option>
+                <option value="6x4 Heavy Rigid / Tipper (FVZ)">🚚 6x4 Heavy Rigid / Tipper (10 Tyres)</option>
+                <option value="6-Wheel Medium Truck (FRR/FSR)">🚛 6-Wheel Medium Truck (6 Tyres)</option>
+                <option value="6-Wheel Light Truck (NQR/Canter)">🚚 6-Wheel Light Commercial (6 Tyres)</option>
+                <option value="Intercity Passenger Bus / Coach">🚌 Intercity Passenger Bus / Coach (6 Tyres)</option>
+                <option value="4x2 Light Commercial / Pickup / Matatu">🚗 4x2 Light Commercial / Pickup / Matatu (4 Tyres)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="edit-currentOdometer">Current Odometer (KM)</label>
+              <input type="number" id="edit-currentOdometer" class="form-input" placeholder="125000" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="edit-make">Make</label>
+              <input type="text" id="edit-make" class="form-input" placeholder="Scania / Isuzu" />
+            </div>
+            <div class="form-group">
+              <label for="edit-model">Model</label>
+              <input type="text" id="edit-model" class="form-input" placeholder="R560" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="edit-region">Region</label>
+              <input type="text" id="edit-region" class="form-input" placeholder="Nairobi" />
+            </div>
+            <div class="form-group">
+              <label for="edit-depot">Depot</label>
+              <input type="text" id="edit-depot" class="form-input" placeholder="Nairobi Main Depot" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="edit-department">Department</label>
+            <input type="text" id="edit-department" class="form-input" placeholder="Operations / Transport" />
+          </div>
+          <div class="modal-actions mt-3">
+            <button type="button" class="btn secondary" onclick="window.closeModal('edit-vehicle-modal')">Cancel</button>
+            <button type="submit" class="btn primary">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Ground Vehicle Modal -->
+    <div id="ground-vehicle-modal" class="modal hidden">
+      <div class="modal-content card modal-md">
+        <div class="modal-header">
+          <h2 class="text-danger"><i data-lucide="shield-alert"></i> Ground Vehicle Confirmation</h2>
+          <button class="close-modal" id="close-ground-vehicle-modal" onclick="window.closeModal('ground-vehicle-modal')" aria-label="Close">✕</button>
+        </div>
+        <form id="ground-vehicle-form" onsubmit="window.submitGroundVehicle(event)">
+          <div class="p-3 mb-3 rounded" style="background: #fef2f2; border: 1px solid #fecdd3;">
+            <p class="text-xs text-danger m-0 font-medium">
+              Grounding will immediately change the operational status to <strong>GROUNDED</strong>, prevent trip dispatches, and log an active downtime incident for safety governance.
+            </p>
+          </div>
+          <div class="form-group mb-3">
+            <label class="form-label font-semibold">Reason for Grounding <span class="text-danger">*</span></label>
+            <textarea id="ground-reason" class="form-input" rows="3" placeholder="e.g. Critical tyre blowout on steer axle AX1-L / Unsafe brake pressure" required></textarea>
+          </div>
+          <div class="form-group mb-3">
+            <label class="form-label font-semibold">Additional Operational Notes</label>
+            <input type="text" id="ground-notes" class="form-input" placeholder="e.g. Awaiting workshop casing replacement" />
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn secondary" onclick="window.closeModal('ground-vehicle-modal')">Cancel</button>
+            <button type="submit" class="btn danger"><i data-lucide="shield-alert"></i> Confirm Grounding</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Recover Vehicle Modal -->
+    <div id="recover-vehicle-modal" class="modal hidden">
+      <div class="modal-content card modal-md">
+        <div class="modal-header">
+          <h2 class="text-success"><i data-lucide="check-circle-2"></i> Recover Vehicle to Active Service</h2>
+          <button class="close-modal" id="close-recover-vehicle-modal" onclick="window.closeModal('recover-vehicle-modal')" aria-label="Close">✕</button>
+        </div>
+        <form id="recover-vehicle-form" onsubmit="window.submitRecoverVehicle(event)">
+          <div class="p-3 mb-3 rounded" style="background: #f0fdf4; border: 1px solid #bbf7d0;">
+            <p class="text-xs text-success m-0 font-medium">
+              Recovering will close the active vehicle downtime record, verify safety sign-off, and return the vehicle status to <strong>ACTIVE</strong> operational service.
+            </p>
+          </div>
+          <div class="form-group mb-3">
+            <label class="form-label font-semibold">Recovery / Quality Sign-off Notes</label>
+            <textarea id="recover-notes" class="form-input" rows="3" placeholder="e.g. Tyre replacement completed and torque verified. Vehicle road-test passed." required></textarea>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn secondary" onclick="window.closeModal('recover-vehicle-modal')">Cancel</button>
+            <button type="submit" class="btn success"><i data-lucide="check-circle-2"></i> Confirm Recovery</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Transfer Workshop Modal -->
+    <div id="transfer-workshop-modal" class="modal hidden">
+      <div class="modal-content card modal-md">
+        <div class="modal-header">
+          <h2><i data-lucide="arrow-right-left"></i> Transfer Vehicle Workshop</h2>
+          <button class="close-modal" id="close-transfer-workshop-modal" onclick="window.closeModal('transfer-workshop-modal')" aria-label="Close">✕</button>
+        </div>
+        <form id="transfer-workshop-form" onsubmit="window.submitTransferWorkshop(event)">
+          <div class="form-group mb-3">
+            <label class="form-label font-semibold">Target Workshop <span class="text-danger">*</span></label>
+            <select id="tw-workshop-select" class="form-select" required>
+              <option value="">-- Select Workshop --</option>
+            </select>
+          </div>
+          <div class="form-group mb-3">
+            <label class="form-label font-semibold">Transfer Reason / Authorization</label>
+            <input type="text" id="tw-reason" class="form-input" placeholder="e.g. Scheduled major preventative maintenance" required />
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn secondary" onclick="window.closeModal('transfer-workshop-modal')">Cancel</button>
+            <button type="submit" class="btn primary"><i data-lucide="arrow-right-left"></i> Execute Transfer</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Tyre Rotate Modal -->
+    <div id="tyre-rotate-modal" class="modal hidden">
+      <div class="modal-content card modal-md">
+        <div class="modal-header">
+          <h2><i data-lucide="refresh-cw"></i> Rotate Tyre Wheel Position</h2>
+          <button class="close-modal" id="close-tyre-rotate-modal" onclick="window.closeModal('tyre-rotate-modal')" aria-label="Close">✕</button>
+        </div>
+        <form id="tyre-rotate-form" onsubmit="window.submitTyreRotateModal(event)">
+          <div class="form-group mb-3">
+            <label class="form-label font-semibold">New Wheel Position <span class="text-danger">*</span></label>
+            <select id="rotate-position-select" class="form-select" required>
+              <option value="1">AX1-L (Axle 1 Left Steer)</option>
+              <option value="2">AX1-R (Axle 1 Right Steer)</option>
+              <option value="3">AX2-L-IN (Axle 2 Left Inner Drive)</option>
+              <option value="4">AX2-L-OUT (Axle 2 Left Outer Drive)</option>
+              <option value="5">AX2-R-IN (Axle 2 Right Inner Drive)</option>
+              <option value="6">AX2-R-OUT (Axle 2 Right Outer Drive)</option>
+              <option value="7">AX3-L-IN (Axle 3 Left Inner Drive/Trailer)</option>
+              <option value="8">AX3-L-OUT (Axle 3 Left Outer Drive/Trailer)</option>
+              <option value="9">AX3-R-IN (Axle 3 Right Inner Drive/Trailer)</option>
+              <option value="10">AX3-R-OUT (Axle 3 Right Outer Drive/Trailer)</option>
+            </select>
+          </div>
+          <div class="form-group mb-3">
+            <label class="form-label font-semibold">Odometer at Rotation (km)</label>
+            <input type="number" id="rotate-odometer" class="form-input" placeholder="e.g. 128500" />
+          </div>
+          <div class="form-group mb-3">
+            <label class="form-label font-semibold">Rotation Reason / Notes</label>
+            <input type="text" id="rotate-notes" class="form-input" placeholder="e.g. Scheduled Steer-to-Drive cross rotation for even wear" />
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn secondary" onclick="window.closeModal('tyre-rotate-modal')">Cancel</button>
+            <button type="submit" class="btn warning"><i data-lucide="refresh-cw"></i> Execute Rotation</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Tyre Repair Modal -->
+    <div id="tyre-repair-modal" class="modal hidden">
+      <div class="modal-content card modal-md">
+        <div class="modal-header">
+          <h2><i data-lucide="wrench"></i> Log Tyre Repair Completion</h2>
+          <button class="close-modal" id="close-tyre-repair-modal" onclick="window.closeModal('tyre-repair-modal')" aria-label="Close">✕</button>
+        </div>
+        <form id="tyre-repair-form" onsubmit="window.submitTyreRepairModal(event)">
+          <div class="form-group mb-3">
+            <label class="form-label font-semibold">Repair Type <span class="text-danger">*</span></label>
+            <select id="repair-type-select" class="form-select" required>
+              <option value="Puncture Vulcanization">Puncture Vulcanization / Crown Patch</option>
+              <option value="Sidewall Reinforcement">Sidewall Patch &amp; Vulcanization</option>
+              <option value="Bead Repair">Bead Area Reseating &amp; Repair</option>
+              <option value="Valve Replacement">Valve Stem Replacement &amp; Pressure Test</option>
+            </select>
+          </div>
+          <div class="form-group mb-3">
+            <label class="form-label font-semibold">Repair Cost (KES)</label>
+            <input type="number" id="repair-cost-input" class="form-input" placeholder="e.g. 2500" value="2500" />
+          </div>
+          <div class="form-group mb-3">
+            <label class="form-label font-semibold">Repair Notes / Technician Findings</label>
+            <input type="text" id="repair-notes-input" class="form-input" placeholder="e.g. Nail puncture vulcanized and pressure tested at 120 PSI" required />
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn secondary" onclick="window.closeModal('tyre-repair-modal')">Cancel</button>
+            <button type="submit" class="btn primary"><i data-lucide="wrench"></i> Save Repair Record</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Tyre Dispose Modal -->
+    <div id="tyre-dispose-modal" class="modal hidden">
+      <div class="modal-content card modal-md">
+        <div class="modal-header">
+          <h2><i data-lucide="trash-2"></i> End-of-Life Tyre Disposal</h2>
+          <button class="close-modal" id="close-tyre-dispose-modal" onclick="window.closeModal('tyre-dispose-modal')" aria-label="Close">✕</button>
+        </div>
+        <form id="tyre-dispose-form" onsubmit="window.submitTyreDisposeModal(event)">
+          <div class="p-3 mb-3 rounded" style="background: #fef2f2; border: 1px solid #fecaca;">
+            <p class="text-xs text-danger m-0 font-medium">
+              Warning: Disposing this tyre will mark it as <strong>DISPOSED / SCRAPPED</strong> and create an immutable end-of-life lifecycle event.
+            </p>
+          </div>
+          <div class="form-group mb-3">
+            <label class="form-label font-semibold">Disposal Reason <span class="text-danger">*</span></label>
+            <select id="dispose-reason-select" class="form-select" required>
+              <option value="Tread Worn Below Legal Limit (Scrap)">Tread Worn Below Legal Minimum Limit (3.0mm)</option>
+              <option value="Casing Fatigue / Unretreadable">Casing Fatigue / Internal Ply Separation</option>
+              <option value="Severe Sidewall Rupture / Blowout">Severe Sidewall Rupture / Blowout Damage</option>
+              <option value="Sold for Casing Salvage">Sold to Authorized Casing Salvage Dealer</option>
+            </select>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn secondary" onclick="window.closeModal('tyre-dispose-modal')">Cancel</button>
+            <button type="submit" class="btn danger"><i data-lucide="trash-2"></i> Confirm Disposal</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         STEP 5D FINANCIAL & ACQUISITION MODALS
+         ============================================================ -->
+
+    <!-- 1. Vehicle Financial Profile Modal -->
+    <div id="vehicle-financial-profile-modal" class="modal hidden">
+      <div class="modal-content card modal-lg">
+        <div class="modal-header">
+          <h2><i data-lucide="shield-check"></i> <span id="vfp-modal-title">Set Vehicle Financial &amp; Acquisition Profile</span></h2>
+          <button class="close-modal" onclick="window.closeModal('vehicle-financial-profile-modal')" aria-label="Close">✕</button>
+        </div>
+        <form id="vehicle-financial-profile-form" onsubmit="window.submitVehicleFinancialProfile(event)">
+          <div class="grid grid-2 gap-3 mb-3">
+            <div class="form-group">
+              <label class="form-label font-semibold">Acquisition Cost (KES) <span class="text-danger">*</span></label>
+              <input type="number" step="0.01" id="vfp-form-acquisitionCost" class="form-input" placeholder="e.g. 12000000" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label font-semibold">Capitalized Depreciable Basis (KES) <span class="text-danger">*</span></label>
+              <input type="number" step="0.01" id="vfp-form-capitalizedCost" class="form-input" placeholder="e.g. 12000000" required />
+            </div>
+          </div>
+
+          <div class="grid grid-3 gap-3 mb-3">
+            <div class="form-group">
+              <label class="form-label font-semibold">Acquisition Date <span class="text-danger">*</span></label>
+              <input type="date" id="vfp-form-acquisitionDate" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label font-semibold">In-Service Date <span class="text-danger">*</span></label>
+              <input type="date" id="vfp-form-inServiceDate" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label font-semibold">Ownership Type <span class="text-danger">*</span></label>
+              <select id="vfp-form-ownershipType" class="form-select" required>
+                <option value="OWNED">OWNED</option>
+                <option value="FINANCED">FINANCED</option>
+                <option value="LEASED">LEASED</option>
+                <option value="RENTED">RENTED</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-2 gap-3 mb-3">
+            <div class="form-group">
+              <label class="form-label font-semibold">Vendor / Dealership</label>
+              <input type="text" id="vfp-form-vendorId" class="form-input" placeholder="Vendor Code or Name" />
+            </div>
+            <div class="form-group">
+              <label class="form-label font-semibold">Purchase Order Reference</label>
+              <input type="text" id="vfp-form-poRef" class="form-input" placeholder="e.g. PO-2024-0091" />
+            </div>
+          </div>
+
+          <div class="grid grid-3 gap-3 mb-3">
+            <div class="form-group">
+              <label class="form-label font-semibold">Depreciation Method <span class="text-danger">*</span></label>
+              <select id="vfp-form-depMethod" class="form-select" required>
+                <option value="STRAIGHT_LINE">STRAIGHT_LINE</option>
+                <option value="REDUCING_BALANCE">REDUCING_BALANCE</option>
+                <option value="USAGE_BASED_KM">USAGE_BASED_KM</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label font-semibold">Depreciation Rate (%) <span class="text-danger">*</span></label>
+              <input type="number" step="0.01" id="vfp-form-depRate" class="form-input" placeholder="e.g. 20.0" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label font-semibold">Useful Life (Years) <span class="text-danger">*</span></label>
+              <input type="number" id="vfp-form-lifeYears" class="form-input" placeholder="e.g. 5" required />
+            </div>
+          </div>
+
+          <div class="grid grid-3 gap-3 mb-3">
+            <div class="form-group">
+              <label class="form-label font-semibold">Useful Life (KM) <span class="text-danger">*</span></label>
+              <input type="number" id="vfp-form-lifeKm" class="form-input" placeholder="e.g. 500000" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label font-semibold">Residual Value Floor (KES) <span class="text-danger">*</span></label>
+              <input type="number" step="0.01" id="vfp-form-residualValue" class="form-input" placeholder="e.g. 2000000" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label font-semibold">Book Value Authority <span class="text-danger">*</span></label>
+              <select id="vfp-form-authority" class="form-select" required>
+                <option value="FI360">FI360 (Calculation Engine)</option>
+                <option value="EXTERNAL_ERP">EXTERNAL_ERP (Imported)</option>
+                <option value="MANUAL_VERIFIED">MANUAL_VERIFIED (Audited Manual)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-2 gap-3 mb-3">
+            <div class="form-group">
+              <label class="form-label font-semibold">External ERP Book Value (Optional)</label>
+              <input type="number" step="0.01" id="vfp-form-externalValue" class="form-input" placeholder="e.g. 8500000" />
+            </div>
+            <div class="form-group">
+              <label class="form-label font-semibold">External Valuation Date</label>
+              <input type="date" id="vfp-form-externalDate" class="form-input" />
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn secondary" onclick="window.closeModal('vehicle-financial-profile-modal')">Cancel</button>
+            <button type="submit" class="btn primary"><i data-lucide="check"></i> Save Financial Profile</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 2. Vehicle Finance Agreement Modal -->
+    <div id="vehicle-finance-agreement-modal" class="modal hidden">
+      <div class="modal-content card modal-lg">
+        <div class="modal-header">
+          <h2><i data-lucide="file-text"></i> Register Finance Agreement / Lease</h2>
+          <button class="close-modal" onclick="window.closeModal('vehicle-finance-agreement-modal')" aria-label="Close">✕</button>
+        </div>
+        <form id="vehicle-finance-agreement-form" onsubmit="window.submitVehicleFinanceAgreement(event)">
+          <div class="grid grid-2 gap-3 mb-3">
+            <div class="form-group">
+              <label class="form-label font-semibold">Agreement Number <span class="text-danger">*</span></label>
+              <input type="text" id="vfa-form-agreementNumber" class="form-input" placeholder="e.g. AGR-2024-0018" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label font-semibold">Agreement Type <span class="text-danger">*</span></label>
+              <select id="vfa-form-agreementType" class="form-select" required>
+                <option value="HIRE_PURCHASE">HIRE_PURCHASE</option>
+                <option value="LEASING">LEASING</option>
+                <option value="CHATTEL_MORTGAGE">CHATTEL_MORTGAGE</option>
+                <option value="OPERATING_LEASE">OPERATING_LEASE</option>
+                <option value="OTHER">OTHER</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-2 gap-3 mb-3">
+            <div class="form-group">
+              <label class="form-label font-semibold">Lender / Lessor <span class="text-danger">*</span></label>
+              <input type="text" id="vfa-form-lender" class="form-input" placeholder="e.g. Stanbic Bank / NCBA" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label font-semibold">Facility Reference</label>
+              <input type="text" id="vfa-form-facility" class="form-input" placeholder="e.g. FAC-STANBIC-AF-2024" />
+            </div>
+          </div>
+
+          <div class="grid grid-3 gap-3 mb-3">
+            <div class="form-group">
+              <label class="form-label font-semibold">Principal Amount (KES) <span class="text-danger">*</span></label>
+              <input type="number" step="0.01" id="vfa-form-principal" class="form-input" placeholder="e.g. 10000000" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label font-semibold">Down Payment (KES) <span class="text-danger">*</span></label>
+              <input type="number" step="0.01" id="vfa-form-downpayment" class="form-input" placeholder="e.g. 2500000" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label font-semibold">Financed Amount (KES) <span class="text-danger">*</span></label>
+              <input type="number" step="0.01" id="vfa-form-financed" class="form-input" placeholder="e.g. 7500000" required />
+            </div>
+          </div>
+
+          <div class="grid grid-3 gap-3 mb-3">
+            <div class="form-group">
+              <label class="form-label font-semibold">Interest Rate (%) <span class="text-danger">*</span></label>
+              <input type="number" step="0.01" id="vfa-form-rate" class="form-input" placeholder="e.g. 13.5" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label font-semibold">Term (Months) <span class="text-danger">*</span></label>
+              <input type="number" id="vfa-form-term" class="form-input" placeholder="e.g. 48" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label font-semibold">Monthly Repayment (KES) <span class="text-danger">*</span></label>
+              <input type="number" step="0.01" id="vfa-form-monthly" class="form-input" placeholder="e.g. 195000" required />
+            </div>
+          </div>
+
+          <div class="grid grid-3 gap-3 mb-3">
+            <div class="form-group">
+              <label class="form-label font-semibold">Outstanding Balance (KES) <span class="text-danger">*</span></label>
+              <input type="number" step="0.01" id="vfa-form-balance" class="form-input" placeholder="e.g. 7500000" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label font-semibold">Start Date <span class="text-danger">*</span></label>
+              <input type="date" id="vfa-form-start" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label font-semibold">Maturity Date <span class="text-danger">*</span></label>
+              <input type="date" id="vfa-form-maturity" class="form-input" required />
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn secondary" onclick="window.closeModal('vehicle-finance-agreement-modal')">Cancel</button>
+            <button type="submit" class="btn primary"><i data-lucide="check"></i> Save Agreement</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 3. Settle Agreement Modal -->
+    <div id="vehicle-finance-settle-modal" class="modal hidden">
+      <div class="modal-content card modal-md">
+        <div class="modal-header">
+          <h2><i data-lucide="check-circle-2"></i> Settle Finance Agreement</h2>
+          <button class="close-modal" onclick="window.closeModal('vehicle-finance-settle-modal')" aria-label="Close">✕</button>
+        </div>
+        <form id="vehicle-finance-settle-form" onsubmit="window.submitSettleFinanceAgreement(event)">
+          <input type="hidden" id="vfa-settle-id" />
+          <p class="text-sm muted mb-3">
+            Record complete early payoff or contractual maturity settlement. This will set outstanding balance to <strong>0 KES</strong> and mark the agreement as <strong>SETTLED</strong>.
+          </p>
+          <div class="form-group mb-3">
+            <label class="form-label font-semibold">Settlement Date <span class="text-danger">*</span></label>
+            <input type="date" id="vfa-settle-date" class="form-input" required />
+          </div>
+          <div class="form-group mb-3">
+            <label class="form-label font-semibold">Settlement / Payoff Amount (KES) <span class="text-danger">*</span></label>
+            <input type="number" step="0.01" id="vfa-settle-amount" class="form-input" placeholder="e.g. 1200000" required />
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn secondary" onclick="window.closeModal('vehicle-finance-settle-modal')">Cancel</button>
+            <button type="submit" class="btn success"><i data-lucide="check-circle"></i> Confirm Settlement</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 4. Vehicle Disposal Draft Modal -->
+    <div id="vehicle-disposal-modal" class="modal hidden">
+      <div class="modal-content card modal-md">
+        <div class="modal-header">
+          <h2><i data-lucide="archive"></i> Record Vehicle Disposal</h2>
+          <button class="close-modal" onclick="window.closeModal('vehicle-disposal-modal')" aria-label="Close">✕</button>
+        </div>
+        <form id="vehicle-disposal-form" onsubmit="window.submitVehicleDisposal(event)">
+          <div class="grid grid-2 gap-3 mb-3">
+            <div class="form-group">
+              <label class="form-label font-semibold">Disposal Date <span class="text-danger">*</span></label>
+              <input type="date" id="vd-form-date" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label font-semibold">Disposal Method <span class="text-danger">*</span></label>
+              <select id="vd-form-method" class="form-select" required>
+                <option value="SALE">SALE</option>
+                <option value="SCRAP">SCRAP</option>
+                <option value="TRADE_IN">TRADE_IN</option>
+                <option value="INSURANCE_WRITE_OFF">INSURANCE_WRITE_OFF</option>
+                <option value="DONATION">DONATION</option>
+                <option value="OTHER">OTHER</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-2 gap-3 mb-3">
+            <div class="form-group">
+              <label class="form-label font-semibold">Buyer / Recipient Name</label>
+              <input type="text" id="vd-form-buyerName" class="form-input" placeholder="e.g. Rift Valley Transporters" />
+            </div>
+            <div class="form-group">
+              <label class="form-label font-semibold">Buyer Contact</label>
+              <input type="text" id="vd-form-buyerContact" class="form-input" placeholder="e.g. +254 700 000000" />
+            </div>
+          </div>
+
+          <div class="grid grid-2 gap-3 mb-3">
+            <div class="form-group">
+              <label class="form-label font-semibold">Gross Sale Proceeds (KES) <span class="text-danger">*</span></label>
+              <input type="number" step="0.01" id="vd-form-proceeds" class="form-input" placeholder="e.g. 5000000" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label font-semibold">Disposal Costs / Brokerage (KES) <span class="text-danger">*</span></label>
+              <input type="number" step="0.01" id="vd-form-costs" class="form-input" placeholder="e.g. 100000" required />
+            </div>
+          </div>
+
+          <div class="form-group mb-3">
+            <label class="form-label font-semibold">Sale Invoice / De-registration Ref</label>
+            <input type="text" id="vd-form-invoice" class="form-input" placeholder="e.g. INV-DISP-2026-004" />
+          </div>
+
+          <div class="form-group mb-3">
+            <label class="form-label font-semibold">Disposal Reason / Rationale</label>
+            <input type="text" id="vd-form-reason" class="form-input" placeholder="e.g. Fleet replacement schedule completed" />
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn secondary" onclick="window.closeModal('vehicle-disposal-modal')">Cancel</button>
+            <button type="submit" class="btn danger"><i data-lucide="file-plus"></i> Save Disposal Draft</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 5. Finalize Disposal Modal -->
+    <div id="vehicle-disposal-finalize-modal" class="modal hidden">
+      <div class="modal-content card modal-md">
+        <div class="modal-header">
+          <h2><i data-lucide="alert-triangle" class="text-danger"></i> Finalize Vehicle Disposal</h2>
+          <button class="close-modal" onclick="window.closeModal('vehicle-disposal-finalize-modal')" aria-label="Close">✕</button>
+        </div>
+        <form id="vehicle-disposal-finalize-form" onsubmit="window.submitFinalizeDisposal(event)">
+          <input type="hidden" id="vd-finalize-id" />
+          <div class="p-3 mb-3 rounded" style="background: #fef2f2; border: 1px solid #fecaca;">
+            <p class="text-xs text-danger m-0 font-medium">
+              <strong>CRITICAL ACTION:</strong> Finalizing this disposal will:
+              <br>1. Lock the disposal record and calculate the final accounting Gain/Loss.
+              <br>2. Transition the vehicle status permanently to <strong>DISPOSED</strong>.
+              <br>3. Set the vehicle active flag to <strong>false</strong>.
+            </p>
+          </div>
+          <div class="form-group mb-3">
+            <label class="form-label font-semibold">Finalization Notes / Approver Reference</label>
+            <input type="text" id="vd-finalize-notes" class="form-input" placeholder="e.g. Board approval ref #BA-2026-11" />
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn secondary" onclick="window.closeModal('vehicle-disposal-finalize-modal')">Cancel</button>
+            <button type="submit" class="btn danger"><i data-lucide="lock"></i> Finalize &amp; De-register Vehicle</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 6. Map External Identity Modal -->
+    <div id="vehicle-external-identity-modal" class="modal hidden">
+      <div class="modal-content card modal-md">
+        <div class="modal-header">
+          <h2><i data-lucide="link"></i> Map External Provider Vehicle ID</h2>
+          <button class="close-modal" onclick="window.closeModal('vehicle-external-identity-modal')" aria-label="Close">✕</button>
+        </div>
+        <form id="vehicle-external-identity-form" onsubmit="window.submitMapExternalIdentity(event)">
+          <div class="form-group mb-3">
+            <label class="form-label font-semibold">Integration Connection <span class="text-danger">*</span></label>
+            <select id="vei-form-connection" class="form-select" required>
+              <option value="">Select Connection...</option>
+            </select>
+          </div>
+          <div class="form-group mb-3">
+            <label class="form-label font-semibold">External Vehicle ID (Provider Identifier) <span class="text-danger">*</span></label>
+            <input type="text" id="vei-form-extId" class="form-input" placeholder="e.g. GBT-78452 or TRK-99871" required />
+          </div>
+          <div class="grid grid-2 gap-3 mb-3">
+            <div class="form-group">
+              <label class="form-label font-semibold">External Registration (Optional)</label>
+              <input type="text" id="vei-form-extReg" class="form-input" placeholder="e.g. KCA-0342X" />
+            </div>
+            <div class="form-group">
+              <label class="form-label font-semibold">External VIN (Optional)</label>
+              <input type="text" id="vei-form-extVin" class="form-input" placeholder="e.g. YV2R1300..." />
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn secondary" onclick="window.closeModal('vehicle-external-identity-modal')">Cancel</button>
+            <button type="submit" class="btn primary"><i data-lucide="link"></i> Save External Identity Mapping</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 7. Assign Telematics Device Modal -->
+    <div id="vehicle-device-assign-modal" class="modal hidden">
+      <div class="modal-content card modal-md">
+        <div class="modal-header">
+          <h2><i data-lucide="cpu"></i> Assign Physical Telematics / IoT Device</h2>
+          <button class="close-modal" onclick="window.closeModal('vehicle-device-assign-modal')" aria-label="Close">✕</button>
+        </div>
+        <form id="vehicle-device-assign-form" onsubmit="window.submitAssignDevice(event)">
+          <div class="form-group mb-3">
+            <label class="form-label font-semibold">Select Connection &amp; Device Serial <span class="text-danger">*</span></label>
+            <input type="text" id="vda-form-serial" class="form-input" placeholder="e.g. DEV-GPS-990211" required />
+          </div>
+          <div class="grid grid-2 gap-3 mb-3">
+            <div class="form-group">
+              <label class="form-label font-semibold">Device Type</label>
+              <select id="vda-form-type" class="form-select">
+                <option value="GPS_TRACKER">GPS Tracker</option>
+                <option value="OBD_GATEWAY">OBD-II Gateway</option>
+                <option value="TPMS_GATEWAY">TPMS Receiver</option>
+                <option value="DASHCAM">Dashcam / ADAS</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label font-semibold">IMEI Number (Optional)</label>
+              <input type="text" id="vda-form-imei" class="form-input" placeholder="e.g. 864201049921234" />
+            </div>
+          </div>
+          <div class="form-group mb-3">
+            <label class="form-label font-semibold">Assignment Reason / Notes</label>
+            <input type="text" id="vda-form-reason" class="form-input" placeholder="e.g. Scheduled IoT tracker installation" />
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn secondary" onclick="window.closeModal('vehicle-device-assign-modal')">Cancel</button>
+            <button type="submit" class="btn primary"><i data-lucide="check-circle"></i> Register &amp; Assign Device</button>
+          </div>
+        </form>
       </div>
     </div>
 

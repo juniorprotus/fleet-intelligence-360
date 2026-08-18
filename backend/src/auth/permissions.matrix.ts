@@ -117,6 +117,12 @@ export const ROLE_MATRIX: Record<UserRole, RoleConfig> = {
       Permission.DRIVER_INSPECTION_CREATE,
       Permission.DRIVER_INSPECTION_VIEW_OWN,
       Permission.DRIVER_SAFETY_VIEW_OWN,
+      // Vehicle Financial (Step 5D)
+      Permission.VEHICLE_FINANCIAL_READ,
+      Permission.VEHICLE_FINANCIAL_MANAGE,
+      Permission.FINANCE_AGREEMENT_MANAGE,
+      Permission.VEHICLE_DISPOSAL_MANAGE,
+      Permission.VEHICLE_BOOK_VALUE_READ,
     ],
   },
 
@@ -139,6 +145,9 @@ export const ROLE_MATRIX: Record<UserRole, RoleConfig> = {
       Permission.REPORTS_READ,
       Permission.REPORTS_EXPORT,
       Permission.AUDIT_READ,
+      // Vehicle Financial (Step 5D) — executive read
+      Permission.VEHICLE_FINANCIAL_READ,
+      Permission.VEHICLE_BOOK_VALUE_READ,
     ],
   },
 
@@ -180,6 +189,12 @@ export const ROLE_MATRIX: Record<UserRole, RoleConfig> = {
       Permission.PROCUREMENT_UPDATE,
       Permission.SAFETY_READ,
       Permission.SAFETY_CREATE,
+      // Vehicle Financial (Step 5D)
+      Permission.VEHICLE_FINANCIAL_READ,
+      Permission.VEHICLE_FINANCIAL_MANAGE,
+      Permission.FINANCE_AGREEMENT_MANAGE,
+      Permission.VEHICLE_DISPOSAL_MANAGE,
+      Permission.VEHICLE_BOOK_VALUE_READ,
     ],
   },
 
@@ -333,6 +348,12 @@ export const ROLE_MATRIX: Record<UserRole, RoleConfig> = {
       Permission.WORKSHOP_READ,
       Permission.REPORTS_READ,
       Permission.REPORTS_EXPORT,
+      // Vehicle Financial (Step 5D)
+      Permission.VEHICLE_FINANCIAL_READ,
+      Permission.VEHICLE_FINANCIAL_MANAGE,
+      Permission.FINANCE_AGREEMENT_MANAGE,
+      Permission.VEHICLE_DISPOSAL_MANAGE,
+      Permission.VEHICLE_BOOK_VALUE_READ,
     ],
   },
 
@@ -371,6 +392,9 @@ export const ROLE_MATRIX: Record<UserRole, RoleConfig> = {
       Permission.FINANCE_READ,
       Permission.BUDGET_READ,
       Permission.REPORTS_READ,
+      // Vehicle Financial (Step 5D) — auditor read
+      Permission.VEHICLE_FINANCIAL_READ,
+      Permission.VEHICLE_BOOK_VALUE_READ,
     ],
   },
 

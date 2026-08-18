@@ -87,6 +87,13 @@ export enum Permission {
   FINANCE_CREATE           = 'finance.create',
   FINANCE_UPDATE           = 'finance.update',
 
+  // ── Vehicle Financial & Acquisition (Step 5D) ─────────────
+  VEHICLE_FINANCIAL_READ   = 'vehicle.financial.read',
+  VEHICLE_FINANCIAL_MANAGE = 'vehicle.financial.manage',
+  FINANCE_AGREEMENT_MANAGE = 'vehicle.finance.agreement.manage',
+  VEHICLE_DISPOSAL_MANAGE  = 'vehicle.disposal.manage',
+  VEHICLE_BOOK_VALUE_READ  = 'vehicle.book_value.read',
+
   // ── Budget ───────────────────────────────────
   BUDGET_READ              = 'budget.read',
   BUDGET_CREATE            = 'budget.create',

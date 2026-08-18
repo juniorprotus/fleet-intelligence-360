@@ -39,8 +39,8 @@ model Organization {
 
   legalEntities LegalEntity[]
 
-  @@map("organizations")
   @@index([tenantId])
+  @@map("organizations")
 }
 
 /// Legal Entity operating under an Organization
@@ -54,15 +54,15 @@ model LegalEntity {
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
 
-  @@map("legal_entities")
   @@index([organizationId])
+  @@map("legal_entities")
 }
 
 /// Dedicated Driver entity (Separate concept from System User identity)
 model Driver {
   id            String    @id @default(uuid()) @map("driver_id")
-  userId        Int?      @map("user_id")                               // Optional link to system User account
-  driverNumber  String    @unique @map("driver_number")                 // e.g. "DRV-001"
+  userId        Int?      @map("user_id") // Optional link to system User account
+  driverNumber  String    @unique @map("driver_number") // e.g. "DRV-001"
   firstName     String    @map("first_name")
   lastName      String    @map("last_name")
   licenceNumber String?   @map("licence_number")
@@ -87,9 +87,9 @@ model VehicleWorkshopAssignment {
   reason       String?
   createdAt    DateTime  @default(now()) @map("created_at")
 
-  @@map("vehicle_workshop_assignments")
   @@index([vehicleId])
   @@index([workshopId])
+  @@map("vehicle_workshop_assignments")
 }
 
 // ============================================================
@@ -101,34 +101,34 @@ model VehicleWorkshopAssignment {
 /// FI360 Workshop entity. Represents a physical workshop location
 /// within the Org → Region → Depot → Workshop hierarchy.
 model Workshop {
-  id              String         @id @default(uuid()) @map("workshop_id")
-  code            String         @unique                                    // e.g. "WS-NBI-01"
-  name            String                                                     // e.g. "Nairobi Main Workshop"
-  region          String?                                                    // matches Vehicle/User.region string
-  depot           String?                                                    // matches Vehicle/User.depot string
-  address         String?
-  managerId       Int?           @map("manager_id")                         // references User.id (workshop manager)
-  workshopStatus  WorkshopStatus @default(ACTIVE) @map("workshop_status")
-  isActive        Boolean        @default(true) @map("is_active")
-  createdAt       DateTime       @default(now()) @map("created_at")
-  updatedAt       DateTime       @updatedAt @map("updated_at")
-  createdBy       String?        @map("created_by")
-  updatedBy       String?        @map("updated_by")
+  id             String         @id @default(uuid()) @map("workshop_id")
+  code           String         @unique // e.g. "WS-NBI-01"
+  name           String // e.g. "Nairobi Main Workshop"
+  region         String? // matches Vehicle/User.region string
+  depot          String? // matches Vehicle/User.depot string
+  address        String?
+  managerId      Int?           @map("manager_id") // references User.id (workshop manager)
+  workshopStatus WorkshopStatus @default(ACTIVE) @map("workshop_status")
+  isActive       Boolean        @default(true) @map("is_active")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+  createdBy      String?        @map("created_by")
+  updatedBy      String?        @map("updated_by")
 
   // Relations
-  vehicles        Vehicle[]
-  users           User[]
+  vehicles            Vehicle[]
+  users               User[]
   workshopAssignments VehicleWorkshopAssignment[]
-  downtimes       VehicleDowntime[]
-  workOrders      WorkOrder[]
-  inventoryStocks InventoryStock[]
-  inventoryMovements InventoryMovement[]
-  purchaseOrders PurchaseOrder[]
+  downtimes           VehicleDowntime[]
+  workOrders          WorkOrder[]
+  inventoryStocks     InventoryStock[]
+  inventoryMovements  InventoryMovement[]
+  purchaseOrders      PurchaseOrder[]
 
-  @@map("workshops")
   @@index([region])
   @@index([depot])
   @@index([workshopStatus])
+  @@map("workshops")
 }
 
 // ============================================================
@@ -141,45 +141,58 @@ model Workshop {
 /// Vehicle.workshopId is the CURRENT workshop assignment only,
 /// not a historical record. Future versions may add assignment history.
 model Vehicle {
-  id                String        @id @default(uuid()) @map("vehicle_id")
-  registrationNumber String       @unique @map("registration_number")
-  fleetNumber       String?       @map("fleet_number")
-  vehicleClass      String?       @map("vehicle_class")         // e.g. Heavy Truck, Rigid, LCV
-  make              String?
-  model             String?
-  depot             String?
-  region            String?
-  department        String?
-  workshopId        String?       @map("workshop_id")            // current workshop assignment only
-  workshop          Workshop?     @relation(fields: [workshopId], references: [id])
-  vehicleStatus     VehicleStatus @default(ACTIVE) @map("vehicle_status")
-  expectedTyres     Int?          @default(10) @map("expected_tyres")
-  currentOdometer   Int?          @map("current_odometer")
-  acquisitionDate   DateTime?     @map("acquisition_date")
-  disposalDate      DateTime?     @map("disposal_date")
-  isActive          Boolean       @default(true) @map("is_active")
-  createdAt         DateTime      @default(now()) @map("created_at")
-  updatedAt         DateTime      @updatedAt @map("updated_at")
-  createdBy         String?       @map("created_by")
-  updatedBy         String?       @map("updated_by")
+  id                 String        @id @default(uuid()) @map("vehicle_id")
+  tenantId           String        @map("tenant_id")
+  organizationId     String        @map("organization_id")
+  vin                String?       @map("vin")
+  registrationNumber String        @map("registration_number")
+  fleetNumber        String?       @map("fleet_number")
+  vehicleClass       String?       @map("vehicle_class") // e.g. Heavy Truck, Rigid, LCV
+  make               String?
+  model              String?
+  depot              String?
+  region             String?
+  department         String?
+  workshopId         String?       @map("workshop_id") // current workshop assignment only
+  workshop           Workshop?     @relation(fields: [workshopId], references: [id])
+  vehicleStatus      VehicleStatus @default(ACTIVE) @map("vehicle_status")
+  expectedTyres      Int?          @default(10) @map("expected_tyres")
+  currentOdometer    Int?          @map("current_odometer")
+  acquisitionDate    DateTime?     @map("acquisition_date")
+  disposalDate       DateTime?     @map("disposal_date")
+  isActive           Boolean       @default(true) @map("is_active")
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+  createdBy          String?       @map("created_by")
+  updatedBy          String?       @map("updated_by")
 
   // Relations to tyre module & platform ledger
-  tyreFitments      TyreFitment[]
-  tyreInspections   TyreInspection[]
-  tyreDefects       TyreDefect[]
+  tyreFitments        TyreFitment[]
+  tyreInspections     TyreInspection[]
+  tyreDefects         TyreDefect[]
   workshopAssignments VehicleWorkshopAssignment[]
-  downtimes         VehicleDowntime[]
-  workOrders        WorkOrder[]
-  driverAssignments DriverAssignment[]
-  tripInspections   TripInspection[]
-  safetyIncidents   SafetyIncident[]
+  downtimes           VehicleDowntime[]
+  workOrders          WorkOrder[]
+  driverAssignments   DriverAssignment[]
+  tripInspections     TripInspection[]
+  safetyIncidents     SafetyIncident[]
+  financialProfile    VehicleFinancialProfile?
+  financeAgreements   VehicleFinanceAgreement[]
+  disposalRecords     VehicleDisposalRecord[]
+  externalIdentities  VehicleExternalIdentity[]
+  deviceAssignments   VehicleDeviceAssignmentHistory[]
+  telemetry           NormalizedTelemetry[]
 
-  @@map("vehicles")
+  @@unique([tenantId, registrationNumber])
   @@index([region])
   @@index([depot])
   @@index([workshopId])
   @@index([vehicleClass])
   @@index([vehicleStatus])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, vehicleStatus])
+  @@index([vin])
+  @@map("vehicles")
 }
 
 // ============================================================
@@ -190,30 +203,30 @@ model Vehicle {
 /// FI360 budget master. Tracks planned vs actual expenditure
 /// per period, cost centre, department and module.
 model Budget {
-  id                Int           @id @default(autoincrement())
-  periodLabel       String        @map("period_label")           // e.g. "2025-Q1", "2025-FY"
-  periodStart       DateTime      @map("period_start")
-  periodEnd         DateTime      @map("period_end")
-  organisationUnit  String?       @map("organisation_unit")
+  id                Int            @id @default(autoincrement())
+  periodLabel       String         @map("period_label") // e.g. "2025-Q1", "2025-FY"
+  periodStart       DateTime       @map("period_start")
+  periodEnd         DateTime       @map("period_end")
+  organisationUnit  String?        @map("organisation_unit")
   department        String?
-  costCentre        String?       @map("cost_centre")
-  vehicleClass      String?       @map("vehicle_class")
-  budgetCategory    BudgetCategory @map("budget_category")       // TYRES, FUEL, WORKSHOP, etc.
-  budgetAmount      Decimal       @map("budget_amount") @db.Decimal(14, 2)
-  actualExpenditure Decimal       @default(0) @map("actual_expenditure") @db.Decimal(14, 2)
-  varianceAmount    Decimal?      @map("variance_amount") @db.Decimal(14, 2)
-  variancePercent   Decimal?      @map("variance_percent") @db.Decimal(6, 2)
-  budgetStatus      BudgetStatus  @default(ACTIVE) @map("budget_status")
+  costCentre        String?        @map("cost_centre")
+  vehicleClass      String?        @map("vehicle_class")
+  budgetCategory    BudgetCategory @map("budget_category") // TYRES, FUEL, WORKSHOP, etc.
+  budgetAmount      Decimal        @map("budget_amount") @db.Decimal(14, 2)
+  actualExpenditure Decimal        @default(0) @map("actual_expenditure") @db.Decimal(14, 2)
+  varianceAmount    Decimal?       @map("variance_amount") @db.Decimal(14, 2)
+  variancePercent   Decimal?       @map("variance_percent") @db.Decimal(6, 2)
+  budgetStatus      BudgetStatus   @default(ACTIVE) @map("budget_status")
   notes             String?
-  createdAt         DateTime      @default(now()) @map("created_at")
-  updatedAt         DateTime      @updatedAt @map("updated_at")
-  createdBy         String?       @map("created_by")
-  updatedBy         String?       @map("updated_by")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+  createdBy         String?        @map("created_by")
+  updatedBy         String?        @map("updated_by")
 
-  @@map("budgets")
   @@index([periodLabel])
   @@index([budgetCategory])
   @@index([budgetStatus])
+  @@map("budgets")
 }
 
 // ============================================================
@@ -227,75 +240,75 @@ model Budget {
 /// which remains associated with the physical tyre for its entire lifecycle.
 /// Duplicate FI360 Tyre IDs are prevented by the @unique constraint.
 model Tyre {
-  id                  Int       @id @default(autoincrement())
-  tyreIdentifier      String    @unique @map("tyre_identifier")          // FI360 Tyre ID e.g. TYR-000001
-  serialNumber        String?   @map("serial_number")
-  companyBrandNumber  String?   @map("company_brand_number")              // Internal company fleet brand stamp e.g. BN-9021
+  id                  Int           @id @default(autoincrement())
+  tyreIdentifier      String        @unique @map("tyre_identifier") // FI360 Tyre ID e.g. TYR-000001
+  serialNumber        String?       @map("serial_number")
+  companyBrandNumber  String?       @map("company_brand_number") // Internal company fleet brand stamp e.g. BN-9021
   brand               String
   model               String
-  size                String                                              // e.g. "315/80R22.5"
-  tyreType            TyreType  @default(NEW) @map("tyre_type")
-  construction        String?                                             // e.g. "Radial", "Bias"
-  loadIndex           Int?      @map("load_index")
-  speedRating         String?   @map("speed_rating")
-  pattern             String?                                             // tread pattern name
-  plyRating           String?   @map("ply_rating")
-  dotCode             String?   @map("dot_code")                          // DOT manufacturing code
-  manufacturer        String?                                             // tyre manufacturer name
-  purchaseDate        DateTime? @map("purchase_date")
-  purchaseCost        Decimal?  @map("purchase_cost") @db.Decimal(12, 2)
-  purchaseOrderNumber String?   @map("purchase_order_number")
-  currency            String?   @default("KES")                           // ISO currency code
-  warrantyMonths      Int?      @map("warranty_months")
-  expectedServiceLife Int?      @map("expected_service_life_km")          // in kilometres
-  supplierId          Int?      @map("supplier_id")
+  size                String // e.g. "315/80R22.5"
+  tyreType            TyreType      @default(NEW) @map("tyre_type")
+  construction        String? // e.g. "Radial", "Bias"
+  loadIndex           Int?          @map("load_index")
+  speedRating         String?       @map("speed_rating")
+  pattern             String? // tread pattern name
+  plyRating           String?       @map("ply_rating")
+  dotCode             String?       @map("dot_code") // DOT manufacturing code
+  manufacturer        String? // tyre manufacturer name
+  purchaseDate        DateTime?     @map("purchase_date")
+  purchaseCost        Decimal?      @map("purchase_cost") @db.Decimal(12, 2)
+  purchaseOrderNumber String?       @map("purchase_order_number")
+  currency            String?       @default("KES") // ISO currency code
+  warrantyMonths      Int?          @map("warranty_months")
+  expectedServiceLife Int?          @map("expected_service_life_km") // in kilometres
+  supplierId          Int?          @map("supplier_id")
   supplier            TyreSupplier? @relation(fields: [supplierId], references: [id])
-  currentStatus       TyreStatus @default(IN_STOCK) @map("current_status")
-  currentPositionId   Int?      @map("current_position_id")
-  currentVehicleId    String?   @map("current_vehicle_id")
-  currentOdometer     Int?      @map("current_odometer")
-  originalTreadDepth  Decimal?  @map("original_tread_depth") @db.Decimal(5, 2)
-  currentTreadDepth   Decimal?  @map("current_tread_depth") @db.Decimal(5, 2)
-  minimumTreadDepth   Decimal?  @default(3.0) @map("minimum_tread_depth") @db.Decimal(5, 2)
-  initialPressure     Decimal?  @map("initial_pressure") @db.Decimal(5, 2)
-  casingCondition     String?   @map("casing_condition")                  // e.g. "Good", "Damaged"
-  retreadCount        Int       @default(0) @map("retread_count")
-  repairCount         Int       @default(0) @map("repair_count")
+  currentStatus       TyreStatus    @default(IN_STOCK) @map("current_status")
+  currentPositionId   Int?          @map("current_position_id")
+  currentVehicleId    String?       @map("current_vehicle_id")
+  currentOdometer     Int?          @map("current_odometer")
+  originalTreadDepth  Decimal?      @map("original_tread_depth") @db.Decimal(5, 2)
+  currentTreadDepth   Decimal?      @map("current_tread_depth") @db.Decimal(5, 2)
+  minimumTreadDepth   Decimal?      @default(3.0) @map("minimum_tread_depth") @db.Decimal(5, 2)
+  initialPressure     Decimal?      @map("initial_pressure") @db.Decimal(5, 2)
+  casingCondition     String?       @map("casing_condition") // e.g. "Good", "Damaged"
+  retreadCount        Int           @default(0) @map("retread_count")
+  repairCount         Int           @default(0) @map("repair_count")
   notes               String?
-  isActive            Boolean   @default(true) @map("is_active")
-  createdAt           DateTime  @default(now()) @map("created_at")
-  updatedAt           DateTime  @updatedAt @map("updated_at")
-  createdBy           String?   @map("created_by")
-  updatedBy           String?   @map("updated_by")
+  isActive            Boolean       @default(true) @map("is_active")
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
+  createdBy           String?       @map("created_by")
+  updatedBy           String?       @map("updated_by")
 
   // Relations
-  fitments            TyreFitment[]
-  inspections         TyreInspection[]
-  movements           TyreMovement[]
-  alerts              TyreAlert[]
-  defects             TyreDefect[]
+  fitments    TyreFitment[]
+  inspections TyreInspection[]
+  movements   TyreMovement[]
+  alerts      TyreAlert[]
+  defects     TyreDefect[]
 
-  @@map("tyres")
   @@index([currentStatus])
   @@index([currentVehicleId])
   @@index([brand, model])
   @@index([supplierId])
+  @@map("tyres")
 }
 
 /// Tyre supplier / vendor information
 model TyreSupplier {
-  id           Int       @id @default(autoincrement())
+  id           Int      @id @default(autoincrement())
   name         String
-  code         String?   @unique
-  contactName  String?   @map("contact_name")
-  contactEmail String?   @map("contact_email")
-  contactPhone String?   @map("contact_phone")
+  code         String?  @unique
+  contactName  String?  @map("contact_name")
+  contactEmail String?  @map("contact_email")
+  contactPhone String?  @map("contact_phone")
   address      String?
-  isActive     Boolean   @default(true) @map("is_active")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
-  tyres        Tyre[]
+  tyres Tyre[]
 
   @@map("tyre_suppliers")
 }
@@ -306,77 +319,77 @@ model TyreSupplier {
 /// Position is described by both a numeric positionId AND structured
 /// axle/side/innerOuter fields for flexible vehicle configurations.
 model TyreFitment {
-  id                    Int       @id @default(autoincrement())
-  tyreId                Int       @map("tyre_id")
-  tyre                  Tyre      @relation(fields: [tyreId], references: [id])
-  vehicleId             String    @map("vehicle_id")
-  vehicle               Vehicle?  @relation(fields: [vehicleId], references: [id])
-  positionId            Int       @map("position_id")                          // axle position code (legacy numeric)
-  positionCode          String?   @map("position_code")                        // e.g. "AX1-L", "AX2-R-OUT"
-  axle                  Int?                                                   // axle number (1, 2, 3...)
-  side                  String?                                                // "L" or "R"
-  innerOuter            String?   @map("inner_outer")                          // "INNER", "OUTER", or null for single
-  fitmentDate           DateTime  @map("fitment_date")
-  fitmentOdometer       Int?      @map("fitment_odometer")
-  fitmentTreadDepth     Decimal?  @map("fitment_tread_depth") @db.Decimal(5, 2)
-  removalDate           DateTime? @map("removal_date")
-  removalOdometer       Int?      @map("removal_odometer")
-  removalTreadDepth     Decimal?  @map("removal_tread_depth") @db.Decimal(5, 2)
-  removalReason         String?   @map("removal_reason")
-  fittedBy              String?   @map("fitted_by")                            // technician who fitted
-  removedBy             String?   @map("removed_by")                           // technician who removed
-  supervisorVerifiedBy  String?   @map("supervisor_verified_by")               // supervisor who verified (≠ fittedBy)
-  supervisorVerifiedAt  DateTime? @map("supervisor_verified_at")
-  verificationStatus    String?   @default("PENDING") @map("verification_status") // PENDING, VERIFIED, REJECTED
-  notes                 String?
-  createdAt             DateTime  @default(now()) @map("created_at")
-  updatedAt             DateTime  @updatedAt @map("updated_at")
+  id                   Int       @id @default(autoincrement())
+  tyreId               Int       @map("tyre_id")
+  tyre                 Tyre      @relation(fields: [tyreId], references: [id])
+  vehicleId            String    @map("vehicle_id")
+  vehicle              Vehicle?  @relation(fields: [vehicleId], references: [id])
+  positionId           Int       @map("position_id") // axle position code (legacy numeric)
+  positionCode         String?   @map("position_code") // e.g. "AX1-L", "AX2-R-OUT"
+  axle                 Int? // axle number (1, 2, 3...)
+  side                 String? // "L" or "R"
+  innerOuter           String?   @map("inner_outer") // "INNER", "OUTER", or null for single
+  fitmentDate          DateTime  @map("fitment_date")
+  fitmentOdometer      Int?      @map("fitment_odometer")
+  fitmentTreadDepth    Decimal?  @map("fitment_tread_depth") @db.Decimal(5, 2)
+  removalDate          DateTime? @map("removal_date")
+  removalOdometer      Int?      @map("removal_odometer")
+  removalTreadDepth    Decimal?  @map("removal_tread_depth") @db.Decimal(5, 2)
+  removalReason        String?   @map("removal_reason")
+  fittedBy             String?   @map("fitted_by") // technician who fitted
+  removedBy            String?   @map("removed_by") // technician who removed
+  supervisorVerifiedBy String?   @map("supervisor_verified_by") // supervisor who verified (≠ fittedBy)
+  supervisorVerifiedAt DateTime? @map("supervisor_verified_at")
+  verificationStatus   String?   @default("PENDING") @map("verification_status") // PENDING, VERIFIED, REJECTED
+  notes                String?
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
 
-  @@map("tyre_fitments")
   @@index([tyreId])
   @@index([vehicleId])
   @@index([fitmentDate])
   @@index([verificationStatus])
+  @@map("tyre_fitments")
 }
 
 /// Tyre inspection / tread measurement record.
 /// Supervisor verification uses explicit status
 /// (PENDING/VERIFIED/REJECTED/REINSPECTION_REQUIRED).
 model TyreInspection {
-  id                    Int       @id @default(autoincrement())
-  tyreId                Int       @map("tyre_id")
-  tyre                  Tyre      @relation(fields: [tyreId], references: [id])
-  inspectionDate        DateTime  @map("inspection_date")
-  vehicleId             String?   @map("vehicle_id")
-  vehicle               Vehicle?  @relation(fields: [vehicleId], references: [id])
-  positionId            Int?      @map("position_id")
-  odometer              Int?
-  treadDepthLeft        Decimal?  @map("tread_depth_left") @db.Decimal(5, 2)
-  treadDepthCenter      Decimal?  @map("tread_depth_center") @db.Decimal(5, 2)
-  treadDepthRight       Decimal?  @map("tread_depth_right") @db.Decimal(5, 2)
-  averageTreadDepth     Decimal?  @map("average_tread_depth") @db.Decimal(5, 2)
-  pressure              Decimal?  @db.Decimal(5, 2)
-  condition             TyreCondition? @default(GOOD)
-  wearPattern           String?   @map("wear_pattern")                         // e.g. "Even", "Centre", "Edge", "Cupping"
-  sidewallCondition     String?   @map("sidewall_condition")                   // e.g. "Good", "Cracked", "Bulge"
-  valveCondition        String?   @map("valve_condition")                      // e.g. "Good", "Leaking", "Damaged"
-  rimCondition          String?   @map("rim_condition")                        // e.g. "Good", "Bent", "Corroded"
-  damageType            String?   @map("damage_type")
-  damageDescription     String?   @map("damage_description")
-  recommendation        String?
-  inspectedBy           String?   @map("inspected_by")                         // technician who inspected
-  supervisorVerifiedBy  String?   @map("supervisor_verified_by")               // supervisor who verified (≠ inspectedBy)
-  supervisorVerifiedAt  DateTime? @map("supervisor_verified_at")
-  verificationStatus    String?   @default("PENDING") @map("verification_status") // PENDING, VERIFIED, REJECTED, REINSPECTION_REQUIRED
-  notes                 String?
-  createdAt             DateTime  @default(now()) @map("created_at")
-  updatedAt             DateTime  @updatedAt @map("updated_at")
+  id                   Int            @id @default(autoincrement())
+  tyreId               Int            @map("tyre_id")
+  tyre                 Tyre           @relation(fields: [tyreId], references: [id])
+  inspectionDate       DateTime       @map("inspection_date")
+  vehicleId            String?        @map("vehicle_id")
+  vehicle              Vehicle?       @relation(fields: [vehicleId], references: [id])
+  positionId           Int?           @map("position_id")
+  odometer             Int?
+  treadDepthLeft       Decimal?       @map("tread_depth_left") @db.Decimal(5, 2)
+  treadDepthCenter     Decimal?       @map("tread_depth_center") @db.Decimal(5, 2)
+  treadDepthRight      Decimal?       @map("tread_depth_right") @db.Decimal(5, 2)
+  averageTreadDepth    Decimal?       @map("average_tread_depth") @db.Decimal(5, 2)
+  pressure             Decimal?       @db.Decimal(5, 2)
+  condition            TyreCondition? @default(GOOD)
+  wearPattern          String?        @map("wear_pattern") // e.g. "Even", "Centre", "Edge", "Cupping"
+  sidewallCondition    String?        @map("sidewall_condition") // e.g. "Good", "Cracked", "Bulge"
+  valveCondition       String?        @map("valve_condition") // e.g. "Good", "Leaking", "Damaged"
+  rimCondition         String?        @map("rim_condition") // e.g. "Good", "Bent", "Corroded"
+  damageType           String?        @map("damage_type")
+  damageDescription    String?        @map("damage_description")
+  recommendation       String?
+  inspectedBy          String?        @map("inspected_by") // technician who inspected
+  supervisorVerifiedBy String?        @map("supervisor_verified_by") // supervisor who verified (≠ inspectedBy)
+  supervisorVerifiedAt DateTime?      @map("supervisor_verified_at")
+  verificationStatus   String?        @default("PENDING") @map("verification_status") // PENDING, VERIFIED, REJECTED, REINSPECTION_REQUIRED
+  notes                String?
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @updatedAt @map("updated_at")
 
-  @@map("tyre_inspections")
   @@index([tyreId])
   @@index([inspectionDate])
   @@index([vehicleId])
   @@index([verificationStatus])
+  @@map("tyre_inspections")
 }
 
 /// Tracks tyre movement / status change events (lifecycle history).
@@ -388,32 +401,32 @@ model TyreInspection {
 /// TyreStatus = CURRENT STATE (where the tyre is now)
 /// These are NOT interchangeable.
 model TyreMovement {
-  id                  Int              @id @default(autoincrement())
-  tyreId              Int              @map("tyre_id")
-  tyre                Tyre             @relation(fields: [tyreId], references: [id])
-  movementType        TyreMovementType @map("movement_type")
-  movementDate        DateTime         @map("movement_date")
-  fromStatus          TyreStatus?      @map("from_status")
-  toStatus            TyreStatus       @map("to_status")
-  fromVehicleId       String?          @map("from_vehicle_id")
-  toVehicleId         String?          @map("to_vehicle_id")
-  fromPosition        Int?             @map("from_position")
-  toPosition          Int?             @map("to_position")
-  fromLocation        String?          @map("from_location")                   // e.g. workshop, depot, store
-  toLocation          String?          @map("to_location")
-  odometer            Int?
-  reason              String?
-  performedBy         String?          @map("performed_by")                    // technician who did the work
-  supervisorId        String?          @map("supervisor_id")                   // supervisor who verified (≠ performedBy)
-  verifiedAt          DateTime?        @map("verified_at")
-  verificationStatus  String?          @map("verification_status")             // PENDING, VERIFIED, REJECTED
-  notes               String?
-  createdAt           DateTime         @default(now()) @map("created_at")
+  id                 Int              @id @default(autoincrement())
+  tyreId             Int              @map("tyre_id")
+  tyre               Tyre             @relation(fields: [tyreId], references: [id])
+  movementType       TyreMovementType @map("movement_type")
+  movementDate       DateTime         @map("movement_date")
+  fromStatus         TyreStatus?      @map("from_status")
+  toStatus           TyreStatus       @map("to_status")
+  fromVehicleId      String?          @map("from_vehicle_id")
+  toVehicleId        String?          @map("to_vehicle_id")
+  fromPosition       Int?             @map("from_position")
+  toPosition         Int?             @map("to_position")
+  fromLocation       String?          @map("from_location") // e.g. workshop, depot, store
+  toLocation         String?          @map("to_location")
+  odometer           Int?
+  reason             String?
+  performedBy        String?          @map("performed_by") // technician who did the work
+  supervisorId       String?          @map("supervisor_id") // supervisor who verified (≠ performedBy)
+  verifiedAt         DateTime?        @map("verified_at")
+  verificationStatus String?          @map("verification_status") // PENDING, VERIFIED, REJECTED
+  notes              String?
+  createdAt          DateTime         @default(now()) @map("created_at")
 
-  @@map("tyre_movements")
   @@index([tyreId])
   @@index([movementDate])
   @@index([movementType])
+  @@map("tyre_movements")
 }
 
 // ============================================================
@@ -428,18 +441,18 @@ model TyreAlert {
   id                Int           @id @default(autoincrement())
   alertType         AlertType     @map("alert_type")
   severity          AlertSeverity @default(MEDIUM)
-  riskScore         Int?          @map("risk_score")                          // 0-100 score: 90-100 CRITICAL, 70-89 HIGH
+  riskScore         Int?          @map("risk_score") // 0-100 score: 90-100 CRITICAL, 70-89 HIGH
   tyreId            Int?          @map("tyre_id")
   tyre              Tyre?         @relation(fields: [tyreId], references: [id])
   vehicleId         String?       @map("vehicle_id")
   positionId        Int?          @map("position_id")
-  workshopId        String?       @map("workshop_id")                        // for scope-based alert routing
-  region            String?                                                  // for drill-down context
-  depot             String?                                                  // for drill-down context
+  workshopId        String?       @map("workshop_id") // for scope-based alert routing
+  region            String? // for drill-down context
+  depot             String? // for drill-down context
   message           String
   detail            String?
   recommendedAction String?       @map("recommended_action")
-  dueDate           DateTime?     @map("due_date")                           // target resolution due date
+  dueDate           DateTime?     @map("due_date") // target resolution due date
   status            AlertStatus   @default(OPEN)
   acknowledgedBy    String?       @map("acknowledged_by")
   acknowledgedAt    DateTime?     @map("acknowledged_at")
@@ -449,7 +462,6 @@ model TyreAlert {
   createdAt         DateTime      @default(now()) @map("created_at")
   updatedAt         DateTime      @updatedAt @map("updated_at")
 
-  @@map("tyre_alerts")
   @@index([alertType])
   @@index([severity])
   @@index([status])
@@ -458,37 +470,38 @@ model TyreAlert {
   @@index([workshopId])
   @@index([region])
   @@index([depot])
+  @@map("tyre_alerts")
 }
 
 /// Driver or technician reported tyre defect/issue
 model TyreDefect {
-  id              Int           @id @default(autoincrement())
-  vehicleId       String        @map("vehicle_id")
-  vehicle         Vehicle       @relation(fields: [vehicleId], references: [id])
-  tyreId          Int?          @map("tyre_id")
-  tyre            Tyre?         @relation(fields: [tyreId], references: [id])
-  positionId      Int?          @map("position_id")
-  defectType      String        @map("defect_type")
-  description     String?
-  severity        AlertSeverity @default(MEDIUM)
-  status          DefectStatus  @default(OPEN)
-  reportedBy      String        @map("reported_by")
-  reportedAt      DateTime      @default(now()) @map("reported_at")
-  assignedTo      String?       @map("assigned_to")
-  assignedAt      DateTime?     @map("assigned_at")
-  resolvedBy      String?       @map("resolved_by")
-  resolvedAt      DateTime?     @map("resolved_at")
-  resolutionNote  String?       @map("resolution_note")
-  createdAt       DateTime      @default(now()) @map("created_at")
-  updatedAt       DateTime      @updatedAt @map("updated_at")
+  id             Int           @id @default(autoincrement())
+  vehicleId      String        @map("vehicle_id")
+  vehicle        Vehicle       @relation(fields: [vehicleId], references: [id])
+  tyreId         Int?          @map("tyre_id")
+  tyre           Tyre?         @relation(fields: [tyreId], references: [id])
+  positionId     Int?          @map("position_id")
+  defectType     String        @map("defect_type")
+  description    String?
+  severity       AlertSeverity @default(MEDIUM)
+  status         DefectStatus  @default(OPEN)
+  reportedBy     String        @map("reported_by")
+  reportedAt     DateTime      @default(now()) @map("reported_at")
+  assignedTo     String?       @map("assigned_to")
+  assignedAt     DateTime?     @map("assigned_at")
+  resolvedBy     String?       @map("resolved_by")
+  resolvedAt     DateTime?     @map("resolved_at")
+  resolutionNote String?       @map("resolution_note")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
 
-  downtimes       VehicleDowntime[]
-  workOrders      WorkOrder[]
+  downtimes  VehicleDowntime[]
+  workOrders WorkOrder[]
 
-  @@map("tyre_defects")
   @@index([vehicleId])
   @@index([status])
   @@index([severity])
+  @@map("tyre_defects")
 }
 
 // ============================================================
@@ -509,9 +522,9 @@ model VehicleGroundingPolicy {
   effectiveFrom        DateTime @default(now()) @map("effective_from")
   createdAt            DateTime @default(now()) @map("created_at")
 
-  @@map("vehicle_grounding_policies")
   @@index([tenantId])
   @@index([organizationId])
+  @@map("vehicle_grounding_policies")
 }
 
 /// Vehicle downtime domain ledger (Owned strictly by Fleet & Asset Domain)
@@ -538,35 +551,35 @@ model VehicleDowntime {
   recoveredBy      String?     @map("recovered_by")
   createdAt        DateTime    @default(now()) @map("created_at")
 
-  workOrders       WorkOrder[]
+  workOrders WorkOrder[]
 
-  @@map("vehicle_downtimes")
   @@index([vehicleId])
   @@index([tenantId])
   @@index([workshopId])
+  @@map("vehicle_downtimes")
 }
 
 /// FI360 platform audit log - immutable record of critical actions.
 /// Captures user, timestamp, action, entity, before/after values, and reason.
 model AuditLog {
   id          Int      @id @default(autoincrement())
-  module      String                                   // TYRE, VEHICLE, BUDGET, etc.
-  action      String                                   // CREATE, UPDATE, DELETE, etc.
+  module      String // TYRE, VEHICLE, BUDGET, etc.
+  action      String // CREATE, UPDATE, DELETE, etc.
   entityType  String   @map("entity_type")
   entityId    String   @map("entity_id")
   userId      String?  @map("user_id")
   userEmail   String?  @map("user_email")
   beforeValue Json?    @map("before_value")
   afterValue  Json?    @map("after_value")
-  reason      String?                                  // reason for the action where applicable
+  reason      String? // reason for the action where applicable
   ipAddress   String?  @map("ip_address")
   createdAt   DateTime @default(now()) @map("created_at")
 
-  @@map("audit_logs")
   @@index([module])
   @@index([entityType, entityId])
   @@index([userId])
   @@index([createdAt])
+  @@map("audit_logs")
 }
 
 // ============================================================
@@ -594,15 +607,15 @@ model User {
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
 
-  assignedTasks     WorkOrderTask[]
-  partsRequisitions PartsRequisition[]
-  driverAssignments DriverAssignment[]
-  tripInspections   TripInspection[]
-  safetyIncidents   SafetyIncident[]
+  assignedTasks      WorkOrderTask[]
+  partsRequisitions  PartsRequisition[]
+  driverAssignments  DriverAssignment[]
+  tripInspections    TripInspection[]
+  safetyIncidents    SafetyIncident[]
   driverSafetyScores DriverSafetyScore[]
 
-  @@map("users")
   @@index([workshopId])
+  @@map("users")
 }
 
 // ============================================================
@@ -787,74 +800,74 @@ model WorkOrder {
   downtime        VehicleDowntime? @relation(fields: [downtimeId], references: [id])
   defectId        Int?             @map("defect_id")
   defect          TyreDefect?      @relation(fields: [defectId], references: [id])
-  
+
   title           String
   description     String?
-  maintenanceType MaintenanceType  @default(CORRECTIVE) @map("maintenance_type")
+  maintenanceType MaintenanceType   @default(CORRECTIVE) @map("maintenance_type")
   priority        WorkOrderPriority @default(MEDIUM)
-  status          WorkOrderStatus  @default(DRAFT)
-  
-  scheduledStart  DateTime?        @map("scheduled_start")
-  actualStart     DateTime?        @map("actual_start")
-  completedAt     DateTime?        @map("completed_at")
-  
-  estimatedHours  Float?           @map("estimated_hours")
-  actualHours     Float?           @map("actual_hours")
-  totalPartsCost  Float            @default(0) @map("total_parts_cost")
-  totalLaborCost  Float            @default(0) @map("total_labor_cost")
-  
-  createdBy       String?          @map("created_by")
-  assignedTechId  Int?             @map("assigned_tech_id")
-  approvedBy      String?          @map("approved_by")
-  createdAt       DateTime         @default(now()) @map("created_at")
-  updatedAt       DateTime         @updatedAt @map("updated_at")
+  status          WorkOrderStatus   @default(DRAFT)
 
-  tasks           WorkOrderTask[]
-  partsRequisitions PartsRequisition[]
+  scheduledStart DateTime? @map("scheduled_start")
+  actualStart    DateTime? @map("actual_start")
+  completedAt    DateTime? @map("completed_at")
+
+  estimatedHours Float? @map("estimated_hours")
+  actualHours    Float? @map("actual_hours")
+  totalPartsCost Float  @default(0) @map("total_parts_cost")
+  totalLaborCost Float  @default(0) @map("total_labor_cost")
+
+  createdBy      String?  @map("created_by")
+  assignedTechId Int?     @map("assigned_tech_id")
+  approvedBy     String?  @map("approved_by")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  tasks              WorkOrderTask[]
+  partsRequisitions  PartsRequisition[]
   inventoryMovements InventoryMovement[]
 
-  @@map("work_orders")
   @@index([tenantId, organizationId])
   @@index([vehicleId])
   @@index([workshopId])
   @@index([status])
+  @@map("work_orders")
 }
 
 /// Itemized Task inside a Work Order
 model WorkOrderTask {
-  id           Int        @id @default(autoincrement())
-  workOrderId  String     @map("work_order_id")
-  workOrder    WorkOrder  @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
-  taskName     String     @map("task_name")
+  id           Int       @id @default(autoincrement())
+  workOrderId  String    @map("work_order_id")
+  workOrder    WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  taskName     String    @map("task_name")
   description  String?
-  assignedToId Int?       @map("assigned_to_id")
-  assignedTo   User?      @relation(fields: [assignedToId], references: [id])
-  status       String     @default("PENDING")
-  estimatedMin Int?       @map("estimated_min")
-  actualMin    Int?       @map("actual_min")
-  createdAt    DateTime   @default(now()) @map("created_at")
-  updatedAt    DateTime   @updatedAt @map("updated_at")
+  assignedToId Int?      @map("assigned_to_id")
+  assignedTo   User?     @relation(fields: [assignedToId], references: [id])
+  status       String    @default("PENDING")
+  estimatedMin Int?      @map("estimated_min")
+  actualMin    Int?      @map("actual_min")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
 
-  @@map("work_order_tasks")
   @@index([workOrderId])
+  @@map("work_order_tasks")
 }
 
 /// Preventative Maintenance Schedule Trigger
 model MaintenanceSchedule {
-  id             String    @id @default(uuid()) @map("schedule_id")
-  tenantId       String    @default("TNT-DEFAULT") @map("tenant_id")
-  organizationId String    @default("ORG-DEFAULT") @map("organization_id")
-  vehicleClass   String    @map("vehicle_class")
-  serviceName    String    @map("service_name")
-  intervalKm     Int?      @map("interval_km")
-  intervalDays   Int?      @map("interval_days")
-  isActive       Boolean   @default(true) @map("is_active")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  id             String   @id @default(uuid()) @map("schedule_id")
+  tenantId       String   @default("TNT-DEFAULT") @map("tenant_id")
+  organizationId String   @default("ORG-DEFAULT") @map("organization_id")
+  vehicleClass   String   @map("vehicle_class")
+  serviceName    String   @map("service_name")
+  intervalKm     Int?     @map("interval_km")
+  intervalDays   Int?     @map("interval_days")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
-  @@map("maintenance_schedules")
   @@index([tenantId, organizationId])
   @@index([vehicleClass])
+  @@map("maintenance_schedules")
 }
 
 // ============================================================
@@ -900,26 +913,26 @@ enum PurchaseOrderStatus {
 
 /// Master catalogue of spare parts and tyre casings
 model InventoryItem {
-  id             String            @id @default(uuid()) @map("item_id")
-  partNumber     String            @unique @map("part_number")
-  tenantId       String            @default("TNT-DEFAULT") @map("tenant_id")
-  organizationId String            @default("ORG-DEFAULT") @map("organization_id")
-  name           String
-  description    String?
-  category       InventoryCategory @default(GENERAL_SPARE)
-  unitOfMeasure  String            @default("EA") @map("unit_of_measure")
-  defaultUnitCost Float            @default(0) @map("default_unit_cost")
-  createdAt      DateTime          @default(now()) @map("created_at")
-  updatedAt      DateTime          @updatedAt @map("updated_at")
+  id              String            @id @default(uuid()) @map("item_id")
+  partNumber      String            @unique @map("part_number")
+  tenantId        String            @default("TNT-DEFAULT") @map("tenant_id")
+  organizationId  String            @default("ORG-DEFAULT") @map("organization_id")
+  name            String
+  description     String?
+  category        InventoryCategory @default(GENERAL_SPARE)
+  unitOfMeasure   String            @default("EA") @map("unit_of_measure")
+  defaultUnitCost Float             @default(0) @map("default_unit_cost")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
 
-  stocks         InventoryStock[]
-  movements      InventoryMovement[]
-  requisitions   PartsRequisition[]
-  poItems        PurchaseOrderItem[]
+  stocks       InventoryStock[]
+  movements    InventoryMovement[]
+  requisitions PartsRequisition[]
+  poItems      PurchaseOrderItem[]
 
-  @@map("inventory_items")
   @@index([tenantId, organizationId])
   @@index([category])
+  @@map("inventory_items")
 }
 
 /// Workshop-specific current stock position ledger
@@ -931,136 +944,137 @@ model InventoryStock {
   workshop       Workshop      @relation(fields: [workshopId], references: [id])
   itemId         String        @map("item_id")
   item           InventoryItem @relation(fields: [itemId], references: [id])
-  
-  quantityOnHand Int           @default(0) @map("quantity_on_hand")
-  quantityReserved Int         @default(0) @map("quantity_reserved")
-  reorderPoint   Int           @default(5) @map("reorder_point")
-  reorderQuantity Int          @default(20) @map("reorder_quantity")
-  unitCost       Float         @default(0) @map("unit_cost")
-  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  quantityOnHand   Int      @default(0) @map("quantity_on_hand")
+  quantityReserved Int      @default(0) @map("quantity_reserved")
+  reorderPoint     Int      @default(5) @map("reorder_point")
+  reorderQuantity  Int      @default(20) @map("reorder_quantity")
+  unitCost         Float    @default(0) @map("unit_cost")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   @@unique([workshopId, itemId])
-  @@map("inventory_stocks")
   @@index([tenantId, organizationId])
   @@index([workshopId])
+  @@map("inventory_stocks")
 }
 
 /// Immutable Inventory Movement Ledger
 model InventoryMovement {
-  id             Int                   @id @default(autoincrement())
-  tenantId       String                @default("TNT-DEFAULT") @map("tenant_id")
-  organizationId String                @default("ORG-DEFAULT") @map("organization_id")
-  workshopId     String                @map("workshop_id")
-  workshop       Workshop              @relation(fields: [workshopId], references: [id])
-  itemId         String                @map("item_id")
-  item           InventoryItem         @relation(fields: [itemId], references: [id])
-  
-  movementType   InventoryMovementType @map("movement_type")
-  quantity       Int
-  unitCost       Float                 @map("unit_cost")
-  totalCost      Float                 @map("total_cost")
-  balanceAfter   Int                   @map("balance_after")
-  
-  workOrderId    String?               @map("work_order_id")
-  workOrder      WorkOrder?            @relation(fields: [workOrderId], references: [id])
-  requisitionId  String?               @map("requisition_id")
-  poId           String?               @map("po_id")
-  reference      String?
-  performedById  String?               @map("performed_by_id")
-  createdAt      DateTime              @default(now()) @map("created_at")
+  id             Int           @id @default(autoincrement())
+  tenantId       String        @default("TNT-DEFAULT") @map("tenant_id")
+  organizationId String        @default("ORG-DEFAULT") @map("organization_id")
+  workshopId     String        @map("workshop_id")
+  workshop       Workshop      @relation(fields: [workshopId], references: [id])
+  itemId         String        @map("item_id")
+  item           InventoryItem @relation(fields: [itemId], references: [id])
 
-  @@map("inventory_movements")
+  movementType InventoryMovementType @map("movement_type")
+  quantity     Int
+  unitCost     Float                 @map("unit_cost")
+  totalCost    Float                 @map("total_cost")
+  balanceAfter Int                   @map("balance_after")
+
+  workOrderId   String?    @map("work_order_id")
+  workOrder     WorkOrder? @relation(fields: [workOrderId], references: [id])
+  requisitionId String?    @map("requisition_id")
+  poId          String?    @map("po_id")
+  reference     String?
+  performedById String?    @map("performed_by_id")
+  createdAt     DateTime   @default(now()) @map("created_at")
+
   @@index([tenantId, organizationId])
   @@index([workshopId])
   @@index([itemId])
   @@index([movementType])
+  @@map("inventory_movements")
 }
 
 /// Parts Requisition for Work Order
 model PartsRequisition {
-  id             String            @id @default(uuid()) @map("requisition_id")
-  reqNumber      String            @unique @map("req_number")
-  tenantId       String            @default("TNT-DEFAULT") @map("tenant_id")
-  organizationId String            @default("ORG-DEFAULT") @map("organization_id")
-  workOrderId    String            @map("work_order_id")
-  workOrder      WorkOrder         @relation(fields: [workOrderId], references: [id])
-  itemId         String            @map("item_id")
-  item           InventoryItem     @relation(fields: [itemId], references: [id])
-  
-  quantity       Int               @default(1)
-  unitCost       Float             @map("unit_cost")
-  totalCost      Float             @map("total_cost")
-  status         RequisitionStatus @default(PENDING)
-  
-  requestedById  Int               @map("requested_by_id")
-  requestedBy    User              @relation(fields: [requestedById], references: [id])
-  issuedAt       DateTime?         @map("issued_at")
-  createdAt      DateTime          @default(now()) @map("created_at")
+  id             String        @id @default(uuid()) @map("requisition_id")
+  reqNumber      String        @unique @map("req_number")
+  tenantId       String        @default("TNT-DEFAULT") @map("tenant_id")
+  organizationId String        @default("ORG-DEFAULT") @map("organization_id")
+  workOrderId    String        @map("work_order_id")
+  workOrder      WorkOrder     @relation(fields: [workOrderId], references: [id])
+  itemId         String        @map("item_id")
+  item           InventoryItem @relation(fields: [itemId], references: [id])
 
-  @@map("parts_requisitions")
+  quantity  Int               @default(1)
+  unitCost  Float             @map("unit_cost")
+  totalCost Float             @map("total_cost")
+  status    RequisitionStatus @default(PENDING)
+
+  requestedById Int       @map("requested_by_id")
+  requestedBy   User      @relation(fields: [requestedById], references: [id])
+  issuedAt      DateTime? @map("issued_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
   @@index([tenantId, organizationId])
   @@index([workOrderId])
+  @@map("parts_requisitions")
 }
 
 /// Vendor Master
 model Vendor {
-  id             String          @id @default(uuid()) @map("vendor_id")
-  vendorCode     String          @unique @map("vendor_code")
-  tenantId       String          @default("TNT-DEFAULT") @map("tenant_id")
-  organizationId String          @default("ORG-DEFAULT") @map("organization_id")
+  id             String   @id @default(uuid()) @map("vendor_id")
+  vendorCode     String   @unique @map("vendor_code")
+  tenantId       String   @default("TNT-DEFAULT") @map("tenant_id")
+  organizationId String   @default("ORG-DEFAULT") @map("organization_id")
   name           String
-  contactEmail   String?         @map("contact_email")
+  contactEmail   String?  @map("contact_email")
   phone          String?
   address        String?
-  isActive       Boolean         @default(true) @map("is_active")
-  createdAt      DateTime        @default(now()) @map("created_at")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
 
-  purchaseOrders PurchaseOrder[]
+  purchaseOrders    PurchaseOrder[]
+  financialProfiles VehicleFinancialProfile[]
 
-  @@map("vendors")
   @@index([tenantId, organizationId])
+  @@map("vendors")
 }
 
 /// Purchase Order
 model PurchaseOrder {
-  id             String              @id @default(uuid()) @map("po_id")
-  poNumber       String              @unique @map("po_number")
-  tenantId       String              @default("TNT-DEFAULT") @map("tenant_id")
-  organizationId String              @default("ORG-DEFAULT") @map("organization_id")
-  vendorId       String              @map("vendor_id")
-  vendor         Vendor              @relation(fields: [vendorId], references: [id])
-  workshopId     String              @map("workshop_id")
-  workshop       Workshop            @relation(fields: [workshopId], references: [id])
-  
-  status         PurchaseOrderStatus @default(DRAFT)
-  totalAmount    Float               @default(0) @map("total_amount")
-  approvedBy     String?             @map("approved_by")
-  createdAt      DateTime            @default(now()) @map("created_at")
-  updatedAt      DateTime            @updatedAt @map("updated_at")
+  id             String   @id @default(uuid()) @map("po_id")
+  poNumber       String   @unique @map("po_number")
+  tenantId       String   @default("TNT-DEFAULT") @map("tenant_id")
+  organizationId String   @default("ORG-DEFAULT") @map("organization_id")
+  vendorId       String   @map("vendor_id")
+  vendor         Vendor   @relation(fields: [vendorId], references: [id])
+  workshopId     String   @map("workshop_id")
+  workshop       Workshop @relation(fields: [workshopId], references: [id])
 
-  items          PurchaseOrderItem[]
+  status      PurchaseOrderStatus @default(DRAFT)
+  totalAmount Float               @default(0) @map("total_amount")
+  approvedBy  String?             @map("approved_by")
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
 
-  @@map("purchase_orders")
+  items PurchaseOrderItem[]
+
   @@index([tenantId, organizationId])
   @@index([vendorId])
   @@index([workshopId])
+  @@map("purchase_orders")
 }
 
 /// Line Item within a Purchase Order
 model PurchaseOrderItem {
-  id             Int           @id @default(autoincrement())
-  poId           String        @map("po_id")
-  purchaseOrder  PurchaseOrder @relation(fields: [poId], references: [id], onDelete: Cascade)
-  itemId         String        @map("item_id")
-  item           InventoryItem @relation(fields: [itemId], references: [id])
-  
-  quantityOrdered Int          @map("quantity_ordered")
-  quantityReceived Int         @default(0) @map("quantity_received")
-  unitPrice      Float         @map("unit_price")
-  totalPrice     Float         @map("total_price")
+  id            Int           @id @default(autoincrement())
+  poId          String        @map("po_id")
+  purchaseOrder PurchaseOrder @relation(fields: [poId], references: [id], onDelete: Cascade)
+  itemId        String        @map("item_id")
+  item          InventoryItem @relation(fields: [itemId], references: [id])
 
-  @@map("purchase_order_items")
+  quantityOrdered  Int   @map("quantity_ordered")
+  quantityReceived Int   @default(0) @map("quantity_received")
+  unitPrice        Float @map("unit_price")
+  totalPrice       Float @map("total_price")
+
   @@index([poId])
+  @@map("purchase_order_items")
 }
 
 // ============================================================
@@ -1094,56 +1108,56 @@ enum IncidentSeverity {
 
 /// Driver Vehicle Shift Assignment Ledger
 model DriverAssignment {
-  id             String           @id @default(uuid()) @map("assignment_id")
-  tenantId       String           @default("TNT-DEFAULT") @map("tenant_id")
-  organizationId String           @default("ORG-DEFAULT") @map("organization_id")
-  driverId       Int              @map("driver_id")
-  driver         User             @relation(fields: [driverId], references: [id])
-  vehicleId      String           @map("vehicle_id")
-  vehicle        Vehicle          @relation(fields: [vehicleId], references: [id])
-  
-  shiftStart     DateTime         @default(now()) @map("shift_start")
-  shiftEnd       DateTime?        @map("shift_end")
-  status         AssignmentStatus @default(ACTIVE)
-  startOdometer  Int              @map("start_odometer")
-  endOdometer    Int?             @map("end_odometer")
-  notes          String?
-  createdAt      DateTime         @default(now()) @map("created_at")
-  updatedAt      DateTime         @updatedAt @map("updated_at")
+  id             String  @id @default(uuid()) @map("assignment_id")
+  tenantId       String  @default("TNT-DEFAULT") @map("tenant_id")
+  organizationId String  @default("ORG-DEFAULT") @map("organization_id")
+  driverId       Int     @map("driver_id")
+  driver         User    @relation(fields: [driverId], references: [id])
+  vehicleId      String  @map("vehicle_id")
+  vehicle        Vehicle @relation(fields: [vehicleId], references: [id])
 
-  @@map("driver_assignments")
+  shiftStart    DateTime         @default(now()) @map("shift_start")
+  shiftEnd      DateTime?        @map("shift_end")
+  status        AssignmentStatus @default(ACTIVE)
+  startOdometer Int              @map("start_odometer")
+  endOdometer   Int?             @map("end_odometer")
+  notes         String?
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+
   @@index([tenantId, organizationId])
   @@index([driverId])
   @@index([vehicleId])
   @@index([status])
+  @@map("driver_assignments")
 }
 
 /// Digital Pre-Trip / Post-Trip Vehicle Inspection
 model TripInspection {
-  id             String            @id @default(uuid()) @map("inspection_id")
-  inspectionNo   String            @unique @map("inspection_no")
-  tenantId       String            @default("TNT-DEFAULT") @map("tenant_id")
-  organizationId String            @default("ORG-DEFAULT") @map("organization_id")
-  vehicleId      String            @map("vehicle_id")
-  vehicle        Vehicle           @relation(fields: [vehicleId], references: [id])
-  driverId       Int               @map("driver_id")
-  driver         User              @relation(fields: [driverId], references: [id])
-  
-  type           InspectionType    @default(PRE_TRIP)
-  status         InspectionStatus  @default(PASSED)
-  odometer       Int
-  hasDefects     Boolean           @default(false) @map("has_defects")
-  isGrounded     Boolean           @default(false) @map("is_grounded")
+  id             String  @id @default(uuid()) @map("inspection_id")
+  inspectionNo   String  @unique @map("inspection_no")
+  tenantId       String  @default("TNT-DEFAULT") @map("tenant_id")
+  organizationId String  @default("ORG-DEFAULT") @map("organization_id")
+  vehicleId      String  @map("vehicle_id")
+  vehicle        Vehicle @relation(fields: [vehicleId], references: [id])
+  driverId       Int     @map("driver_id")
+  driver         User    @relation(fields: [driverId], references: [id])
+
+  type            InspectionType   @default(PRE_TRIP)
+  status          InspectionStatus @default(PASSED)
+  odometer        Int
+  hasDefects      Boolean          @default(false) @map("has_defects")
+  isGrounded      Boolean          @default(false) @map("is_grounded")
   groundingReason String?          @map("grounding_reason")
-  submittedAt    DateTime          @default(now()) @map("submitted_at")
+  submittedAt     DateTime         @default(now()) @map("submitted_at")
 
-  itemResults    InspectionItemResult[]
+  itemResults InspectionItemResult[]
 
-  @@map("trip_inspections")
   @@index([tenantId, organizationId])
   @@index([vehicleId])
   @@index([driverId])
   @@index([type])
+  @@map("trip_inspections")
 }
 
 /// Checklist item inside an inspection
@@ -1151,28 +1165,28 @@ model InspectionItemResult {
   id             Int            @id @default(autoincrement())
   inspectionId   String         @map("inspection_id")
   tripInspection TripInspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
-  
-  category       String
-  itemName       String         @map("item_name")
-  isPassed       Boolean        @map("is_passed")
-  severity       IncidentSeverity @default(LOW)
-  notes          String?
 
-  @@map("inspection_item_results")
+  category String
+  itemName String           @map("item_name")
+  isPassed Boolean          @map("is_passed")
+  severity IncidentSeverity @default(LOW)
+  notes    String?
+
   @@index([inspectionId])
+  @@map("inspection_item_results")
 }
 
 /// Driver Safety Incident Ledger
 model SafetyIncident {
-  id             String           @id @default(uuid()) @map("incident_id")
-  incidentNo     String           @unique @map("incident_no")
-  tenantId       String           @default("TNT-DEFAULT") @map("tenant_id")
-  organizationId String           @default("ORG-DEFAULT") @map("organization_id")
-  driverId       Int              @map("driver_id")
-  driver         User             @relation(fields: [driverId], references: [id])
-  vehicleId      String           @map("vehicle_id")
-  vehicle        Vehicle          @relation(fields: [vehicleId], references: [id])
-  
+  id             String  @id @default(uuid()) @map("incident_id")
+  incidentNo     String  @unique @map("incident_no")
+  tenantId       String  @default("TNT-DEFAULT") @map("tenant_id")
+  organizationId String  @default("ORG-DEFAULT") @map("organization_id")
+  driverId       Int     @map("driver_id")
+  driver         User    @relation(fields: [driverId], references: [id])
+  vehicleId      String  @map("vehicle_id")
+  vehicle        Vehicle @relation(fields: [vehicleId], references: [id])
+
   incidentType   String           @map("incident_type")
   severity       IncidentSeverity @default(MEDIUM)
   description    String
@@ -1180,30 +1194,30 @@ model SafetyIncident {
   pointsDeducted Int              @default(5) @map("points_deducted")
   createdAt      DateTime         @default(now()) @map("created_at")
 
-  @@map("safety_incidents")
   @@index([tenantId, organizationId])
   @@index([driverId])
   @@index([vehicleId])
+  @@map("safety_incidents")
 }
 
 /// Monthly Rolling Driver Safety Score
 model DriverSafetyScore {
-  id             Int      @id @default(autoincrement())
-  tenantId       String   @default("TNT-DEFAULT") @map("tenant_id")
-  organizationId String   @default("ORG-DEFAULT") @map("organization_id")
-  driverId       Int      @map("driver_id")
-  driver         User     @relation(fields: [driverId], references: [id])
-  
-  periodMonth    String   @map("period_month")
-  score          Float    @default(100.0)
-  totalTrips     Int      @default(0) @map("total_trips")
-  inspectionsPassed Int   @default(0) @map("inspections_passed")
-  incidentsCount Int      @default(0) @map("incidents_count")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id             Int    @id @default(autoincrement())
+  tenantId       String @default("TNT-DEFAULT") @map("tenant_id")
+  organizationId String @default("ORG-DEFAULT") @map("organization_id")
+  driverId       Int    @map("driver_id")
+  driver         User   @relation(fields: [driverId], references: [id])
+
+  periodMonth       String   @map("period_month")
+  score             Float    @default(100.0)
+  totalTrips        Int      @default(0) @map("total_trips")
+  inspectionsPassed Int      @default(0) @map("inspections_passed")
+  incidentsCount    Int      @default(0) @map("incidents_count")
+  updatedAt         DateTime @updatedAt @map("updated_at")
 
   @@unique([driverId, periodMonth])
-  @@map("driver_safety_scores")
   @@index([tenantId, organizationId])
+  @@map("driver_safety_scores")
 }
 
 // ============================================================
@@ -1215,21 +1229,424 @@ model DataCorrection {
   id               String   @id @default(uuid()) @map("correction_id")
   tenantId         String   @default("TNT-DEFAULT") @map("tenant_id")
   organizationId   String   @default("ORG-DEFAULT") @map("organization_id")
-  domain           String   // e.g. 'TYRE', 'INVENTORY', 'WORKSHOP', 'SAFETY', 'VEHICLE'
+  domain           String // e.g. 'TYRE', 'INVENTORY', 'WORKSHOP', 'SAFETY', 'VEHICLE'
   entityType       String   @map("entity_type") // e.g. 'TripInspection', 'TyreInspection', 'InventoryStock'
   entityId         String   @map("entity_id")
   fieldName        String   @map("field_name")
   originalValue    String   @map("original_value") // Stored as String/JSON
   correctedValue   String   @map("corrected_value") // Stored as String/JSON
-  reason           String   // Mandatory business justification
+  reason           String // Mandatory business justification
   correctedById    Int      @map("corrected_by_id")
   correctedByEmail String   @map("corrected_by_email")
   createdAt        DateTime @default(now()) @map("created_at")
   correlationId    String?  @map("correlation_id")
   auditLogId       String?  @map("audit_log_id")
 
-  @@map("data_corrections")
   @@index([tenantId, organizationId])
   @@index([domain, entityType, entityId])
   @@index([correctedById])
+  @@map("data_corrections")
 }
+
+// ============================================================
+// PHASE 5D — VEHICLE FINANCIAL & ACQUISITION FOUNDATION
+// ============================================================
+
+enum VehicleOwnershipType {
+  OWNED
+  LEASED
+  FINANCED
+  RENTED
+}
+
+enum VehicleDepreciationMethod {
+  STRAIGHT_LINE
+  REDUCING_BALANCE
+  USAGE_BASED_KM
+}
+
+enum BookValueAuthority {
+  FI360
+  EXTERNAL_ERP
+  MANUAL_VERIFIED
+}
+
+enum FinancialDataStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum VehicleFinanceAgreementType {
+  LEASING
+  CHATTEL_MORTGAGE
+  HIRE_PURCHASE
+  OPERATING_LEASE
+  OTHER
+}
+
+enum VehicleFinanceAgreementStatus {
+  ACTIVE
+  SETTLED
+  TERMINATED
+  DEFAULTED
+}
+
+enum VehicleDisposalMethod {
+  SALE
+  SCRAP
+  TRADE_IN
+  DONATION
+  INSURANCE_WRITE_OFF
+  OTHER
+}
+
+enum VehicleDisposalStatus {
+  DRAFT
+  PENDING_APPROVAL
+  FINALIZED
+  CANCELLED
+}
+
+enum FinanceBalanceSource {
+  FI360_LEDGER
+  EXTERNAL
+  MANUAL
+}
+
+model VehicleFinancialProfile {
+  id        String  @id @default(uuid()) @map("profile_id")
+  vehicleId String  @unique @map("vehicle_id")
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  acquisitionCost Decimal              @map("acquisition_cost") @db.Decimal(14, 2)
+  capitalizedCost Decimal              @map("capitalized_cost") @db.Decimal(14, 2)
+  currency        String               @default("KES")
+  acquisitionDate DateTime             @map("acquisition_date")
+  inServiceDate   DateTime             @map("in_service_date")
+  ownershipType   VehicleOwnershipType @default(OWNED) @map("ownership_type")
+
+  vendorId String? @map("vendor_id")
+  vendor   Vendor? @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+
+  purchaseOrderReference String? @map("purchase_order_reference")
+
+  depreciationMethod      VehicleDepreciationMethod @map("depreciation_method")
+  depreciationRatePercent Decimal                   @map("depreciation_rate_percent") @db.Decimal(5, 2)
+  usefulLifeYears         Int                       @map("useful_life_years")
+  usefulLifeKm            Int                       @map("useful_life_km")
+  residualValue           Decimal                   @map("residual_value") @db.Decimal(14, 2)
+
+  bookValueAuthority    BookValueAuthority  @default(FI360) @map("book_value_authority")
+  externalBookValue     Decimal?            @map("external_book_value") @db.Decimal(14, 2)
+  externalBookValueDate DateTime?           @map("external_book_value_date")
+  lastValuationDate     DateTime?           @map("last_valuation_date")
+  financialDataStatus   FinancialDataStatus @default(ACTIVE) @map("financial_data_status")
+
+  tenantId       String   @map("tenant_id")
+  organizationId String   @map("organization_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  createdBy      String?  @map("created_by")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  updatedBy      String?  @map("updated_by")
+
+  @@index([tenantId, organizationId])
+  @@index([vehicleId])
+  @@map("vehicle_financial_profiles")
+}
+
+model VehicleFinanceAgreement {
+  id        String  @id @default(uuid()) @map("agreement_id")
+  vehicleId String  @map("vehicle_id")
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  agreementNumber       String                        @unique @map("agreement_number")
+  agreementType         VehicleFinanceAgreementType   @map("agreement_type")
+  lenderOrLessor        String                        @map("lender_or_lessor")
+  facilityReference     String?                       @map("facility_reference")
+  principalAmount       Decimal                       @map("principal_amount") @db.Decimal(14, 2)
+  downPayment           Decimal                       @map("down_payment") @db.Decimal(14, 2)
+  financedAmount        Decimal                       @map("financed_amount") @db.Decimal(14, 2)
+  interestRatePercent   Decimal                       @map("interest_rate_percent") @db.Decimal(5, 2)
+  termMonths            Int                           @map("term_months")
+  monthlyRepayment      Decimal                       @map("monthly_repayment") @db.Decimal(14, 2)
+  outstandingBalance    Decimal                       @map("outstanding_balance") @db.Decimal(14, 2)
+  balanceSource         FinanceBalanceSource          @default(MANUAL) @map("balance_source")
+  balanceAsOf           DateTime?                     @map("balance_as_of")
+  currency              String                        @default("KES")
+  startDate             DateTime                      @map("start_date")
+  maturityDate          DateTime                      @map("maturity_date")
+  annualMileageLimitKm  Int?                          @map("annual_mileage_limit_km")
+  residualBalloonAmount Decimal                       @default(0) @map("residual_balloon_amount") @db.Decimal(14, 2)
+  status                VehicleFinanceAgreementStatus @default(ACTIVE)
+  settledAt             DateTime?                     @map("settled_at")
+  settlementAmount      Decimal?                      @map("settlement_amount") @db.Decimal(14, 2)
+  documentRef           String?                       @map("document_ref")
+
+  tenantId       String   @map("tenant_id")
+  organizationId String   @map("organization_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  createdBy      String?  @map("created_by")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  updatedBy      String?  @map("updated_by")
+
+  @@index([tenantId, organizationId])
+  @@index([vehicleId])
+  @@map("vehicle_finance_agreements")
+}
+
+model VehicleDisposalRecord {
+  id        String  @id @default(uuid()) @map("disposal_id")
+  vehicleId String  @map("vehicle_id")
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  disposalDate        DateTime              @map("disposal_date")
+  disposalMethod      VehicleDisposalMethod @map("disposal_method")
+  buyerName           String?               @map("buyer_name")
+  buyerContact        String?               @map("buyer_contact")
+  saleProceeds        Decimal               @map("sale_proceeds") @db.Decimal(14, 2)
+  disposalCosts       Decimal               @map("disposal_costs") @db.Decimal(14, 2)
+  bookValueAtDisposal Decimal               @map("book_value_at_disposal") @db.Decimal(14, 2)
+  gainOrLossAmount    Decimal               @map("gain_or_loss_amount") @db.Decimal(14, 2)
+  saleInvoiceNumber   String?               @map("sale_invoice_number")
+  reason              String?
+  documentRef         String?               @map("document_ref")
+  status              VehicleDisposalStatus @default(DRAFT)
+
+  tenantId       String    @map("tenant_id")
+  organizationId String    @map("organization_id")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  createdBy      String?   @map("created_by")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  updatedBy      String?   @map("updated_by")
+  finalizedAt    DateTime? @map("finalized_at")
+  finalizedBy    String?   @map("finalized_by")
+
+  @@index([tenantId, organizationId])
+  @@index([vehicleId])
+  @@map("vehicle_disposal_records")
+}
+
+// ============================================================
+// PHASE 5E — TELEMATICS & IoT INTEGRATION FOUNDATION
+// Provider-agnostic external integration layer
+// ============================================================
+
+enum IntegrationProvider {
+  GENERIC
+  GEOTAB
+  TRAKZEE
+  FLEETIO
+  CHEVIN
+}
+
+enum IntegrationConnectionStatus {
+  CONNECTED
+  SYNCING
+  DEGRADED
+  FAILED
+  DISCONNECTED
+  AUTHENTICATION_ERROR
+  RATE_LIMITED
+  NOT_CONNECTED
+}
+
+enum ExternalIdentityStatus {
+  MAPPED
+  UNMAPPED
+  MANUAL_REVIEW
+  DISCONNECTED
+}
+
+enum ExternalDeviceStatus {
+  ACTIVE
+  INACTIVE
+  UNASSIGNED
+  DECOMMISSIONED
+}
+
+enum TelemetryProcessingStatus {
+  RECEIVED
+  NORMALIZED
+  PROCESSED
+  REJECTED
+  QUARANTINED
+  FAILED
+}
+
+enum TelemetryQualityStatus {
+  VALID
+  INVALID_COORDINATES
+  OUT_OF_RANGE_ODOMETER
+  STALE_GPS
+  INSUFFICIENT_DATA
+}
+
+/// Tenant/Org-scoped external telematics provider connection
+model IntegrationConnection {
+  id                   String                      @id @default(uuid()) @map("connection_id")
+  tenantId             String                      @map("tenant_id")
+  organizationId       String?                     @map("organization_id")
+  provider             IntegrationProvider         @default(GENERIC)
+  connectionName       String                      @map("connection_name")
+  status               IntegrationConnectionStatus @default(NOT_CONNECTED)
+  credentialReference  String?                     @map("credential_reference")
+  encryptedCredentials String?                     @map("encrypted_credentials")
+  lastSyncAt           DateTime?                   @map("last_sync_at")
+  lastSuccessfulSyncAt DateTime?                   @map("last_successful_sync_at")
+  lastFailedSyncAt     DateTime?                   @map("last_failed_sync_at")
+  lastError            String?                     @map("last_error")
+  lastSyncCursor       String?                     @map("last_sync_cursor")
+  createdAt            DateTime                    @default(now()) @map("created_at")
+  createdBy            String?                     @map("created_by")
+  updatedAt            DateTime                    @updatedAt @map("updated_at")
+  updatedBy            String?                     @map("updated_by")
+
+  externalIdentities  VehicleExternalIdentity[]
+  externalDevices     ExternalDevice[]
+  rawPayloads         RawIntegrationPayload[]
+  normalizedTelemetry NormalizedTelemetry[]
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([provider, status])
+  @@map("integration_connections")
+}
+
+/// 1:N mapping linking an external provider vehicle identity to canonical Vehicle.id
+model VehicleExternalIdentity {
+  id                      String                 @id @default(uuid()) @map("identity_id")
+  tenantId                String                 @map("tenant_id")
+  organizationId          String                 @map("organization_id")
+  integrationConnectionId String                 @map("connection_id")
+  integrationConnection   IntegrationConnection  @relation(fields: [integrationConnectionId], references: [id], onDelete: Cascade)
+  vehicleId               String                 @map("vehicle_id")
+  vehicle                 Vehicle                @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  externalVehicleId    String                 @map("external_vehicle_id")
+  externalRegistration String?                @map("external_registration")
+  externalVin          String?                @map("external_vin")
+  status               ExternalIdentityStatus @default(MAPPED)
+  firstSeenAt          DateTime               @default(now()) @map("first_seen_at")
+  lastSeenAt           DateTime?              @map("last_seen_at")
+  createdAt            DateTime               @default(now()) @map("created_at")
+  createdBy            String?                @map("created_by")
+  updatedAt            DateTime               @updatedAt @map("updated_at")
+  updatedBy            String?                @map("updated_by")
+
+  @@unique([integrationConnectionId, externalVehicleId])
+  @@index([tenantId, organizationId])
+  @@index([vehicleId])
+  @@map("vehicle_external_identities")
+}
+
+/// Physical telematics/IoT device (GPS Tracker, OBD-II Gateway, TPMS Gateway, Dashcam)
+model ExternalDevice {
+  id                      String                @id @default(uuid()) @map("device_id")
+  tenantId                String                @map("tenant_id")
+  organizationId          String                @map("organization_id")
+  integrationConnectionId String                @map("connection_id")
+  integrationConnection   IntegrationConnection @relation(fields: [integrationConnectionId], references: [id], onDelete: Cascade)
+
+  deviceType       String               @default("GPS_TRACKER") @map("device_type")
+  serialNumber     String               @map("serial_number")
+  imei             String?
+  manufacturer     String?
+  model            String?
+  status           ExternalDeviceStatus @default(ACTIVE)
+  installedAt      DateTime?            @map("installed_at")
+  decommissionedAt DateTime?            @map("decommissioned_at")
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
+
+  assignmentHistory   VehicleDeviceAssignmentHistory[]
+  rawPayloads         RawIntegrationPayload[]
+  normalizedTelemetry NormalizedTelemetry[]
+
+  @@unique([integrationConnectionId, serialNumber])
+  @@index([tenantId, organizationId])
+  @@map("external_devices")
+}
+
+/// Historical ledger tracking device-to-vehicle assignments over time
+model VehicleDeviceAssignmentHistory {
+  id         Int            @id @default(autoincrement())
+  deviceId   String         @map("device_id")
+  device     ExternalDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  vehicleId  String         @map("vehicle_id")
+  vehicle    Vehicle        @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  startedAt  DateTime       @default(now()) @map("started_at")
+  endedAt    DateTime?      @map("ended_at")
+  assignedBy String?        @map("assigned_by")
+  reason     String?
+  createdAt  DateTime       @default(now()) @map("created_at")
+
+  @@index([deviceId])
+  @@index([vehicleId])
+  @@map("vehicle_device_assignment_history")
+}
+
+/// Immutable raw integration payload store with providerEventId idempotency
+model RawIntegrationPayload {
+  id                      String                    @id @default(uuid()) @map("payload_id")
+  tenantId                String                    @map("tenant_id")
+  organizationId          String                    @map("organization_id")
+  integrationConnectionId String                    @map("connection_id")
+  integrationConnection   IntegrationConnection    @relation(fields: [integrationConnectionId], references: [id], onDelete: Cascade)
+  deviceId                String?                   @map("device_id")
+  device                  ExternalDevice?           @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+
+  provider         IntegrationProvider
+  providerEventId  String?                   @map("provider_event_id")
+  eventType        String                    @map("event_type")
+  occurredAt       DateTime                  @map("occurred_at")
+  receivedAt       DateTime                  @default(now()) @map("received_at")
+  payloadJson      Json                      @map("payload_json")
+  processingStatus TelemetryProcessingStatus @default(RECEIVED) @map("processing_status")
+  processingError  String?                   @map("processing_error")
+  createdAt        DateTime                  @default(now()) @map("created_at")
+
+  normalizedTelemetry NormalizedTelemetry[]
+
+  @@unique([integrationConnectionId, providerEventId])
+  @@index([tenantId, organizationId])
+  @@index([occurredAt])
+  @@map("raw_integration_payloads")
+}
+
+/// Normalized canonical telemetry measurement record (1:N from Raw Payload)
+model NormalizedTelemetry {
+  id                      String                    @id @default(uuid()) @map("telemetry_id")
+  rawPayloadId            String?                   @map("raw_payload_id")
+  rawPayload              RawIntegrationPayload?    @relation(fields: [rawPayloadId], references: [id], onDelete: SetNull)
+  tenantId                String                    @map("tenant_id")
+  organizationId          String                    @map("organization_id")
+  integrationConnectionId String                    @map("connection_id")
+  integrationConnection   IntegrationConnection    @relation(fields: [integrationConnectionId], references: [id], onDelete: Cascade)
+  vehicleId               String                    @map("vehicle_id")
+  vehicle                 Vehicle                   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  deviceId                String?                   @map("device_id")
+  device                  ExternalDevice?           @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+
+  occurredAt       DateTime               @map("occurred_at")
+  receivedAt       DateTime               @default(now()) @map("received_at")
+  latitude         Float?
+  longitude        Float?
+  speedKmh         Float?                 @map("speed_kmh")
+  odometerKm       Int?                   @map("odometer_km")
+  engineHours      Float?                 @map("engine_hours")
+  ignitionStatus   Boolean?               @map("ignition_status")
+  fuelLevelPercent Float?                 @map("fuel_level_percent")
+  fuelRateLph      Float?                 @map("fuel_rate_lph")
+  heading          Float?
+  tripDistanceKm   Float?                 @map("trip_distance_km")
+  qualityStatus    TelemetryQualityStatus @default(VALID) @map("quality_status")
+  qualityReason    String?                @map("quality_reason")
+  createdAt        DateTime               @default(now()) @map("created_at")
+
+  @@index([tenantId, organizationId])
+  @@index([vehicleId, occurredAt])
+  @@index([deviceId, occurredAt])
+  @@map("normalized_telemetry")
+}
+

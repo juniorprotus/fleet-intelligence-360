@@ -21,6 +21,8 @@ import { InventoryModule } from './inventory/inventory.module';
 import { ProcurementModule } from './procurement/procurement.module';
 import { DriverModule } from './driver/driver.module';
 import { SafetyModule } from './safety/safety.module';
+import { VehicleFinanceModule } from './vehicle-finance/vehicle-finance.module';
+import { TelematicsModule } from './telematics/telematics.module';
 
 @Module({
   imports: [
@@ -33,6 +35,8 @@ import { SafetyModule } from './safety/safety.module';
     UserModule,
     TyreModule,
     VehicleModule,
+    VehicleFinanceModule,
+    TelematicsModule,
     BudgetModule,
     AlertModule,
     DefectModule,

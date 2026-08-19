@@ -182,6 +182,10 @@ export enum Permission {
   AI_CONFIGURATION_MANAGE  = 'ai.configuration.manage',
   AI_MODEL_READ            = 'ai.model.read',
   AI_AUDIT_READ            = 'ai.audit.read',
+  
+  // ── Step 6A: Product Catalog ──────────────────
+  PRODUCT_CATALOG_READ     = 'product.catalog.read',
+  PRODUCT_CATALOG_MANAGE   = 'product.catalog.manage',
 }
 
 /**

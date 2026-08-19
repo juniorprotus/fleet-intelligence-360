@@ -178,9 +178,9 @@ export class TelematicsService {
     let health: { status: string; latencyMs: number } = { status: 'CONNECTED', latencyMs: 12 };
 
     if (connection.provider === IntegrationProvider.GENERIC) {
-      health = await this.genericAdapter.healthCheck(connection.encryptedCredentials);
+      health = await this.genericAdapter.healthCheck(connection.encryptedCredentials || undefined);
     } else if (connection.provider === IntegrationProvider.GEOTAB) {
-      health = await this.geotabAdapter.healthCheck(connection.encryptedCredentials);
+      health = await this.geotabAdapter.healthCheck(connection.encryptedCredentials || undefined);
     }
 
     const now = new Date();
@@ -905,47 +905,34 @@ export class TelematicsService {
       const extId = item.logRecord?.device?.id || 'UNKNOWN';
       const eventId = item.logRecord?.id || `gtb_${extId}_${Date.now()}`;
 
-      // Ingest raw payload
-      const rawRes = await this.ingestRawPayload(
-        {
-          integrationConnectionId: connection.id,
-          providerEventId: eventId,
-          eventType: 'GEOTAB_FEED_ITEM',
-          occurredAt: item.logRecord?.dateTime ? new Date(item.logRecord.dateTime) : new Date(),
-          payload: item as any,
-        },
-        scopeCtx,
-      );
+      const normalizedList = this.geotabAdapter.normalizePayload({
+        externalVehicleId: extId,
+        providerEventId: eventId,
+        occurredAt: item.logRecord?.dateTime ? new Date(item.logRecord.dateTime) : new Date(),
+        rawPayload: item,
+      });
 
-      if (rawRes.status === 'INGESTED') {
-        // Normalize using adapter
-        const normalizedList = this.geotabAdapter.normalizePayload({
-          externalVehicleId: extId,
-          providerEventId: eventId,
-          occurredAt: item.logRecord?.dateTime ? new Date(item.logRecord.dateTime) : new Date(),
-          rawPayload: item,
-        });
-
-        for (const norm of normalizedList) {
-          await this.ingestNormalizedTelemetry(
-            rawRes.rawPayloadId,
-            {
-              externalVehicleId: norm.externalVehicleId,
-              serialNumber: norm.serialNumber,
-              providerEventId: norm.providerEventId,
-              occurredAt: norm.occurredAt,
-              latitude: norm.latitude,
-              longitude: norm.longitude,
-              speedKmh: norm.speedKmh,
-              odometerKm: norm.odometerKm,
-              engineHours: norm.engineHours,
-              ignitionStatus: norm.ignitionStatus,
-              fuelLevelPercent: norm.fuelLevelPercent,
-              qualityStatus: norm.qualityStatus,
-              qualityReason: norm.qualityReason,
-            },
-            scopeCtx,
-          );
+      for (const norm of normalizedList) {
+        const res = await this.ingestTelemetry(
+          connection.id,
+          {
+            integrationConnectionId: connection.id,
+            externalVehicleId: norm.externalVehicleId,
+            serialNumber: norm.serialNumber,
+            providerEventId: norm.providerEventId,
+            occurredAt: norm.occurredAt.toISOString(),
+            latitude: norm.latitude,
+            longitude: norm.longitude,
+            speedKmh: norm.speedKmh,
+            odometerKm: norm.odometerKm,
+            engineHours: norm.engineHours,
+            ignitionStatus: norm.ignitionStatus,
+            fuelLevelPercent: norm.fuelLevelPercent,
+          },
+          undefined,
+          scopeCtx,
+        );
+        if (res && res.status !== 'IDEMPOTENT_DUPLICATE_IGNORED') {
           ingestedCount++;
         }
       }

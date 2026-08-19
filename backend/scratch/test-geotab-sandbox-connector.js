@@ -109,7 +109,7 @@ async function run() {
       String(user.id),
       scopeCtx,
     );
-    assert(assign.active, 'Device assignment must be active');
+    assert(!assign.endedAt, 'Device assignment must be active (endedAt is null)');
 
     console.log('--- 9, 10, 11 & 12. Testing Incremental Sync, Raw Payload, Normalization & Idempotency ---');
     const syncRes1 = await telematicsService.syncGeotabIncremental(conn.id, scopeCtx);
@@ -122,21 +122,22 @@ async function run() {
 
     console.log('--- 13 & 14. Testing Cursor Safety (no advance on failure) ---');
     const updatedConn = await prisma.integrationConnection.findUnique({ where: { id: conn.id } });
-    assert(updatedConn.lastSyncCursor === syncRes1.newCursor, 'Cursor must advance on success');
+    assert(updatedConn.lastSyncCursor === syncRes2.newCursor, 'Cursor must advance on success');
 
     console.log('--- 15. Testing Odometer Authority Rules ---');
     const odoVeh = await prisma.vehicle.findUnique({ where: { id: testVeh.id } });
     const currentOdo = odoVeh.currentOdometer || 1000;
 
     // Ingest lower odometer -> should NOT regress vehicle odometer
-    await telematicsService.ingestNormalizedTelemetry(
-      `raw_test_${Date.now()}`,
+    await telematicsService.ingestTelemetry(
+      conn.id,
       {
+        integrationConnectionId: conn.id,
         externalVehicleId: 'b1',
-        occurredAt: new Date(),
+        occurredAt: new Date().toISOString(),
         odometerKm: currentOdo - 100, // lower
-        qualityStatus: 'VALID',
       },
+      String(user.id),
       scopeCtx,
     );
     const afterLowerVeh = await prisma.vehicle.findUnique({ where: { id: testVeh.id } });

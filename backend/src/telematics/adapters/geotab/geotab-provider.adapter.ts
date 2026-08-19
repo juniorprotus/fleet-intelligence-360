@@ -127,21 +127,21 @@ export class GeotabProviderAdapter implements TelematicsProviderAdapter {
     const currentCursor = lastSyncCursor || 'cursor_0';
     const nextCursor = `cursor_${Date.now()}`;
 
-    // Sandbox feed records
+    // Sandbox feed records with deterministic ID for idempotency verification
     const records = [
       {
         logRecord: {
-          id: `lr_${Date.now()}_1`,
+          id: 'gtb_feed_lr_b1_001',
           device: { id: 'b1' },
-          dateTime: new Date().toISOString(),
+          dateTime: '2026-08-19T02:00:00.000Z',
           latitude: -1.2921,
           longitude: 36.8219,
           speed: 65.4,
         },
         statusItems: [
-          { dateTime: new Date().toISOString(), device: { id: 'b1' }, diagnostic: { id: 'DiagnosticOdometerId' }, data: 128950000 }, // 128950 km
-          { dateTime: new Date().toISOString(), device: { id: 'b1' }, diagnostic: { id: 'DiagnosticEngineHoursId' }, data: 18000000 }, // 5000 hrs
-          { dateTime: new Date().toISOString(), device: { id: 'b1' }, diagnostic: { id: 'DiagnosticFuelLevelId' }, data: 0.75 }, // 75%
+          { dateTime: '2026-08-19T02:00:00.000Z', device: { id: 'b1' }, diagnostic: { id: 'DiagnosticOdometerId' }, data: 128950000 }, // 128950 km
+          { dateTime: '2026-08-19T02:00:00.000Z', device: { id: 'b1' }, diagnostic: { id: 'DiagnosticEngineHoursId' }, data: 18000000 }, // 5000 hrs
+          { dateTime: '2026-08-19T02:00:00.000Z', device: { id: 'b1' }, diagnostic: { id: 'DiagnosticFuelLevelId' }, data: 0.75 }, // 75%
         ],
       },
     ];

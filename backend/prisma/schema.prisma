@@ -1515,13 +1515,13 @@ model IntegrationConnection {
 
 /// 1:N mapping linking an external provider vehicle identity to canonical Vehicle.id
 model VehicleExternalIdentity {
-  id                      String                 @id @default(uuid()) @map("identity_id")
-  tenantId                String                 @map("tenant_id")
-  organizationId          String                 @map("organization_id")
-  integrationConnectionId String                 @map("connection_id")
-  integrationConnection   IntegrationConnection  @relation(fields: [integrationConnectionId], references: [id], onDelete: Cascade)
-  vehicleId               String                 @map("vehicle_id")
-  vehicle                 Vehicle                @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  id                      String                @id @default(uuid()) @map("identity_id")
+  tenantId                String                @map("tenant_id")
+  organizationId          String                @map("organization_id")
+  integrationConnectionId String                @map("connection_id")
+  integrationConnection   IntegrationConnection @relation(fields: [integrationConnectionId], references: [id], onDelete: Cascade)
+  vehicleId               String                @map("vehicle_id")
+  vehicle                 Vehicle               @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
 
   externalVehicleId    String                 @map("external_vehicle_id")
   externalRegistration String?                @map("external_registration")
@@ -1588,13 +1588,13 @@ model VehicleDeviceAssignmentHistory {
 
 /// Immutable raw integration payload store with providerEventId idempotency
 model RawIntegrationPayload {
-  id                      String                    @id @default(uuid()) @map("payload_id")
-  tenantId                String                    @map("tenant_id")
-  organizationId          String                    @map("organization_id")
-  integrationConnectionId String                    @map("connection_id")
-  integrationConnection   IntegrationConnection    @relation(fields: [integrationConnectionId], references: [id], onDelete: Cascade)
-  deviceId                String?                   @map("device_id")
-  device                  ExternalDevice?           @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  id                      String                @id @default(uuid()) @map("payload_id")
+  tenantId                String                @map("tenant_id")
+  organizationId          String                @map("organization_id")
+  integrationConnectionId String                @map("connection_id")
+  integrationConnection   IntegrationConnection @relation(fields: [integrationConnectionId], references: [id], onDelete: Cascade)
+  deviceId                String?               @map("device_id")
+  device                  ExternalDevice?       @relation(fields: [deviceId], references: [id], onDelete: SetNull)
 
   provider         IntegrationProvider
   providerEventId  String?                   @map("provider_event_id")
@@ -1616,17 +1616,17 @@ model RawIntegrationPayload {
 
 /// Normalized canonical telemetry measurement record (1:N from Raw Payload)
 model NormalizedTelemetry {
-  id                      String                    @id @default(uuid()) @map("telemetry_id")
-  rawPayloadId            String?                   @map("raw_payload_id")
-  rawPayload              RawIntegrationPayload?    @relation(fields: [rawPayloadId], references: [id], onDelete: SetNull)
-  tenantId                String                    @map("tenant_id")
-  organizationId          String                    @map("organization_id")
-  integrationConnectionId String                    @map("connection_id")
-  integrationConnection   IntegrationConnection    @relation(fields: [integrationConnectionId], references: [id], onDelete: Cascade)
-  vehicleId               String                    @map("vehicle_id")
-  vehicle                 Vehicle                   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
-  deviceId                String?                   @map("device_id")
-  device                  ExternalDevice?           @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  id                      String                 @id @default(uuid()) @map("telemetry_id")
+  rawPayloadId            String?                @map("raw_payload_id")
+  rawPayload              RawIntegrationPayload? @relation(fields: [rawPayloadId], references: [id], onDelete: SetNull)
+  tenantId                String                 @map("tenant_id")
+  organizationId          String                 @map("organization_id")
+  integrationConnectionId String                 @map("connection_id")
+  integrationConnection   IntegrationConnection  @relation(fields: [integrationConnectionId], references: [id], onDelete: Cascade)
+  vehicleId               String                 @map("vehicle_id")
+  vehicle                 Vehicle                @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  deviceId                String?                @map("device_id")
+  device                  ExternalDevice?        @relation(fields: [deviceId], references: [id], onDelete: SetNull)
 
   occurredAt       DateTime               @map("occurred_at")
   receivedAt       DateTime               @default(now()) @map("received_at")
@@ -1740,8 +1740,10 @@ model PlanVersion {
   createdAt       DateTime          @default(now()) @map("created_at")
   updatedAt       DateTime          @updatedAt @map("updated_at")
 
-  prices       PlanPrice[]
-  pricingBands PlanVehiclePricingBand[]
+  prices              PlanPrice[]
+  pricingBands        PlanVehiclePricingBand[]
+  entitlements        PlanEntitlement[]
+  limitConfigurations PlanVersionLimit[]
 
   @@unique([planId, versionNumber])
   @@index([planId, status])
@@ -1787,4 +1789,92 @@ model PlanVehiclePricingBand {
   @@index([planVersionId])
   @@index([currency, billingInterval])
   @@map("plan_vehicle_pricing_bands")
+}
+
+// ============================================================
+// PHASE 6B — ENTITLEMENTS
+// ============================================================
+
+enum FeatureStatus {
+  ACTIVE
+  INACTIVE
+}
+
+/// Global feature definition representing a core FI360 capability
+model FeatureDefinition {
+  id           String        @id @default(uuid()) @map("feature_id")
+  featureCode  String        @unique @map("feature_code")
+  name         String
+  description  String?
+  category     String?
+  status       FeatureStatus @default(ACTIVE)
+  displayOrder Int           @default(0) @map("display_order")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  entitlements PlanEntitlement[]
+
+  @@map("feature_definitions")
+}
+
+/// Link mapping features to specific plan versions
+model PlanEntitlement {
+  id            String            @id @default(uuid()) @map("entitlement_id")
+  planVersionId String            @map("plan_version_id")
+  planVersion   PlanVersion       @relation(fields: [planVersionId], references: [id], onDelete: Cascade)
+  featureId     String            @map("feature_id")
+  feature       FeatureDefinition @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  enabled       Boolean           @default(true)
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+
+  @@unique([planVersionId, featureId])
+  @@map("plan_entitlements")
+}
+
+// ============================================================
+// PHASE 6C.1 — QUANTITATIVE LIMITS
+// ============================================================
+
+enum LimitType {
+  COUNT
+  RETENTION_DAYS
+}
+
+/// Global limit catalog definition
+model LimitDefinition {
+  id          String    @id @default(uuid()) @map("limit_id")
+  limitCode   String    @unique @map("limit_code")
+  name        String
+  description String?
+  limitType   LimitType @map("limit_type")
+  unit        String?
+  status      String    @default("ACTIVE")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  planVersionLimits PlanVersionLimit[]
+
+  @@map("limit_definitions")
+}
+
+/// Plan version specific limit configurations
+model PlanVersionLimit {
+  id                String          @id @default(uuid()) @map("plan_limit_id")
+  planVersionId     String          @map("plan_version_id")
+  planVersion       PlanVersion     @relation(fields: [planVersionId], references: [id], onDelete: Cascade)
+  limitDefinitionId String          @map("limit_definition_id")
+  limitDefinition   LimitDefinition @relation(fields: [limitDefinitionId], references: [id], onDelete: Cascade)
+
+  limitValue    Int?      @map("limit_value")
+  isUnlimited   Boolean   @default(false) @map("is_unlimited")
+  effectiveFrom DateTime  @default(now()) @map("effective_from")
+  effectiveTo   DateTime? @map("effective_to")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@unique([planVersionId, limitDefinitionId])
+  @@index([planVersionId])
+  @@index([limitDefinitionId])
+  @@map("plan_version_limits")
 }

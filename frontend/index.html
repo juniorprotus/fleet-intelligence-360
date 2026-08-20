@@ -3322,6 +3322,113 @@
             </div><!-- .tw-body-grid -->
           </div><!-- #tyre-workspace-view -->
 
+          <!-- ═══════════════════════════════════════════════
+               PRODUCT CATALOG ADMIN VIEW
+               ═══════════════════════════════════════════════ -->
+          <div id="product-catalog-view" class="view hidden">
+            <div class="grid grid-12 gap-3">
+              <!-- Left Column: Products & Plans (Width 5) -->
+              <div class="col-span-12 lg:col-span-5 flex-col gap-3">
+                
+                <!-- Products Card -->
+                <div class="card p-3">
+                  <div class="flex-row between items-center mb-2">
+                    <h3 class="m-0 text-main">Products</h3>
+                    <button class="btn primary small manager-only hidden" id="btn-add-catalog-product">+ Add Product</button>
+                  </div>
+                  <div id="catalog-products-container" class="flex-col gap-2">
+                    <!-- Products will be dynamically populated -->
+                    <p class="muted text-center py-3">Loading products...</p>
+                  </div>
+                </div>
+
+                <!-- Plans Card -->
+                <div class="card p-3">
+                  <div class="flex-row between items-center mb-2">
+                    <h3 class="m-0 text-main">Plans</h3>
+                    <button class="btn primary small manager-only hidden" id="btn-add-catalog-plan">+ Add Plan</button>
+                  </div>
+                  <div id="catalog-plans-container" class="flex-col gap-2">
+                    <p class="muted text-center py-3">Select a product to view plans</p>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- Right Column: Versions, Pricing & Bands (Width 7) -->
+              <div class="col-span-12 lg:col-span-7 flex-col gap-3">
+                
+                <!-- Selected Plan Header Details -->
+                <div class="card p-3" id="catalog-plan-details-card">
+                  <h3 class="m-0 text-main" id="selected-plan-title">Select a Plan</h3>
+                  <p class="muted text-xs m-0 mt-1" id="selected-plan-description">Click a plan on the left to manage versions and pricing.</p>
+                </div>
+
+                <!-- Plan Versions Card -->
+                <div class="card p-3 hidden" id="catalog-versions-card">
+                  <div class="flex-row between items-center mb-2">
+                    <h4 class="m-0">Plan Versions</h4>
+                    <button class="btn primary small manager-only hidden" id="btn-add-catalog-version">+ Create Version</button>
+                  </div>
+                  <div class="table-responsive">
+                    <table class="table" id="catalog-versions-table">
+                      <thead>
+                        <tr>
+                          <th>Ver</th>
+                          <th>Effective From</th>
+                          <th>Effective To</th>
+                          <th>Status</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <!-- Versions populated dynamically -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Pricing & Bands Card -->
+                <div class="card p-3 hidden" id="catalog-pricing-card">
+                  <div class="flex-row between items-center mb-2">
+                    <h4 class="m-0">Base Pricing & Vehicle Bands</h4>
+                    <div class="flex-row gap-2">
+                      <button class="btn secondary small manager-only hidden" id="btn-add-catalog-price">+ Configure Base Price</button>
+                      <button class="btn secondary small manager-only hidden" id="btn-add-catalog-band">+ Add Vol Band</button>
+                    </div>
+                  </div>
+
+                  <!-- Base Pricing List -->
+                  <h5 class="mb-1 text-xs uppercase muted font-semibold">Base Price Configurations</h5>
+                  <div id="catalog-prices-container" class="flex-col gap-2 mb-3">
+                    <!-- Base prices populated dynamically -->
+                  </div>
+
+                  <!-- Volume Bands Table -->
+                  <h5 class="mb-1 text-xs uppercase muted font-semibold">Vehicle Volume Pricing Bands</h5>
+                  <div class="table-responsive">
+                    <table class="table" id="catalog-bands-table">
+                      <thead>
+                        <tr>
+                          <th>Vehicles Range</th>
+                          <th>Flat Price</th>
+                          <th>Per Vehicle</th>
+                          <th>Currency</th>
+                          <th>Interval</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <!-- Bands populated dynamically -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
         </div><!-- .content-area -->
       </main>
     </div><!-- .app-container -->
@@ -4661,6 +4768,186 @@
           <div class="modal-actions">
             <button type="button" class="btn secondary" onclick="window.closeModal('vehicle-device-assign-modal')">Cancel</button>
             <button type="submit" class="btn primary"><i data-lucide="check-circle"></i> Register &amp; Assign Device</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         PRODUCT CATALOG ADMIN MODALS
+         ═══════════════════════════════════════════════ -->
+    
+    <!-- Product Modal -->
+    <div id="catalog-product-modal" class="modal hidden">
+      <div class="modal-content card modal-md">
+        <div class="modal-header">
+          <h2 id="catalog-product-modal-title">Add Product</h2>
+          <button class="close-modal" onclick="window.closeModal('catalog-product-modal')" aria-label="Close">✕</button>
+        </div>
+        <form id="catalog-product-form">
+          <input type="hidden" id="catalog-product-id" />
+          <div class="form-group mb-2">
+            <label class="form-label font-semibold">Product Key</label>
+            <input type="text" id="catalog-product-key" class="form-input" placeholder="e.g. TELEMATICS_CORE" required />
+          </div>
+          <div class="form-group mb-2">
+            <label class="form-label font-semibold">Product Name</label>
+            <input type="text" id="catalog-product-name" class="form-input" placeholder="e.g. Telematics Core Monitoring" required />
+          </div>
+          <div class="form-group mb-2">
+            <label class="form-label font-semibold">Description</label>
+            <textarea id="catalog-product-description" class="form-input" rows="3" placeholder="Describe the capabilities of this product..."></textarea>
+          </div>
+          <div class="modal-actions mt-3">
+            <button type="button" class="btn secondary" onclick="window.closeModal('catalog-product-modal')">Cancel</button>
+            <button type="submit" class="btn primary">Save Product</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Plan Modal -->
+    <div id="catalog-plan-modal" class="modal hidden">
+      <div class="modal-content card modal-md">
+        <div class="modal-header">
+          <h2 id="catalog-plan-modal-title">Add Plan</h2>
+          <button class="close-modal" onclick="window.closeModal('catalog-plan-modal')" aria-label="Close">✕</button>
+        </div>
+        <form id="catalog-plan-form">
+          <input type="hidden" id="catalog-plan-id" />
+          <div class="form-group mb-2">
+            <label class="form-label font-semibold">Plan Key</label>
+            <input type="text" id="catalog-plan-key" class="form-input" placeholder="e.g. STARTER" required />
+          </div>
+          <div class="form-group mb-2">
+            <label class="form-label font-semibold">Plan Name</label>
+            <input type="text" id="catalog-plan-name" class="form-input" placeholder="e.g. Starter Plan" required />
+          </div>
+          <div class="form-group mb-2">
+            <label class="form-label font-semibold">Description</label>
+            <textarea id="catalog-plan-description" class="form-input" rows="3" placeholder="Describe the plan contents..."></textarea>
+          </div>
+          <div class="modal-actions mt-3">
+            <button type="button" class="btn secondary" onclick="window.closeModal('catalog-plan-modal')">Cancel</button>
+            <button type="submit" class="btn primary">Save Plan</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Version Modal -->
+    <div id="catalog-version-modal" class="modal hidden">
+      <div class="modal-content card modal-md">
+        <div class="modal-header">
+          <h2>Create Plan Version</h2>
+          <button class="close-modal" onclick="window.closeModal('catalog-version-modal')" aria-label="Close">✕</button>
+        </div>
+        <form id="catalog-version-form">
+          <div class="form-group mb-2">
+            <label class="form-label font-semibold">Version Number</label>
+            <input type="number" id="catalog-version-number" class="form-input" min="1" step="1" required />
+          </div>
+          <div class="form-group mb-2">
+            <label class="form-label font-semibold">Effective From</label>
+            <input type="datetime-local" id="catalog-version-from" class="form-input" required />
+          </div>
+          <div class="form-group mb-2">
+            <label class="form-label font-semibold">Effective To (Optional)</label>
+            <input type="datetime-local" id="catalog-version-to" class="form-input" />
+          </div>
+          <div class="modal-actions mt-3">
+            <button type="button" class="btn secondary" onclick="window.closeModal('catalog-version-modal')">Cancel</button>
+            <button type="submit" class="btn primary">Create Version</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Price Modal -->
+    <div id="catalog-price-modal" class="modal hidden">
+      <div class="modal-content card modal-md">
+        <div class="modal-header">
+          <h2>Configure Base Price</h2>
+          <button class="close-modal" onclick="window.closeModal('catalog-price-modal')" aria-label="Close">✕</button>
+        </div>
+        <form id="catalog-price-form">
+          <input type="hidden" id="catalog-price-id" />
+          <div class="form-group mb-2">
+            <label class="form-label font-semibold">Currency</label>
+            <select id="catalog-price-currency" class="form-select" required>
+              <option value="KES">KES — Kenyan Shilling</option>
+              <option value="USD">USD — US Dollar</option>
+              <option value="EUR">EUR — Euro</option>
+            </select>
+          </div>
+          <div class="form-group mb-2">
+            <label class="form-label font-semibold">Billing Interval</label>
+            <select id="catalog-price-interval" class="form-select" required>
+              <option value="MONTHLY">Monthly</option>
+              <option value="ANNUAL">Annual</option>
+            </select>
+          </div>
+          <div class="form-group mb-2">
+            <label class="form-label font-semibold">Amount (Optional)</label>
+            <input type="number" id="catalog-price-amount" class="form-input" min="0" step="0.01" placeholder="Leave empty for NOT CONFIGURED" />
+          </div>
+          <div class="modal-actions mt-3">
+            <button type="button" class="btn secondary" onclick="window.closeModal('catalog-price-modal')">Cancel</button>
+            <button type="submit" class="btn primary">Save Price</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Volume Band Modal -->
+    <div id="catalog-band-modal" class="modal hidden">
+      <div class="modal-content card modal-md">
+        <div class="modal-header">
+          <h2 id="catalog-band-modal-title">Configure Pricing Band</h2>
+          <button class="close-modal" onclick="window.closeModal('catalog-band-modal')" aria-label="Close">✕</button>
+        </div>
+        <form id="catalog-band-form">
+          <input type="hidden" id="catalog-band-id" />
+          <div class="grid grid-2 gap-2">
+            <div class="form-group mb-2">
+              <label class="form-label font-semibold">Min Vehicles</label>
+              <input type="number" id="catalog-band-min" class="form-input" min="0" required />
+            </div>
+            <div class="form-group mb-2">
+              <label class="form-label font-semibold">Max Vehicles (Optional)</label>
+              <input type="number" id="catalog-band-max" class="form-input" min="0" placeholder="e.g. 500 (Empty for open-ended)" />
+            </div>
+          </div>
+          <div class="grid grid-2 gap-2">
+            <div class="form-group mb-2">
+              <label class="form-label font-semibold">Flat Price (Optional)</label>
+              <input type="number" id="catalog-band-flat" class="form-input" min="0" step="0.01" />
+            </div>
+            <div class="form-group mb-2">
+              <label class="form-label font-semibold">Price Per Vehicle (Optional)</label>
+              <input type="number" id="catalog-band-per" class="form-input" min="0" step="0.01" />
+            </div>
+          </div>
+          <div class="grid grid-2 gap-2">
+            <div class="form-group mb-2">
+              <label class="form-label font-semibold">Currency</label>
+              <select id="catalog-band-currency" class="form-select" required>
+                <option value="KES">KES — Kenyan Shilling</option>
+                <option value="USD">USD — US Dollar</option>
+                <option value="EUR">EUR — Euro</option>
+              </select>
+            </div>
+            <div class="form-group mb-2">
+              <label class="form-label font-semibold">Billing Interval</label>
+              <select id="catalog-band-interval" class="form-select" required>
+                <option value="MONTHLY">Monthly</option>
+                <option value="ANNUAL">Annual</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-actions mt-3">
+            <button type="button" class="btn secondary" onclick="window.closeModal('catalog-band-modal')">Cancel</button>
+            <button type="submit" class="btn primary">Save Band</button>
           </div>
         </form>
       </div>

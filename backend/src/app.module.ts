@@ -24,6 +24,9 @@ import { SafetyModule } from './safety/safety.module';
 import { VehicleFinanceModule } from './vehicle-finance/vehicle-finance.module';
 import { TelematicsModule } from './telematics/telematics.module';
 import { CryptoModule } from './crypto/crypto.module';
+import { ProductCatalogModule } from './product-catalog/product-catalog.module';
+import { EntitlementModule } from './entitlement/entitlement.module';
+import { UsageModule } from './usage/usage.module';
 
 @Module({
   imports: [
@@ -53,6 +56,9 @@ import { CryptoModule } from './crypto/crypto.module';
     ProcurementModule,
     DriverModule,
     SafetyModule,
+    ProductCatalogModule,
+    EntitlementModule,
+    UsageModule,
   ],
   controllers: [AppController],
   providers: [AppService],

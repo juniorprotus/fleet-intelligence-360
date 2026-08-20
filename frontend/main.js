@@ -11,6 +11,44 @@ let authToken = localStorage.getItem('fi360_token') || null;
 let currentUser = JSON.parse(localStorage.getItem('fi360_user') || 'null');
 let charts = {};
 
+// ─── Entitlement Client ───────────────────────────────────────────────────────
+const EntitlementClient = {
+  features: [],
+  loaded: false,
+  error: null,
+  async load() {
+    if (!authToken || this.loaded) return;
+    try {
+      this.features = await apiFetch('/api/v1/entitlement/my-features');
+      this.loaded = true;
+    } catch (e) {
+      console.warn('Failed to load entitlements:', e);
+      this.error = e;
+    }
+  },
+  hasFeature(featureCode) {
+    if (!this.loaded) return false;
+    return this.features.includes(featureCode);
+  },
+  renderFeatureState(featureCode, elementId, fallbackHtml = '<span class="badge danger">LOCKED BY PLAN</span>') {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    if (this.error?.message?.includes('NO_ENTITLEMENT_CONTEXT')) {
+      el.innerHTML = '<span class="badge warning">NOT CONFIGURED</span>';
+      el.classList.add('entitlement-locked');
+      el.onclick = (e) => { e.preventDefault(); e.stopPropagation(); showToast('Feature unavailable: No commercial plan configured for this tenant.', 'warning'); };
+      return false;
+    }
+    if (!this.hasFeature(featureCode)) {
+      el.innerHTML = fallbackHtml;
+      el.classList.add('entitlement-locked');
+      el.onclick = (e) => { e.preventDefault(); e.stopPropagation(); showToast('Feature unavailable: Upgrade plan to access this capability.', 'warning'); };
+      return false;
+    }
+    return true;
+  }
+};
+
 // ─── Permission Helpers ───────────────────────────────────────────────────────
 const can = (perm) => currentUser?.permissions?.includes(perm) ?? false;
 
@@ -18,17 +56,20 @@ const can = (perm) => currentUser?.permissions?.includes(perm) ?? false;
 const NAV_MAP = {
   'SUPER_ADMIN': [
     { label: 'Admin Panel', lucideIcon: 'settings', group: 'ADMINISTRATION', viewId: 'dashboard-super-admin', action: () => showDashboard('dashboard-super-admin', 'System Administration', 'User accounts, permissions & data correction governance') },
+    { label: 'Product Catalog', lucideIcon: 'book-open', group: 'ADMINISTRATION', viewId: 'product-catalog-view', action: () => showDashboard('product-catalog-view', 'Product Catalog', 'Global product catalog, plans, versions and pricing bands') },
     { label: 'Work Orders', lucideIcon: 'wrench', group: 'OPERATIONS', viewId: 'dashboard-workshop', action: () => showDashboard('dashboard-workshop', 'Workshop Intelligence', 'Maintenance Work Orders & Scheduling Execution') },
     { label: 'Inventory Stock', lucideIcon: 'package', group: 'SUPPLY & COST', viewId: 'dashboard-inventory', action: () => showDashboard('dashboard-inventory', 'Inventory Intelligence', 'Spare Parts, Casings & Procurement Supply Chain') },
     { label: 'Driver Safety', lucideIcon: 'shield', group: 'OPERATIONS', viewId: 'dashboard-driver-safety', action: () => showDashboard('dashboard-driver-safety', 'Driver & Safety Intelligence', 'Pre-Trip Inspections, Shifts & Driver Safety Scoring') },
   ],
   'CEO': [
     { label: 'Executive Dashboard', lucideIcon: 'bar-chart-3', group: 'INTELLIGENCE', viewId: 'dashboard-ceo', action: () => showDashboard('dashboard-ceo', 'Executive Intelligence', 'Organisation fleet availability, costs & risk metrics') },
+    { label: 'Product Catalog', lucideIcon: 'book-open', group: 'INTELLIGENCE', viewId: 'product-catalog-view', action: () => showDashboard('product-catalog-view', 'Product Catalog', 'Global product catalog, plans, versions and pricing bands') },
   ],
   'FLEET_MANAGER': [
     { label: 'Overview', lucideIcon: 'layout-dashboard', group: 'MAIN', viewId: 'fm-vehicles', action: () => showFmDashboard('fm-vehicles') },
     { label: 'Fleet Operations', lucideIcon: 'truck', group: 'OPERATIONS', viewId: 'fm-vehicles', action: () => showFmDashboard('fm-vehicles') },
     { label: 'Tyre Intelligence', lucideIcon: 'disc', group: 'OPERATIONS', viewId: 'fm-tyres', action: () => showFmDashboard('fm-tyres') },
+    { label: 'Product Catalog', lucideIcon: 'book-open', group: 'OPERATIONS', viewId: 'product-catalog-view', action: () => showDashboard('product-catalog-view', 'Product Catalog', 'Global product catalog, plans, versions and pricing bands') },
     { label: 'Work Orders', lucideIcon: 'wrench', group: 'OPERATIONS', viewId: 'dashboard-workshop', action: () => showDashboard('dashboard-workshop', 'Workshop Intelligence', 'Maintenance Work Orders & Scheduling Execution') },
     { label: 'Inventory Stock', lucideIcon: 'package', group: 'SUPPLY & COST', viewId: 'dashboard-inventory', action: () => showDashboard('dashboard-inventory', 'Inventory Intelligence', 'Spare Parts, Casings & Procurement Supply Chain') },
     { label: 'Driver Safety', lucideIcon: 'shield', group: 'OPERATIONS', viewId: 'dashboard-driver-safety', action: () => showDashboard('dashboard-driver-safety', 'Driver & Safety Intelligence', 'Pre-Trip Inspections, Shifts & Driver Safety Scoring') },
@@ -49,12 +90,14 @@ const NAV_MAP = {
   ],
   'FINANCE_MANAGER': [
     { label: 'Financial Intelligence', lucideIcon: 'dollar-sign', group: 'SUPPLY & COST', viewId: 'dashboard-finance', action: () => showDashboard('dashboard-finance', 'Financial Intelligence', 'Budgets, actual expenditure & variance analysis') },
+    { label: 'Product Catalog', lucideIcon: 'book-open', group: 'SUPPLY & COST', viewId: 'product-catalog-view', action: () => showDashboard('product-catalog-view', 'Product Catalog', 'Global product catalog, plans, versions and pricing bands') },
   ],
   'DRIVER': [
     { label: 'My Vehicle', lucideIcon: 'truck', group: 'OPERATIONS', viewId: 'dashboard-driver', action: () => showDashboard('dashboard-driver', 'My Vehicle', `Assigned vehicle: ${currentUser?.assignedVehicleId || 'Active Shift'}`) },
   ],
   'AUDITOR': [
     { label: 'Audit & Compliance', lucideIcon: 'clipboard-list', group: 'ADMINISTRATION', viewId: 'dashboard-auditor', action: () => showDashboard('dashboard-auditor', 'Audit & Compliance', 'Read-only compliance views') },
+    { label: 'Product Catalog', lucideIcon: 'book-open', group: 'ADMINISTRATION', viewId: 'product-catalog-view', action: () => showDashboard('product-catalog-view', 'Product Catalog', 'Global product catalog, plans, versions and pricing bands') },
   ],
   'READ_ONLY': [
     { label: 'Read-Only View', lucideIcon: 'eye', group: 'ADMINISTRATION', viewId: 'dashboard-auditor', action: () => showDashboard('dashboard-auditor', 'Read-Only View', 'Minimal platform read access') },
@@ -69,6 +112,14 @@ async function apiFetch(path, options = {}) {
   if (res.status === 204) return null;
   const data = await res.json();
   if (!res.ok) {
+    if (res.status === 403 && data.code) {
+      if (data.code === 'FEATURE_NOT_ENTITLED') {
+        throw new Error('FEATURE_NOT_ENTITLED: ' + (data.message || 'Feature locked by plan'));
+      }
+      if (data.code === 'NO_ENTITLEMENT_CONTEXT') {
+        throw new Error('NO_ENTITLEMENT_CONTEXT: ' + (data.message || 'Tenant missing plan configuration'));
+      }
+    }
     const msg = Array.isArray(data.message) ? data.message.join(', ') : (data.message || `HTTP ${res.status}`);
     throw new Error(msg);
   }
@@ -283,7 +334,16 @@ function buildHeaderActions() {
   }
 
   // Universal Generate Report Button for EVERY role dashboard
-  const universalReportBtnHTML = `<button class="btn outline info ml-2" id="btn-hdr-univ-report">📄 + GENERATE REPORT</button>`;
+  let universalReportBtnHTML = `<button class="btn outline info ml-2" id="btn-hdr-univ-report">📄 + GENERATE REPORT</button>`;
+  
+  if (EntitlementClient.loaded && !EntitlementClient.hasFeature('REPORTING')) {
+    if (EntitlementClient.error?.message?.includes('NO_ENTITLEMENT_CONTEXT')) {
+      universalReportBtnHTML = `<button class="btn outline warning ml-2 entitlement-locked" id="btn-hdr-univ-report-locked">📄 NOT CONFIGURED</button>`;
+    } else {
+      universalReportBtnHTML = `<button class="btn outline danger ml-2 entitlement-locked" id="btn-hdr-univ-report-locked">📄 LOCKED BY PLAN</button>`;
+    }
+  }
+
   container.innerHTML = `${roleButtonsHTML} ${universalReportBtnHTML}`;
 
   bindHeaderActions();
@@ -301,6 +361,13 @@ function bindHeaderActions() {
   document.getElementById('btn-sup-hdr-inspect')?.addEventListener('click', () => window.openInspectionModal());
   document.getElementById('btn-sup-register-tyre')?.addEventListener('click', () => openModal('add-tyre-modal'));
   document.getElementById('btn-hdr-univ-report')?.addEventListener('click', () => window.openUniversalReportModal());
+  document.getElementById('btn-hdr-univ-report-locked')?.addEventListener('click', () => {
+    if (EntitlementClient.error?.message?.includes('NO_ENTITLEMENT_CONTEXT')) {
+      showToast('Reporting is NOT CONFIGURED for this tenant.', 'warning');
+    } else {
+      showToast('Reporting is LOCKED BY PLAN.', 'warning');
+    }
+  });
 }
 
 // ─── Modal Openers ─────────────────────────────────────────────────────────────
@@ -426,6 +493,7 @@ async function loadViewData(viewId) {
       case 'dashboard-driver-safety':   await loadDriverSafetyDashboard(); break;
       case 'dashboard-driver':          await loadDriverDashboard(); break;
       case 'dashboard-auditor':         await loadAuditorDashboard(); break;
+      case 'product-catalog-view':     await loadProductCatalogView(); break;
     }
     initKPIDrillListeners();
   } catch (err) {
@@ -2990,10 +3058,12 @@ function buildQuickAddMenu() {
   }
 }
 
-function onAuthSuccess() {
+async function onAuthSuccess() {
   document.body.classList.add('authenticated');
   document.getElementById('login-form-container')?.classList.add('hidden');
   document.getElementById('user-info')?.classList.remove('hidden');
+
+  await EntitlementClient.load();
 
   const name = `${currentUser.firstName || ''} ${currentUser.lastName || ''}`;
   setText('user-name', name);
@@ -7696,7 +7766,596 @@ window.submitAssignDevice = async function(e) {
     showToast(`Device assignment failed: ${err.message}`, 'error');
   }
 };
+// ═══════════════════════════════════════════════
+// PRODUCT CATALOG UI CONTROLLER & RENDERING
+// ═══════════════════════════════════════════════
 
+let activeSelectedProductId = null;
+let activeSelectedPlanId = null;
+let activeSelectedVersionId = null;
 
+async function loadProductCatalogView() {
+  const isManager = can('product.catalog.manage');
 
+  // Toggle manager-only buttons visibility
+  document.querySelectorAll('.manager-only').forEach(el => {
+    el.classList.toggle('hidden', !isManager);
+  });
+
+  activeSelectedProductId = null;
+  activeSelectedPlanId = null;
+  activeSelectedVersionId = null;
+
+  // Reset columns
+  document.getElementById('catalog-plans-container').innerHTML = '<p class="muted text-center py-3">Select a product to view plans</p>';
+  document.getElementById('catalog-plan-details-card').classList.remove('hidden');
+  document.getElementById('catalog-versions-card').classList.add('hidden');
+  document.getElementById('catalog-pricing-card').classList.add('hidden');
+  document.getElementById('selected-plan-title').textContent = 'Select a Plan';
+  document.getElementById('selected-plan-description').textContent = 'Click a plan on the left to manage versions and pricing.';
+
+  await renderProducts();
+}
+
+async function renderProducts() {
+  const container = document.getElementById('catalog-products-container');
+  if (!container) return;
+
+  try {
+    const products = await apiFetch('/api/v1/catalog/products');
+    if (!products || products.length === 0) {
+      container.innerHTML = '<p class="muted text-center py-3">No products configured.</p>';
+      return;
+    }
+
+    const isManager = can('product.catalog.manage');
+
+    container.innerHTML = products.map(prod => {
+      const activeClass = activeSelectedProductId === prod.id ? 'active-item' : '';
+      return `
+        <div class="card p-2 flex-row between items-center cursor-pointer list-item-card ${activeClass}" 
+             onclick="window.selectCatalogProduct('${prod.id}')">
+          <div class="flex-col">
+            <span class="font-semibold text-main">${prod.name} (${prod.productKey})</span>
+            <span class="text-xs muted">${prod.description || 'No description provided'}</span>
+            <div class="flex-row gap-2 mt-1">
+              <span class="badge ${prod.status === 'ACTIVE' ? 'badge-success' : 'badge-neutral'}">${prod.status}</span>
+              <span class="text-xs muted">Order: ${prod.displayOrder}</span>
+            </div>
+          </div>
+          <div class="flex-row gap-1">
+            ${isManager ? `
+              <button class="btn tiny outline primary" onclick="event.stopPropagation(); window.openEditProductModal('${prod.id}', '${prod.productKey}', '${prod.name.replace(/'/g, "\\'")}', '${(prod.description || '').replace(/'/g, "\\'")}')">Edit</button>
+              <button class="btn tiny danger outline" onclick="event.stopPropagation(); window.archiveProduct('${prod.id}')">Archive</button>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    container.innerHTML = `<p class="text-danger text-center py-3">Failed to load products: ${err.message}</p>`;
+  }
+}
+
+window.selectCatalogProduct = async function(prodId) {
+  activeSelectedProductId = prodId;
+  activeSelectedPlanId = null;
+  activeSelectedVersionId = null;
+
+  // Rerender products to show active highlights
+  await renderProducts();
+
+  // Reset right columns
+  document.getElementById('catalog-plan-details-card').classList.remove('hidden');
+  document.getElementById('catalog-versions-card').classList.add('hidden');
+  document.getElementById('catalog-pricing-card').classList.add('hidden');
+  document.getElementById('selected-plan-title').textContent = 'Select a Plan';
+  document.getElementById('selected-plan-description').textContent = 'Click a plan on the left to manage versions and pricing.';
+
+  await renderPlans();
+};
+
+async function renderPlans() {
+  const container = document.getElementById('catalog-plans-container');
+  if (!container) return;
+
+  if (!activeSelectedProductId) {
+    container.innerHTML = '<p class="muted text-center py-3">Select a product to view plans</p>';
+    return;
+  }
+
+  try {
+    const plans = await apiFetch(`/api/v1/catalog/plans?productId=${activeSelectedProductId}`);
+    if (!plans || plans.length === 0) {
+      container.innerHTML = '<p class="muted text-center py-3">No plans configured for this product.</p>';
+      return;
+    }
+
+    const isManager = can('product.catalog.manage');
+
+    container.innerHTML = plans.map(plan => {
+      const activeClass = activeSelectedPlanId === plan.id ? 'active-item' : '';
+      return `
+        <div class="card p-2 flex-row between items-center cursor-pointer list-item-card ${activeClass}" 
+             onclick="window.selectCatalogPlan('${plan.id}', '${plan.name.replace(/'/g, "\\'")}', '${(plan.description || '').replace(/'/g, "\\'")}')">
+          <div class="flex-col">
+            <span class="font-semibold text-main">${plan.name} (${plan.planKey})</span>
+            <span class="text-xs muted">${plan.description || 'No description'}</span>
+            <div class="flex-row gap-2 mt-1">
+              <span class="badge ${plan.status === 'ACTIVE' ? 'badge-success' : 'badge-neutral'}">${plan.status}</span>
+              <span class="badge badge-info">${plan.isPublic ? 'PUBLIC' : 'PRIVATE'}</span>
+            </div>
+          </div>
+          <div class="flex-row gap-1">
+            ${isManager ? `
+              <button class="btn tiny outline primary" onclick="event.stopPropagation(); window.openEditPlanModal('${plan.id}', '${plan.planKey}', '${plan.name.replace(/'/g, "\\'")}', '${(plan.description || '').replace(/'/g, "\\'")}')">Edit</button>
+              <button class="btn tiny danger outline" onclick="event.stopPropagation(); window.archivePlan('${plan.id}')">Archive</button>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    container.innerHTML = `<p class="text-danger text-center py-3">Failed to load plans: ${err.message}</p>`;
+  }
+}
+
+window.selectCatalogPlan = async function(planId, name, description) {
+  activeSelectedPlanId = planId;
+  activeSelectedVersionId = null;
+
+  // Highlight plans
+  await renderPlans();
+
+  document.getElementById('selected-plan-title').textContent = name;
+  document.getElementById('selected-plan-description').textContent = description || 'No description provided';
+  document.getElementById('catalog-versions-card').classList.remove('hidden');
+  document.getElementById('catalog-pricing-card').classList.add('hidden');
+
+  await renderVersions();
+};
+
+async function renderVersions() {
+  const tbody = document.querySelector('#catalog-versions-table tbody');
+  if (!tbody) return;
+
+  if (!activeSelectedPlanId) {
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center muted">No plan selected</td></tr>';
+    return;
+  }
+
+  try {
+    const versions = await apiFetch(`/api/v1/catalog/plans/${activeSelectedPlanId}/versions`);
+    const isManager = can('product.catalog.manage');
+
+    if (!versions || versions.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center muted">No versions configured.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = versions.map(v => {
+      const activeClass = activeSelectedVersionId === v.id ? 'active-table-row' : '';
+      const fromStr = new Date(v.effectiveFrom).toLocaleDateString();
+      const toStr = v.effectiveTo ? new Date(v.effectiveTo).toLocaleDateString() : 'Infinity';
+      const statusClass = v.status === 'ACTIVE' ? 'badge-success' : (v.status === 'SUPERSEDED' ? 'badge-danger' : 'badge-neutral');
+      
+      let actionBtns = '';
+      if (isManager) {
+        if (v.status === 'DRAFT') {
+          actionBtns += `<button class="btn tiny primary mr-1" onclick="event.stopPropagation(); window.activateVersion('${v.id}')">Activate</button>`;
+        }
+        if (v.status === 'ACTIVE') {
+          actionBtns += `<button class="btn tiny danger" onclick="event.stopPropagation(); window.supersedeVersion('${v.id}')">Supersede</button>`;
+        }
+      }
+
+      return `
+        <tr class="cursor-pointer ${activeClass}" onclick="window.selectCatalogVersion('${v.id}')">
+          <td><strong>v${v.versionNumber}</strong></td>
+          <td>${fromStr}</td>
+          <td>${toStr}</td>
+          <td><span class="badge ${statusClass}">${v.status}</span></td>
+          <td>${actionBtns || '<span class="muted text-xs">—</span>'}</td>
+        </tr>
+      `;
+    }).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" class="text-danger text-center">Failed to load versions: ${err.message}</td></tr>`;
+  }
+}
+
+window.selectCatalogVersion = async function(versionId) {
+  activeSelectedVersionId = versionId;
+  await renderVersions();
+
+  document.getElementById('catalog-pricing-card').classList.remove('hidden');
+
+  await Promise.all([
+    renderPrices(),
+    renderBands()
+  ]);
+};
+
+async function renderPrices() {
+  const container = document.getElementById('catalog-prices-container');
+  if (!container) return;
+
+  if (!activeSelectedVersionId) {
+    container.innerHTML = '<p class="muted text-center">No version selected</p>';
+    return;
+  }
+
+  try {
+    const prices = await apiFetch(`/api/v1/catalog/plan-versions/${activeSelectedVersionId}/pricing`);
+    const isManager = can('product.catalog.manage');
+
+    if (!prices || prices.length === 0) {
+      container.innerHTML = '<p class="muted text-center py-2">No base prices configured for this version.</p>';
+      return;
+    }
+
+    container.innerHTML = prices.map(pr => {
+      const priceText = pr.amount === null ? 'NOT CONFIGURED' : `${pr.amount.toLocaleString()} ${pr.currency}`;
+      const statusBadge = pr.amount === null ? '<span class="badge badge-neutral">UNCONFIGURED</span>' : '<span class="badge badge-success">ACTIVE</span>';
+
+      return `
+        <div class="card p-2 flex-row between items-center">
+          <div class="flex-col">
+            <span class="font-semibold text-main text-sm">${pr.billingInterval} Base Charge</span>
+            <span class="text-sm font-bold text-main mt-1">${priceText}</span>
+          </div>
+          <div class="flex-row gap-2 items-center">
+            ${statusBadge}
+            ${isManager ? `
+              <button class="btn tiny outline primary" 
+                      onclick="window.openEditPriceModal('${pr.id}', '${pr.currency}', '${pr.billingInterval}', ${pr.amount})">
+                Configure
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    container.innerHTML = `<p class="text-danger text-xs">Failed to load prices: ${err.message}</p>`;
+  }
+}
+
+async function renderBands() {
+  const tbody = document.querySelector('#catalog-bands-table tbody');
+  if (!tbody) return;
+
+  if (!activeSelectedVersionId) {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center muted">No version selected</td></tr>';
+    return;
+  }
+
+  try {
+    const bands = await apiFetch(`/api/v1/catalog/plan-versions/${activeSelectedVersionId}/pricing-bands`);
+    const isManager = can('product.catalog.manage');
+
+    if (!bands || bands.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center muted">No volume bands configured.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = bands.map(b => {
+      const rangeText = b.maxVehicles === null ? `${b.minVehicles}+` : `${b.minVehicles} – ${b.maxVehicles}`;
+      const flatText = b.flatPrice !== null ? `${b.flatPrice.toLocaleString()}` : '—';
+      const perText = b.pricePerVehicle !== null ? `${b.pricePerVehicle.toLocaleString()}` : '—';
+
+      return `
+        <tr>
+          <td><strong>${rangeText}</strong></td>
+          <td>${flatText}</td>
+          <td>${perText}</td>
+          <td>${b.currency}</td>
+          <td><span class="text-xs muted">${b.billingInterval}</span></td>
+          <td>
+            ${isManager ? `
+              <button class="btn tiny outline primary" 
+                      onclick="window.openEditBandModal('${b.id}', ${b.minVehicles}, ${b.maxVehicles}, ${b.flatPrice}, ${b.pricePerVehicle}, '${b.currency}', '${b.billingInterval}')">
+                Edit
+              </button>
+            ` : '—'}
+          </td>
+        </tr>
+      `;
+    }).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6" class="text-danger text-center">Failed to load bands: ${err.message}</td></tr>`;
+  }
+}
+
+// ─── Modal Openers & Actions ───────────────────────────────────────────────────
+
+window.openEditProductModal = function(id, key, name, description) {
+  document.getElementById('catalog-product-modal-title').textContent = 'Edit Product';
+  document.getElementById('catalog-product-id').value = id;
+  document.getElementById('catalog-product-key').value = key;
+  document.getElementById('catalog-product-key').disabled = true;
+  document.getElementById('catalog-product-name').value = name;
+  document.getElementById('catalog-product-description').value = description;
+  openModal('catalog-product-modal');
+};
+
+document.getElementById('btn-add-catalog-product')?.addEventListener('click', () => {
+  document.getElementById('catalog-product-modal-title').textContent = 'Add Product';
+  document.getElementById('catalog-product-id').value = '';
+  document.getElementById('catalog-product-key').value = '';
+  document.getElementById('catalog-product-key').disabled = false;
+  document.getElementById('catalog-product-name').value = '';
+  document.getElementById('catalog-product-description').value = '';
+  openModal('catalog-product-modal');
+});
+
+window.openEditPlanModal = function(id, key, name, description) {
+  document.getElementById('catalog-plan-modal-title').textContent = 'Edit Plan';
+  document.getElementById('catalog-plan-id').value = id;
+  document.getElementById('catalog-plan-key').value = key;
+  document.getElementById('catalog-plan-key').disabled = true;
+  document.getElementById('catalog-plan-name').value = name;
+  document.getElementById('catalog-plan-description').value = description;
+  openModal('catalog-plan-modal');
+};
+
+document.getElementById('btn-add-catalog-plan')?.addEventListener('click', () => {
+  document.getElementById('catalog-plan-modal-title').textContent = 'Add Plan';
+  document.getElementById('catalog-plan-id').value = '';
+  document.getElementById('catalog-plan-key').value = '';
+  document.getElementById('catalog-plan-key').disabled = false;
+  document.getElementById('catalog-plan-name').value = '';
+  document.getElementById('catalog-plan-description').value = '';
+  openModal('catalog-plan-modal');
+});
+
+document.getElementById('btn-add-catalog-version')?.addEventListener('click', () => {
+  document.getElementById('catalog-version-number').value = '1';
+  document.getElementById('catalog-version-from').value = new Date().toISOString().slice(0, 16);
+  document.getElementById('catalog-version-to').value = '';
+  openModal('catalog-version-modal');
+});
+
+document.getElementById('btn-add-catalog-price')?.addEventListener('click', () => {
+  document.getElementById('catalog-price-id').value = '';
+  document.getElementById('catalog-price-currency').value = 'KES';
+  document.getElementById('catalog-price-currency').disabled = false;
+  document.getElementById('catalog-price-interval').value = 'MONTHLY';
+  document.getElementById('catalog-price-interval').disabled = false;
+  document.getElementById('catalog-price-amount').value = '';
+  openModal('catalog-price-modal');
+});
+
+window.openEditPriceModal = function(id, currency, interval, amount) {
+  document.getElementById('catalog-price-id').value = id;
+  document.getElementById('catalog-price-currency').value = currency;
+  document.getElementById('catalog-price-currency').disabled = true;
+  document.getElementById('catalog-price-interval').value = interval;
+  document.getElementById('catalog-price-interval').disabled = true;
+  document.getElementById('catalog-price-amount').value = (amount === null || isNaN(amount)) ? '' : amount;
+  openModal('catalog-price-modal');
+};
+
+document.getElementById('btn-add-catalog-band')?.addEventListener('click', () => {
+  document.getElementById('catalog-band-modal-title').textContent = 'Add Pricing Band';
+  document.getElementById('catalog-band-id').value = '';
+  document.getElementById('catalog-band-min').value = '1';
+  document.getElementById('catalog-band-max').value = '';
+  document.getElementById('catalog-band-flat').value = '';
+  document.getElementById('catalog-band-per').value = '';
+  document.getElementById('catalog-band-currency').value = 'KES';
+  document.getElementById('catalog-band-currency').disabled = false;
+  document.getElementById('catalog-band-interval').value = 'MONTHLY';
+  document.getElementById('catalog-band-interval').disabled = false;
+  openModal('catalog-band-modal');
+});
+
+window.openEditBandModal = function(id, min, max, flat, per, currency, interval) {
+  document.getElementById('catalog-band-modal-title').textContent = 'Edit Pricing Band';
+  document.getElementById('catalog-band-id').value = id;
+  document.getElementById('catalog-band-min').value = min;
+  document.getElementById('catalog-band-max').value = max === null ? '' : max;
+  document.getElementById('catalog-band-flat').value = flat === null ? '' : flat;
+  document.getElementById('catalog-band-per').value = per === null ? '' : per;
+  document.getElementById('catalog-band-currency').value = currency;
+  document.getElementById('catalog-band-currency').disabled = true;
+  document.getElementById('catalog-band-interval').value = interval;
+  document.getElementById('catalog-band-interval').disabled = true;
+  openModal('catalog-band-modal');
+};
+
+// ─── Forms Submissions ─────────────────────────────────────────────────────────
+
+document.getElementById('catalog-product-form')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = document.getElementById('catalog-product-id').value;
+  const productKey = document.getElementById('catalog-product-key').value;
+  const name = document.getElementById('catalog-product-name').value;
+  const description = document.getElementById('catalog-product-description').value;
+
+  try {
+    if (id) {
+      // Edit
+      await apiFetch(`/api/v1/catalog/products/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ name, description })
+      });
+      showToast('Product updated successfully', 'success');
+    } else {
+      // Create
+      await apiFetch('/api/v1/catalog/products', {
+        method: 'POST',
+        body: JSON.stringify({ productKey, name, description })
+      });
+      showToast('Product created successfully', 'success');
+    }
+    closeModal('catalog-product-modal');
+    await renderProducts();
+  } catch (err) {
+    showToast(`Product save failed: ${err.message}`, 'error');
+  }
+});
+
+document.getElementById('catalog-plan-form')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = document.getElementById('catalog-plan-id').value;
+  const planKey = document.getElementById('catalog-plan-key').value;
+  const name = document.getElementById('catalog-plan-name').value;
+  const description = document.getElementById('catalog-plan-description').value;
+
+  try {
+    if (id) {
+      await apiFetch(`/api/v1/catalog/plans/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ name, description })
+      });
+      showToast('Plan updated successfully', 'success');
+    } else {
+      await apiFetch('/api/v1/catalog/plans', {
+        method: 'POST',
+        body: JSON.stringify({ productId: activeSelectedProductId, planKey, name, description })
+      });
+      showToast('Plan created successfully', 'success');
+    }
+    closeModal('catalog-plan-modal');
+    await renderPlans();
+  } catch (err) {
+    showToast(`Plan save failed: ${err.message}`, 'error');
+  }
+});
+
+document.getElementById('catalog-version-form')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const versionNumber = parseInt(document.getElementById('catalog-version-number').value, 10);
+  const effectiveFrom = new Date(document.getElementById('catalog-version-from').value).toISOString();
+  const rawTo = document.getElementById('catalog-version-to').value;
+  const effectiveTo = rawTo ? new Date(rawTo).toISOString() : undefined;
+
+  try {
+    await apiFetch(`/api/v1/catalog/plans/${activeSelectedPlanId}/versions`, {
+      method: 'POST',
+      body: JSON.stringify({ versionNumber, effectiveFrom, effectiveTo })
+    });
+    showToast('Plan version created successfully', 'success');
+    closeModal('catalog-version-modal');
+    await renderVersions();
+  } catch (err) {
+    showToast(`Plan version creation failed: ${err.message}`, 'error');
+  }
+});
+
+document.getElementById('catalog-price-form')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = document.getElementById('catalog-price-id').value;
+  const currency = document.getElementById('catalog-price-currency').value;
+  const billingInterval = document.getElementById('catalog-price-interval').value;
+  const rawAmount = document.getElementById('catalog-price-amount').value;
+  const amount = rawAmount === '' ? null : parseFloat(rawAmount);
+
+  try {
+    if (id) {
+      await apiFetch(`/api/v1/catalog/pricing/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ amount })
+      });
+      showToast('Price configuration updated', 'success');
+    } else {
+      await apiFetch(`/api/v1/catalog/plan-versions/${activeSelectedVersionId}/pricing`, {
+        method: 'POST',
+        body: JSON.stringify({ currency, billingInterval, amount })
+      });
+      showToast('Price configured successfully', 'success');
+    }
+    closeModal('catalog-price-modal');
+    await renderPrices();
+  } catch (err) {
+    showToast(`Price configuration failed: ${err.message}`, 'error');
+  }
+});
+
+document.getElementById('catalog-band-form')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = document.getElementById('catalog-band-id').value;
+  const minVehicles = parseInt(document.getElementById('catalog-band-min').value, 10);
+  const rawMax = document.getElementById('catalog-band-max').value;
+  const maxVehicles = rawMax === '' ? null : parseInt(rawMax, 10);
+  const rawFlat = document.getElementById('catalog-band-flat').value;
+  const flatPrice = rawFlat === '' ? null : parseFloat(rawFlat);
+  const rawPer = document.getElementById('catalog-band-per').value;
+  const pricePerVehicle = rawPer === '' ? null : parseFloat(rawPer);
+  const currency = document.getElementById('catalog-band-currency').value;
+  const billingInterval = document.getElementById('catalog-band-interval').value;
+
+  try {
+    if (id) {
+      await apiFetch(`/api/v1/catalog/pricing-bands/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ minVehicles, maxVehicles, flatPrice, pricePerVehicle })
+      });
+      showToast('Pricing band updated successfully', 'success');
+    } else {
+      await apiFetch(`/api/v1/catalog/plan-versions/${activeSelectedVersionId}/pricing-bands`, {
+        method: 'POST',
+        body: JSON.stringify({ minVehicles, maxVehicles, flatPrice, pricePerVehicle, currency, billingInterval })
+      });
+      showToast('Pricing band added successfully', 'success');
+    }
+    closeModal('catalog-band-modal');
+    await renderBands();
+  } catch (err) {
+    showToast(`Pricing band failed: ${err.message}`, 'error');
+  }
+});
+
+// ─── Actions Handlers ──────────────────────────────────────────────────────────
+
+window.archiveProduct = async function(id) {
+  if (!confirm('Are you sure you want to archive this product? This will hide it from normal subscription workflows.')) return;
+  try {
+    await apiFetch(`/api/v1/catalog/products/${id}/archive`, { method: 'POST' });
+    showToast('Product archived successfully', 'success');
+    await renderProducts();
+  } catch (err) {
+    showToast(`Archive failed: ${err.message}`, 'error');
+  }
+};
+
+window.archivePlan = async function(id) {
+  if (!confirm('Are you sure you want to archive this plan?')) return;
+  try {
+    await apiFetch(`/api/v1/catalog/plans/${id}/archive`, { method: 'POST' });
+    showToast('Plan archived successfully', 'success');
+    await renderPlans();
+  } catch (err) {
+    showToast(`Archive failed: ${err.message}`, 'error');
+  }
+};
+
+window.activateVersion = async function(id) {
+  if (!confirm('Are you sure you want to activate this plan version? Doing so will execute overlap checks and publish the pricing configuration.')) return;
+  try {
+    await apiFetch(`/api/v1/catalog/plan-versions/${id}/activate`, { method: 'POST' });
+    showToast('Plan version activated successfully', 'success');
+    await renderVersions();
+    if (activeSelectedVersionId === id) {
+      await Promise.all([renderPrices(), renderBands()]);
+    }
+  } catch (err) {
+    showToast(`Activation failed: ${err.message}`, 'error');
+  }
+};
+
+window.supersedeVersion = async function(id) {
+  if (!confirm('Are you sure you want to supersede this version? This is an irreversible operational state.')) return;
+  try {
+    await apiFetch(`/api/v1/catalog/plan-versions/${id}/supersede`, { method: 'POST' });
+    showToast('Plan version superseded', 'success');
+    await renderVersions();
+    if (activeSelectedVersionId === id) {
+      await Promise.all([renderPrices(), renderBands()]);
+    }
+  } catch (err) {
+    showToast(`Supersede failed: ${err.message}`, 'error');
+  }
+};
 

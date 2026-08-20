@@ -24,6 +24,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       depot: payload.depot,
       assignedVehicleId: payload.assignedVehicleId,
       dashboard: payload.dashboard,
+      tenantId: payload.tenantId,
     };
   }
 }

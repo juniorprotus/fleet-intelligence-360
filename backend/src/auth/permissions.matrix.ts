@@ -123,6 +123,8 @@ export const ROLE_MATRIX: Record<UserRole, RoleConfig> = {
       Permission.FINANCE_AGREEMENT_MANAGE,
       Permission.VEHICLE_DISPOSAL_MANAGE,
       Permission.VEHICLE_BOOK_VALUE_READ,
+      Permission.PRODUCT_CATALOG_READ,
+      Permission.PRODUCT_CATALOG_MANAGE,
     ],
   },
 
@@ -148,6 +150,7 @@ export const ROLE_MATRIX: Record<UserRole, RoleConfig> = {
       // Vehicle Financial (Step 5D) — executive read
       Permission.VEHICLE_FINANCIAL_READ,
       Permission.VEHICLE_BOOK_VALUE_READ,
+      Permission.PRODUCT_CATALOG_READ,
     ],
   },
 
@@ -195,6 +198,7 @@ export const ROLE_MATRIX: Record<UserRole, RoleConfig> = {
       Permission.FINANCE_AGREEMENT_MANAGE,
       Permission.VEHICLE_DISPOSAL_MANAGE,
       Permission.VEHICLE_BOOK_VALUE_READ,
+      Permission.PRODUCT_CATALOG_READ,
     ],
   },
 
@@ -354,6 +358,7 @@ export const ROLE_MATRIX: Record<UserRole, RoleConfig> = {
       Permission.FINANCE_AGREEMENT_MANAGE,
       Permission.VEHICLE_DISPOSAL_MANAGE,
       Permission.VEHICLE_BOOK_VALUE_READ,
+      Permission.PRODUCT_CATALOG_READ,
     ],
   },
 

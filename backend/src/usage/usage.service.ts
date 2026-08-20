@@ -24,7 +24,22 @@ export class UsageService {
   ) {}
 
   async getVehicleUsage(tenantId: string | undefined, client?: Prisma.TransactionClient): Promise<UsageSnapshot> {
-    const planVersionId = await this.resolver.resolvePlanVersion(tenantId);
+    let planVersionId: string | null = null;
+    try {
+      planVersionId = await this.resolver.resolvePlanVersion(tenantId);
+    } catch (error) {
+      return {
+        limitCode: 'MAX_VEHICLES',
+        currentUsage: 0,
+        configuredLimit: null,
+        isUnlimited: false,
+        remaining: null,
+        status: 'NOT_CONFIGURED',
+        dataQuality: 'INSUFFICIENT_DATA',
+        reason: error.response?.code || 'NO_ENTITLEMENT_CONTEXT',
+      };
+    }
+
     if (!planVersionId) {
       return {
         limitCode: 'MAX_VEHICLES',
@@ -137,7 +152,22 @@ export class UsageService {
   }
 
   async getIntegrationUsage(tenantId: string | undefined): Promise<UsageSnapshot> {
-    const planVersionId = await this.resolver.resolvePlanVersion(tenantId);
+    let planVersionId: string | null = null;
+    try {
+      planVersionId = await this.resolver.resolvePlanVersion(tenantId);
+    } catch (error) {
+      return {
+        limitCode: 'MAX_INTEGRATIONS',
+        currentUsage: 0,
+        configuredLimit: null,
+        isUnlimited: false,
+        remaining: null,
+        status: 'NOT_CONFIGURED',
+        dataQuality: 'INSUFFICIENT_DATA',
+        reason: error.response?.code || 'NO_ENTITLEMENT_CONTEXT',
+      };
+    }
+
     if (!planVersionId) {
       return {
         limitCode: 'MAX_INTEGRATIONS',

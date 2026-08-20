@@ -70,5 +70,23 @@ describe('SubscriptionResolverService', () => {
       const res = await resolver.resolvePlanVersion('t1');
       expect(res.status).toBe('SUSPENDED');
     });
+
+    it('returns EXPIRED for EXPIRED subscription', async () => {
+      subscriptionService.getCurrentSubscription.mockResolvedValue(generateSub(SubscriptionStatus.EXPIRED, true));
+      const res = await resolver.resolvePlanVersion('t1');
+      expect(res.status).toBe('EXPIRED');
+    });
+
+    it('returns VALID for TRIAL subscription within period', async () => {
+      subscriptionService.getCurrentSubscription.mockResolvedValue(generateSub(SubscriptionStatus.TRIAL, true));
+      const res = await resolver.resolvePlanVersion('t1');
+      expect(res.status).toBe('VALID');
+    });
+
+    it('returns VALID for PAST_DUE subscription within period', async () => {
+      subscriptionService.getCurrentSubscription.mockResolvedValue(generateSub(SubscriptionStatus.PAST_DUE, true));
+      const res = await resolver.resolvePlanVersion('t1');
+      expect(res.status).toBe('VALID');
+    });
   });
 });

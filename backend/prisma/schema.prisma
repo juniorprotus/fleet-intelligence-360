@@ -23,6 +23,7 @@ model Tenant {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   organizations Organization[]
+  subscriptions Subscription[]
 
   @@map("tenants")
 }
@@ -1744,6 +1745,7 @@ model PlanVersion {
   pricingBands        PlanVehiclePricingBand[]
   entitlements        PlanEntitlement[]
   limitConfigurations PlanVersionLimit[]
+  subscriptions       Subscription[]
 
   @@unique([planId, versionNumber])
   @@index([planId, status])
@@ -1877,4 +1879,55 @@ model PlanVersionLimit {
   @@index([planVersionId])
   @@index([limitDefinitionId])
   @@map("plan_version_limits")
+}
+
+// ============================================================
+// PHASE 6D.1 — SUBSCRIPTION FOUNDATION
+// ============================================================
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  SUSPENDED
+  CANCELLED
+  EXPIRED
+}
+
+model Subscription {
+  id                 String             @id @default(uuid()) @map("subscription_id")
+  tenantId           String             @map("tenant_id")
+  tenant             Tenant             @relation(fields: [tenantId], references: [id])
+  planVersionId      String             @map("plan_version_id")
+  planVersion        PlanVersion        @relation(fields: [planVersionId], references: [id])
+  status             SubscriptionStatus @default(TRIAL)
+  startedAt          DateTime           @default(now()) @map("started_at")
+  trialEndsAt        DateTime?          @map("trial_ends_at")
+  currentPeriodStart DateTime           @map("current_period_start")
+  currentPeriodEnd   DateTime           @map("current_period_end")
+  endedAt            DateTime?          @map("ended_at")
+  cancelledAt        DateTime?          @map("cancelled_at")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+
+  statusHistory SubscriptionStatusHistory[]
+
+  @@index([tenantId])
+  @@index([planVersionId])
+  @@index([status])
+  @@map("subscriptions")
+}
+
+model SubscriptionStatusHistory {
+  id             String             @id @default(uuid()) @map("history_id")
+  subscriptionId String             @map("subscription_id")
+  subscription   Subscription       @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  oldStatus      SubscriptionStatus @map("old_status")
+  newStatus      SubscriptionStatus @map("new_status")
+  reason         String?
+  changedAt      DateTime           @default(now()) @map("changed_at")
+  changedBy      String?            @map("changed_by")
+
+  @@index([subscriptionId])
+  @@map("subscription_status_history")
 }

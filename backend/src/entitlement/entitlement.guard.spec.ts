@@ -1,14 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EntitlementGuard } from './entitlement.guard';
 import { Reflector } from '@nestjs/core';
-import { DevelopmentEntitlementContextResolver } from './development-entitlement-resolver';
+import { CoreEntitlementResolver } from './core-entitlement.resolver';
 import { EntitlementService } from './entitlement.service';
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 
 describe('EntitlementGuard', () => {
   let guard: EntitlementGuard;
   let reflector: Reflector;
-  let resolver: DevelopmentEntitlementContextResolver;
+  let resolver: CoreEntitlementResolver;
   let service: EntitlementService;
 
   const mockExecutionContext = (userPayload: any, handlerFn: Function): ExecutionContext => {
@@ -34,7 +34,7 @@ describe('EntitlementGuard', () => {
           },
         },
         {
-          provide: DevelopmentEntitlementContextResolver,
+          provide: CoreEntitlementResolver,
           useValue: {
             resolvePlanVersion: jest.fn(),
           },
@@ -50,7 +50,7 @@ describe('EntitlementGuard', () => {
 
     guard = module.get<EntitlementGuard>(EntitlementGuard);
     reflector = module.get<Reflector>(Reflector);
-    resolver = module.get<DevelopmentEntitlementContextResolver>(DevelopmentEntitlementContextResolver);
+    resolver = module.get<CoreEntitlementResolver>(CoreEntitlementResolver);
     service = module.get<EntitlementService>(EntitlementService);
   });
 

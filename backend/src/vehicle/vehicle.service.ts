@@ -1,9 +1,11 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { DataScopeService, DataScopeContext } from '../auth/data-scope.service';
 import { CreateVehicleDto, UpdateVehicleDto } from './dto/vehicle.dto';
 import { EventPublisherService } from '../events/event-publisher.service';
 import { ApprovalWorkflowService } from '../workflow/approval-workflow.service';
+import { Prisma } from '@prisma/client';
+import { LimitEnforcementService } from '../usage/limit-enforcement.service';
 
 @Injectable()
 export class VehicleService {
@@ -14,48 +16,79 @@ export class VehicleService {
     private readonly dataScopeService: DataScopeService,
     private readonly eventPublisher: EventPublisherService,
     private readonly workflowService: ApprovalWorkflowService,
+    private readonly limitEnforcement: LimitEnforcementService,
   ) {}
 
-  async create(dto: CreateVehicleDto, userId?: string, tenantContext?: { tenantId: string; organizationId: string }) {
+  async create(dto: CreateVehicleDto, userId?: string, tenantContext?: { tenantId: string; organizationId?: string }) {
     // Resolve tenant — server-derived context is authoritative
-    const tenantId = tenantContext?.tenantId || 'TNT-DEFAULT';
+    const tenantId = tenantContext?.tenantId;
     const organizationId = tenantContext?.organizationId || 'ORG-DEFAULT';
 
-    // Check for duplicate registration within the same tenant
-    const existing = await this.prisma.vehicle.findFirst({
-      where: { tenantId, registrationNumber: dto.registrationNumber },
-    });
-    if (existing) {
-      throw new ConflictException(`Vehicle ${dto.registrationNumber} already exists in this tenant`);
+    if (!tenantId) {
+      // Fail closed if tenant context missing
+      throw new ForbiddenException({ code: 'NO_TENANT_CONTEXT', message: 'Tenant context missing' });
     }
-    const vehicle = await this.prisma.vehicle.create({
-      data: {
-        ...dto,
-        tenantId,
-        organizationId,
-        acquisitionDate: dto.acquisitionDate ? new Date(dto.acquisitionDate) : undefined,
-        createdBy: userId,
-        updatedBy: userId,
-      },
-    });
+
+    const maxRetries = 3;
+    let vehicleResult: any;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        vehicleResult = await this.prisma.$transaction(async (tx) => {
+          // Enforce MAX_VEHICLES limit using the same transaction
+          await this.limitEnforcement.assertWithinLimit(tenantId, 'MAX_VEHICLES', tx);
+
+          // Duplicate registration check within tenant
+          const existing = await tx.vehicle.findFirst({
+            where: { tenantId, registrationNumber: dto.registrationNumber },
+          });
+          if (existing) {
+            throw new ConflictException(`Vehicle ${dto.registrationNumber} already exists in this tenant`);
+          }
+
+          // Create vehicle within transaction
+          return await tx.vehicle.create({
+            data: {
+              ...dto,
+              tenantId,
+              organizationId,
+              acquisitionDate: dto.acquisitionDate ? new Date(dto.acquisitionDate) : undefined,
+              createdBy: userId,
+              updatedBy: userId,
+            },
+          });
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+        break; // success, exit retry loop
+      } catch (err) {
+        // Retry only on serialization failures (PostgreSQL P2034)
+        if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2034' && attempt < maxRetries - 1) {
+          // optional brief backoff before retry
+          await new Promise((r) => setTimeout(r, 100));
+          continue;
+        }
+        // Propagate other errors (validation, limit, etc.)
+        throw err;
+      }
+    }
+
+    // Publish vehicle.created event ONLY after successful transaction commit
     await this.eventPublisher.publish({
       eventType: 'vehicle.created',
-      entityId: vehicle.id,
+      entityId: vehicleResult.id,
       entityType: 'Vehicle',
       actorId: userId,
       payload: {
-        vehicleId: vehicle.id,
-        registrationNumber: vehicle.registrationNumber,
-        fleetNumber: vehicle.fleetNumber,
-        vehicleClass: vehicle.vehicleClass,
-        workshopId: vehicle.workshopId,
-        tenantId: vehicle.tenantId,
-        organizationId: vehicle.organizationId,
+        vehicleId: vehicleResult.id,
+        registrationNumber: vehicleResult.registrationNumber,
+        fleetNumber: vehicleResult.fleetNumber,
+        vehicleClass: vehicleResult.vehicleClass,
+        workshopId: vehicleResult.workshopId,
+        tenantId: vehicleResult.tenantId,
+        organizationId: vehicleResult.organizationId,
       },
     });
 
-    this.logger.log(`Vehicle created: ${vehicle.registrationNumber} (${vehicle.id}) tenant=${tenantId}`);
-    return vehicle;
+    this.logger.log(`Vehicle created: ${vehicleResult.registrationNumber} (${vehicleResult.id}) tenant=${tenantId}`);
+    return vehicleResult;
   }
 
   async findAll(filters?: {
@@ -600,16 +633,15 @@ export class VehicleService {
     if (activeDowntime) {
       const now = new Date();
       const durationMinutes = Math.round((now.getTime() - activeDowntime.startedAt.getTime()) / 60000);
-
       closedDowntime = await this.prisma.vehicleDowntime.update({
         where: { id: activeDowntime.id },
         data: {
           recoveredAt: now,
           durationMinutes,
-          recoveredBy: userId,
         },
       });
     }
+
 
     // Restore vehicle status to ACTIVE
     const recoveredVehicle = await this.prisma.vehicle.update({

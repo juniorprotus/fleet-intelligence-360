@@ -5,7 +5,7 @@ import { PermissionsGuard } from '../auth/permissions.guard';
 import { RequirePermissions } from '../auth/permissions.decorator';
 import { Permission } from '../auth/permissions.enum';
 import { EntitlementService } from './entitlement.service';
-import { DevelopmentEntitlementContextResolver } from './development-entitlement-resolver';
+import { CoreEntitlementResolver } from './core-entitlement.resolver';
 import { CreateFeatureDto, UpdateFeatureDto, CreatePlanEntitlementDto, UpdatePlanEntitlementDto } from './dto/entitlement.dto';
 
 @ApiTags('Commercial Entitlement & Feature Access')
@@ -15,7 +15,7 @@ import { CreateFeatureDto, UpdateFeatureDto, CreatePlanEntitlementDto, UpdatePla
 export class EntitlementController {
   constructor(
     private readonly service: EntitlementService,
-    private readonly resolver: DevelopmentEntitlementContextResolver,
+    private readonly resolver: CoreEntitlementResolver,
   ) {}
 
   // ─── FEATURE DEFINITIONS ───────────────────────────────────────────────────

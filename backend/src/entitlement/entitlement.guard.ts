@@ -6,14 +6,14 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { REQUIRES_FEATURE_KEY } from './requires-feature.decorator';
-import { DevelopmentEntitlementContextResolver } from './development-entitlement-resolver';
+import { CoreEntitlementResolver } from './core-entitlement.resolver';
 import { EntitlementService } from './entitlement.service';
 
 @Injectable()
 export class EntitlementGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
-    private readonly resolver: DevelopmentEntitlementContextResolver,
+    private readonly resolver: CoreEntitlementResolver,
     private readonly service: EntitlementService,
   ) {}
 
@@ -36,7 +36,7 @@ export class EntitlementGuard implements CanActivate {
 
     const tenantId = user.tenantId;
 
-    // Resolve PlanVersion context using DevelopmentEntitlementContextResolver
+    // Resolve PlanVersion context using CoreEntitlementResolver
     const planVersionId = await this.resolver.resolvePlanVersion(tenantId);
     if (!planVersionId) {
       throw new ForbiddenException({

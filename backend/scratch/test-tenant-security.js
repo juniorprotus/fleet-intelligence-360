@@ -119,8 +119,8 @@ async function runSecurityTests() {
       id: 9991,
       email: 'fleet.manager@fi360.com',
       role: 'FLEET_MANAGER',
-      tenantId: 'TNT-DEFAULT',
-      organizationId: 'ORG-DEFAULT'
+      tenantId: 'TEST_TENANT_ENTERPRISE',
+      organizationId: 'ORG-ENTERPRISE'
     };
     const tokenA = createToken(userA);
 
@@ -138,8 +138,11 @@ async function runSecurityTests() {
     });
     
     const created = await resGood.json();
+    if (resGood.status !== 201) {
+      console.error('❌ TEST 2B API FAILED:', resGood.status, created);
+    }
     const dbVehicle = await prisma.vehicle.findFirst({ where: { registrationNumber: testRegA } });
-    if (dbVehicle && dbVehicle.tenantId === 'TNT-DEFAULT' && dbVehicle.organizationId === 'ORG-DEFAULT') {
+    if (dbVehicle && dbVehicle.tenantId === 'TEST_TENANT_ENTERPRISE' && dbVehicle.organizationId === 'ORG-DEFAULT') {
       console.log(`✅ TEST 2B PASSED: Vehicle created with authenticated tenant=${dbVehicle.tenantId}, org=${dbVehicle.organizationId}`);
       passed++;
     } else {
@@ -212,7 +215,7 @@ async function runSecurityTests() {
     });
     
     const reFetched = await prisma.vehicle.findUnique({ where: { id: dbVehicle.id } });
-    if (reFetched.tenantId === 'TNT-DEFAULT' && reFetched.vehicleClass === 'Heavy Truck') {
+    if (reFetched.tenantId === 'TEST_TENANT_ENTERPRISE' && reFetched.vehicleClass === 'Heavy Truck') {
       console.log('✅ TEST 3B PASSED: Normal vehicle update preserves immutable tenantId');
       passed++;
     } else {

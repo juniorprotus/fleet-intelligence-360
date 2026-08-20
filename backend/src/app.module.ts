@@ -27,7 +27,7 @@ import { CryptoModule } from './crypto/crypto.module';
 import { ProductCatalogModule } from './product-catalog/product-catalog.module';
 import { EntitlementModule } from './entitlement/entitlement.module';
 import { UsageModule } from './usage/usage.module';
-
+import { SubscriptionModule } from './subscription/subscription.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -59,6 +59,7 @@ import { UsageModule } from './usage/usage.module';
     ProductCatalogModule,
     EntitlementModule,
     UsageModule,
+    SubscriptionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

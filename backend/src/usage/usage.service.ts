@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { DevelopmentEntitlementContextResolver } from '../entitlement/development-entitlement-resolver';
+import { CoreEntitlementResolver } from '../entitlement/core-entitlement.resolver';
+import { Prisma } from '@prisma/client';
 
 export interface UsageSnapshot {
   limitCode: string;
@@ -19,10 +20,10 @@ export class UsageService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly resolver: DevelopmentEntitlementContextResolver,
+    private readonly resolver: CoreEntitlementResolver,
   ) {}
 
-  async getVehicleUsage(tenantId: string | undefined): Promise<UsageSnapshot> {
+  async getVehicleUsage(tenantId: string | undefined, client?: Prisma.TransactionClient): Promise<UsageSnapshot> {
     const planVersionId = await this.resolver.resolvePlanVersion(tenantId);
     if (!planVersionId) {
       return {
@@ -37,14 +38,15 @@ export class UsageService {
       };
     }
 
-    const currentUsage = await this.prisma.vehicle.count({
+    const prismaClient = client ?? this.prisma;
+    const currentUsage = await prismaClient.vehicle.count({
       where: {
         tenantId,
         isActive: true,
       },
     });
 
-    const limitConfig = await this.prisma.planVersionLimit.findFirst({
+    const limitConfig = await prismaClient.planVersionLimit.findFirst({
       where: {
         planVersionId,
         limitDefinition: { limitCode: 'MAX_VEHICLES' },

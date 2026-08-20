@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsageService } from './usage.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { DevelopmentEntitlementContextResolver } from '../entitlement/development-entitlement-resolver';
+import { CoreEntitlementResolver } from '../entitlement/core-entitlement.resolver';
 
 describe('UsageService', () => {
   let service: UsageService;
   let prisma: PrismaService;
-  let resolver: DevelopmentEntitlementContextResolver;
+  let resolver: CoreEntitlementResolver;
 
   const mockPrismaService = {
     vehicle: {
@@ -29,13 +29,13 @@ describe('UsageService', () => {
       providers: [
         UsageService,
         { provide: PrismaService, useValue: mockPrismaService },
-        { provide: DevelopmentEntitlementContextResolver, useValue: mockResolver },
+        { provide: CoreEntitlementResolver, useValue: mockResolver },
       ],
     }).compile();
 
     service = module.get<UsageService>(UsageService);
     prisma = module.get<PrismaService>(PrismaService);
-    resolver = module.get<DevelopmentEntitlementContextResolver>(DevelopmentEntitlementContextResolver);
+    resolver = module.get<CoreEntitlementResolver>(CoreEntitlementResolver);
 
     jest.clearAllMocks();
   });

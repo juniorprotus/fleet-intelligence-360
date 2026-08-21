@@ -98,17 +98,55 @@ export class VehicleService {
     depot?: string;
     vehicleClass?: string;
     status?: string;
+    search?: string;
+    isActive?: string;
+    availability?: string;
+    page?: number;
+    limit?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
   }) {
-    const vehicles = await this.prisma.vehicle.findMany({
-      where: {
-        isActive: true,
-        ...(filters?.tenantId && { tenantId: filters.tenantId }),
-        ...(filters?.organizationId && { organizationId: filters.organizationId }),
-        ...(filters?.region && { region: filters.region }),
-        ...(filters?.depot && { depot: filters.depot }),
-        ...(filters?.vehicleClass && { vehicleClass: filters.vehicleClass }),
-        ...(filters?.status && { vehicleStatus: filters.status as any }),
-      },
+    const where: any = {
+      ...(filters?.tenantId && { tenantId: filters.tenantId }),
+      ...(filters?.organizationId && { organizationId: filters.organizationId }),
+      ...(filters?.region && { region: filters.region }),
+      ...(filters?.depot && { depot: filters.depot }),
+      ...(filters?.vehicleClass && { vehicleClass: filters.vehicleClass }),
+      ...(filters?.status && { vehicleStatus: filters.status as any }),
+    };
+
+    if (filters?.isActive !== undefined) {
+      where.isActive = filters.isActive === 'true' || filters.isActive === true;
+    } else {
+      where.isActive = true; // legacy default
+    }
+
+    if (filters?.search) {
+      where.OR = [
+        { registrationNumber: { contains: filters.search, mode: 'insensitive' } },
+        { vin: { contains: filters.search, mode: 'insensitive' } },
+        { make: { contains: filters.search, mode: 'insensitive' } },
+        { model: { contains: filters.search, mode: 'insensitive' } },
+      ];
+    }
+
+    if (filters?.availability === 'AVAILABLE') {
+      where.vehicleStatus = { notIn: ['MAINTENANCE', 'GROUNDED', 'SOLD'] };
+    } else if (filters?.availability === 'WORKSHOP') {
+      where.vehicleStatus = 'MAINTENANCE';
+    } else if (filters?.availability === 'INACTIVE') {
+      where.isActive = false;
+    }
+
+    const orderBy: any = {};
+    if (filters?.sortBy) {
+      orderBy[filters.sortBy] = filters.sortOrder || 'asc';
+    } else {
+      orderBy.registrationNumber = 'asc';
+    }
+
+    const queryArgs: any = {
+      where,
       include: {
         _count: {
           select: {
@@ -118,8 +156,19 @@ export class VehicleService {
           },
         },
       },
-      orderBy: { registrationNumber: 'asc' },
-    });
+      orderBy,
+    };
+
+    let total = 0;
+    if (filters?.page) {
+      const page = Number(filters.page) || 1;
+      const limit = Number(filters.limit) || 20;
+      queryArgs.skip = (page - 1) * limit;
+      queryArgs.take = limit;
+      total = await this.prisma.vehicle.count({ where });
+    }
+
+    const vehicles = await this.prisma.vehicle.findMany(queryArgs);
 
     // Populate assignedDriver info by querying active DRIVER users
     const driverUsers = await this.prisma.user.findMany({
@@ -144,10 +193,21 @@ export class VehicleService {
       }
     });
 
-    return vehicles.map((v) => ({
+    const enrichedVehicles = vehicles.map((v) => ({
       ...v,
       assignedDriver: driverMap.get(v.id) || driverMap.get(v.registrationNumber) || null,
     }));
+
+    if (filters?.page) {
+      return {
+        data: enrichedVehicles,
+        total,
+        page: Number(filters.page),
+        limit: Number(filters.limit) || 20,
+      };
+    }
+
+    return enrichedVehicles;
   }
 
   async findOne(identifier: string) {

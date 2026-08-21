@@ -50,6 +50,13 @@ export class VehicleController {
     @Query('depot') depot?: string,
     @Query('vehicleClass') vehicleClass?: string,
     @Query('status') status?: string,
+    @Query('search') search?: string,
+    @Query('isActive') isActive?: string,
+    @Query('availability') availability?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
   ) {
     // Apply data-scope filtering based on the user's role scope level
     const scopeCtx = this.dataScopeService.buildContext(req.user);
@@ -61,6 +68,13 @@ export class VehicleController {
       depot: depot ?? scopeFilter.depot,
       vehicleClass,
       status,
+      search,
+      isActive,
+      availability,
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
+      sortBy,
+      sortOrder,
     });
   }
 

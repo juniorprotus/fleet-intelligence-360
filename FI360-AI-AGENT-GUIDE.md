@@ -110,3 +110,73 @@ When certifying a task:
 5. Inspect the current `schema.prisma` and implementation.
 6. Define a targeted Change Budget and seek approval if touching protected domains.
 7. Execute surgically, test, and provide a Final Report.
+
+# UI Reliability & Ease-of-Use Stabilization
+
+| Area | Status |
+|---|---|
+| Reporting UX | PASS |
+| RBAC/Entitlement UI states | PASS |
+| Dashboard navigation | STATIC VERIFIED |
+| Quick Navigation | STATIC VERIFIED |
+| True Global Search | NOT IMPLEMENTED |
+| Browser verification | BLOCKED by Playwright environment |
+| Frontend build | PASS |
+| Backend Jest | 19 suites / 136 tests |
+
+1. Reporting UX is PASS because the frontend now distinguishes:
+   - permission denied
+   - entitlement not configured
+   - feature locked by plan
+   and the authorized reporting workflow is correctly exposed.
+
+2. RBAC/Entitlement UI states are PASS.
+
+3. Dashboard navigation and Quick Navigation are STATIC VERIFIED, meaning
+   the implementation has been traced and verified from source code but has
+   NOT received full dynamic browser verification.
+
+4. True Global Search is NOT IMPLEMENTED.
+   FI360 currently provides Quick Navigation rather than a universal backend
+   search capability.
+
+5. Browser verification is BLOCKED because the Playwright browser environment
+   could not initialize due to the existing Playwright driver/CDN issue.
+
+6. Do NOT convert browser verification from BLOCKED to PASS unless actual
+   browser execution has been successfully performed.
+
+7. Do NOT treat Quick Navigation as equivalent to True Global Search.
+
+> IMPORTANT — DO NOT REOPEN THE TRUE GLOBAL SEARCH DEFECT AS A BUG.
+>
+> The absence of a universal global search API is a known architectural
+> capability gap, not an unresolved Quick Navigation bug.
+>
+> Quick Navigation is intentionally documented separately from True Global
+> Search.
+>
+> A future AI agent should only implement True Global Search as a dedicated
+> architecture/product step when explicitly requested.
+>
+> Do not invent a new global search subsystem during unrelated UI fixes.
+
+> IMPORTANT — BROWSER CERTIFICATION IS NOT COMPLETE.
+>
+> Static verification and frontend build success do not constitute dynamic
+> browser certification.
+>
+> Browser verification remains BLOCKED until the browser automation
+> environment is available and the affected workflows are tested interactively.
+
+**Source / Evidence Note:**
+- Frontend production build succeeded using Vite.
+- Backend Jest baseline remains 19 suites / 136 tests.
+- Reporting backend authorization was HTTP-verified for:
+  SUPER_ADMIN
+  CEO
+  FLEET_MANAGER
+  FINANCE_MANAGER
+  with successful report generation.
+- Browser verification remains blocked by the Playwright environment.
+- The UI stabilization changes were limited to the frontend.

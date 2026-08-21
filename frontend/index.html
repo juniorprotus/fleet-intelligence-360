@@ -102,19 +102,22 @@
             </div>
           </div>
           
-          <!-- Center-Left Global Search -->
+          <!-- Center-Left Quick Navigation -->
           <div class="header-center">
             <div class="global-search-container">
-              <i data-lucide="search" class="search-icon"></i>
-              <input type="text" id="global-search" placeholder="Search vehicles, drivers, tyres... (press '/')">
-              <!-- Search Results Dropdown -->
+              <i data-lucide="compass" class="search-icon"></i>
+              <input type="text" id="global-search" placeholder="Quick Navigation (press '/')">
+              <!-- Quick Navigation Dropdown -->
               <div class="search-results-dropdown hidden" id="search-results-dropdown">
                 <div class="search-section">
                   <div class="search-section-header">Quick Navigation</div>
                   <ul id="search-results-nav">
-                    <li class="search-result-item" data-action="dashboard">Go to Dashboard</li>
-                    <li class="search-result-item" data-action="vehicles">Go to Vehicles</li>
-                    <li class="search-result-item" data-action="tyres">Go to Tyre Control</li>
+                    <li class="search-result-item" data-target="dashboard">Go to Dashboard</li>
+                    <li class="search-result-item" data-target="fm-vehicles">Go to Vehicles</li>
+                    <li class="search-result-item" data-target="fm-tyres">Go to Tyre Control</li>
+                    <li class="search-result-item" data-target="dashboard-workshop">Go to Workshop</li>
+                    <li class="search-result-item" data-target="dashboard-inventory">Go to Inventory</li>
+                    <li class="search-result-item" data-target="dashboard-finance">Go to Finance</li>
                   </ul>
                 </div>
               </div>
@@ -995,14 +998,94 @@
               </div>
 
               <div id="fm-vehicles" class="tab-panel">
-                <div class="panel-actions">
-                  <button class="btn small primary" id="btn-fm-add-vehicle">+ Add Vehicle</button>
+                <div class="flex-row between items-center mb-3">
+                  <div>
+                    <h3 class="m-0 font-bold" style="font-size: 1.2rem;">Vehicle Inventory Workspace</h3>
+                    <p class="muted text-xs m-0 mt-1">Operational register of fleet vehicles and asset status</p>
+                  </div>
+                  <div class="flex-row gap-2 items-center">
+                    <button class="btn small outline" onclick="window.loadVehicleInventory(1)">
+                      <i data-lucide="refresh-cw" class="icon-inline"></i> Refresh
+                    </button>
+                    <button class="btn small primary" id="btn-fm-add-vehicle">+ Add Vehicle</button>
+                  </div>
                 </div>
+
+                <!-- Summary Cards -->
+                <div class="grid grid-5 gap-3 mb-4">
+                  <div class="card p-3 text-center border-l-primary">
+                    <p class="text-xs font-bold text-gray uppercase tracking-wide m-0 mb-1">Total</p>
+                    <h2 class="m-0 font-bold" id="fm-veh-sum-total">-</h2>
+                  </div>
+                  <div class="card p-3 text-center border-l-success">
+                    <p class="text-xs font-bold text-gray uppercase tracking-wide m-0 mb-1">Active</p>
+                    <h2 class="m-0 font-bold text-green" id="fm-veh-sum-active">-</h2>
+                  </div>
+                  <div class="card p-3 text-center border-l-info">
+                    <p class="text-xs font-bold text-gray uppercase tracking-wide m-0 mb-1">Available</p>
+                    <h2 class="m-0 font-bold text-blue" id="fm-veh-sum-available">-</h2>
+                  </div>
+                  <div class="card p-3 text-center border-l-warning">
+                    <p class="text-xs font-bold text-gray uppercase tracking-wide m-0 mb-1">Workshop</p>
+                    <h2 class="m-0 font-bold text-amber" id="fm-veh-sum-workshop">-</h2>
+                  </div>
+                  <div class="card p-3 text-center border-l-danger">
+                    <p class="text-xs font-bold text-gray uppercase tracking-wide m-0 mb-1">Maintenance</p>
+                    <h2 class="m-0 font-bold text-red" id="fm-veh-sum-maintenance">-</h2>
+                  </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="flex-row gap-3 mb-3 items-center">
+                  <div class="form-group flex-1 m-0">
+                    <input type="text" id="fm-veh-search" class="form-input" placeholder="Search registration, VIN, make, model..." oninput="window.debounceLoadVehicleInventory()">
+                  </div>
+                  <div class="form-group m-0" style="width: 150px;">
+                    <select id="fm-veh-status" class="form-select" onchange="window.loadVehicleInventory(1)">
+                      <option value="">All Statuses</option>
+                      <option value="ACTIVE">Active</option>
+                      <option value="MAINTENANCE">Maintenance</option>
+                      <option value="GROUNDED">Grounded</option>
+                      <option value="SOLD">Sold</option>
+                    </select>
+                  </div>
+                  <div class="form-group m-0" style="width: 150px;">
+                    <select id="fm-veh-availability" class="form-select" onchange="window.loadVehicleInventory(1)">
+                      <option value="">All Availability</option>
+                      <option value="AVAILABLE">Available</option>
+                      <option value="WORKSHOP">In Workshop</option>
+                      <option value="INACTIVE">Inactive</option>
+                    </select>
+                  </div>
+                </div>
+
                 <div class="table-container">
                   <table id="fm-vehicles-table">
-                    <thead><tr><th>Registration</th><th>Fleet #</th><th>Class</th><th>Make/Model</th><th>Region</th><th>Depot</th><th>Status</th><th>Assigned Driver</th><th>Tyres</th></tr></thead>
-                    <tbody><tr><td colspan="9" class="text-center muted">Loading...</td></tr></tbody>
+                    <thead>
+                      <tr>
+                        <th>Registration</th>
+                        <th>Vehicle</th>
+                        <th>Driver</th>
+                        <th>Status</th>
+                        <th>Availability</th>
+                        <th>Odometer</th>
+                        <th>Location</th>
+                        <th>Workshop</th>
+                        <th>Tyres</th>
+                        <th class="text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody><tr><td colspan="10" class="text-center muted py-4">Loading vehicles...</td></tr></tbody>
                   </table>
+                </div>
+                
+                <!-- Pagination -->
+                <div class="flex-row between items-center mt-3 p-2 bg-gray-50 border-rounded" style="border: 1px solid var(--border-color)">
+                  <span class="text-sm muted" id="fm-veh-pagination-info">Showing page 1 of 1</span>
+                  <div class="flex-row gap-2">
+                    <button class="btn small" id="fm-veh-btn-prev" onclick="window.loadVehicleInventory(window.currentVehPage - 1)">Previous</button>
+                    <button class="btn small" id="fm-veh-btn-next" onclick="window.loadVehicleInventory(window.currentVehPage + 1)">Next</button>
+                  </div>
                 </div>
               </div>
               <div id="fm-tyres" class="tab-panel hidden">
@@ -4109,7 +4192,23 @@
             <div class="grid grid-2 gap-3 mb-3">
               <div class="form-group">
                 <label class="form-label mb-1">Wheel Position Code</label>
-                <input type="text" id="fitment-position-code" class="form-input" placeholder="AX1-L" required />
+                <select id="fitment-position-id" class="form-select" required>
+                  <option value="">-- Select Wheel Position --</option>
+                  <option value="1">Position 1 — Axle 1: Steer Left (1L)</option>
+                  <option value="2">Position 2 — Axle 1: Steer Right (1R)</option>
+                  <option value="3">Position 3 — Axle 2: Drive Outer Left (2OL)</option>
+                  <option value="4">Position 4 — Axle 2: Drive Inner Left (2IL)</option>
+                  <option value="5">Position 5 — Axle 2: Drive Inner Right (2IR)</option>
+                  <option value="6">Position 6 — Axle 2: Drive Outer Right (2OR)</option>
+                  <option value="7">Position 7 — Axle 3: Drive Outer Left (3OL)</option>
+                  <option value="8">Position 8 — Axle 3: Drive Inner Left (3IL)</option>
+                  <option value="9">Position 9 — Axle 3: Drive Inner Right (3IR)</option>
+                  <option value="10">Position 10 — Axle 3: Drive Outer Right (3OR)</option>
+                  <option value="11">Position 11 — Axle 4: Trailer Axle 1 Left (4L1)</option>
+                  <option value="12">Position 12 — Axle 4: Trailer Axle 1 Right (4R1)</option>
+                  <option value="13">Position 13 — Axle 5: Trailer Axle 2 Left (5L2)</option>
+                  <option value="14">Position 14 — Axle 5: Trailer Axle 2 Right (5R2)</option>
+                </select>
               </div>
               <div class="form-group">
                 <label class="form-label mb-1">Fitment Odometer (KM)</label>

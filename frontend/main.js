@@ -204,6 +204,11 @@ function showFmDashboard(targetTab = 'fm-vehicles') {
   } else {
     showDashboard('dashboard-fleet-manager', 'Fleet Operations', `Region: ${currentUser?.region || 'All'} · Depot: ${currentUser?.depot || 'All'}`);
     document.getElementById('fm-fleet-overview-section')?.classList.remove('hidden');
+    if (targetTab === 'fm-vehicles') {
+      if (typeof window.loadVehicleInventory === 'function') {
+        window.loadVehicleInventory(1);
+      }
+    }
   }
 
   const parent = document.getElementById('dashboard-fleet-manager');
@@ -336,13 +341,28 @@ function buildHeaderActions() {
   }
 
   // Universal Generate Report Button for EVERY role dashboard
-  let universalReportBtnHTML = `<button class="btn outline info ml-2" id="btn-hdr-univ-report">📄 + GENERATE REPORT</button>`;
+  let universalReportBtnHTML = '';
   
-  if (EntitlementClient.loaded && !EntitlementClient.hasFeature('REPORTING')) {
-    if (EntitlementClient.error?.message?.includes('NO_ENTITLEMENT_CONTEXT')) {
-      universalReportBtnHTML = `<button class="btn outline warning ml-2 entitlement-locked" id="btn-hdr-univ-report-locked">📄 NOT CONFIGURED</button>`;
+  const hasReportPermission = window.authContext && 
+                              window.authContext.permissions && 
+                              window.authContext.permissions.includes('REPORTS_READ');
+
+  if (!hasReportPermission) {
+    // D. RBAC denied
+    universalReportBtnHTML = `<button class="btn outline danger ml-2" onclick="showToast('You do not have permission to generate reports. Please contact your administrator.', 'error')">📄 PERMISSION REQUIRED</button>`;
+  } else {
+    // RBAC allowed, check entitlement
+    if (EntitlementClient.loaded && !EntitlementClient.hasFeature('REPORTING')) {
+      if (EntitlementClient.error?.message?.includes('NO_ENTITLEMENT_CONTEXT')) {
+        // C. Entitlement context unavailable
+        universalReportBtnHTML = `<button class="btn outline warning ml-2 entitlement-locked" onclick="showToast('Commercial configuration is unavailable. Please configure your subscription.', 'warning')">📄 NOT CONFIGURED</button>`;
+      } else {
+        // B. RBAC allowed + REPORTING not entitled
+        universalReportBtnHTML = `<button class="btn outline danger ml-2 entitlement-locked" onclick="showToast('Reporting is unavailable under your current plan. Upgrade plan to access.', 'warning')">📄 LOCKED BY PLAN</button>`;
+      }
     } else {
-      universalReportBtnHTML = `<button class="btn outline danger ml-2 entitlement-locked" id="btn-hdr-univ-report-locked">📄 LOCKED BY PLAN</button>`;
+      // A. RBAC allowed + REPORTING entitled
+      universalReportBtnHTML = `<button class="btn outline info ml-2" id="btn-hdr-univ-report">📄 + GENERATE REPORT</button>`;
     }
   }
 
@@ -363,13 +383,6 @@ function bindHeaderActions() {
   document.getElementById('btn-sup-hdr-inspect')?.addEventListener('click', () => window.openInspectionModal());
   document.getElementById('btn-sup-register-tyre')?.addEventListener('click', () => openModal('add-tyre-modal'));
   document.getElementById('btn-hdr-univ-report')?.addEventListener('click', () => window.openUniversalReportModal());
-  document.getElementById('btn-hdr-univ-report-locked')?.addEventListener('click', () => {
-    if (EntitlementClient.error?.message?.includes('NO_ENTITLEMENT_CONTEXT')) {
-      showToast('Reporting is NOT CONFIGURED for this tenant.', 'warning');
-    } else {
-      showToast('Reporting is LOCKED BY PLAN.', 'warning');
-    }
-  });
 }
 
 // ─── Modal Openers ─────────────────────────────────────────────────────────────
@@ -1872,12 +1885,83 @@ window.openFitmentModal = function(tyreId = '') {
 };
 
 // ─── Table Renderers ──────────────────────────────────────────────────────────
-function renderVehicleTable(selector, list, showTyreCount = true) {
+window.currentVehPage = 1;
+window.currentVehLimit = 15;
+let vehSearchTimeout = null;
+
+window.debounceLoadVehicleInventory = function() {
+  clearTimeout(vehSearchTimeout);
+  vehSearchTimeout = setTimeout(() => {
+    window.loadVehicleInventory(1);
+  }, 400);
+};
+
+window.loadVehicleInventory = async function(page = 1) {
+  if (page < 1) page = 1;
+  
+  const search = document.getElementById('fm-veh-search')?.value || '';
+  const status = document.getElementById('fm-veh-status')?.value || '';
+  const availability = document.getElementById('fm-veh-availability')?.value || '';
+  
+  document.querySelector('#fm-vehicles-table tbody').innerHTML = `<tr><td colspan="10" class="text-center muted py-4">Loading vehicles...</td></tr>`;
+
+  try {
+    let url = `/api/v1/vehicles?page=${page}&limit=${window.currentVehLimit}`;
+    if (search) url += `&search=${encodeURIComponent(search)}`;
+    if (status) url += `&status=${encodeURIComponent(status)}`;
+    if (availability) url += `&availability=${encodeURIComponent(availability)}`;
+
+    const res = await apiFetch(url);
+    const data = res?.data || [];
+    const total = res?.total || data.length;
+    
+    window.currentVehPage = page;
+    const totalPages = Math.ceil(total / window.currentVehLimit) || 1;
+    
+    // Update pagination UI
+    const pageInfo = document.getElementById('fm-veh-pagination-info');
+    if (pageInfo) pageInfo.textContent = `Showing page ${page} of ${totalPages} (${total} total vehicles)`;
+    
+    const btnPrev = document.getElementById('fm-veh-btn-prev');
+    if (btnPrev) btnPrev.disabled = (page <= 1);
+    
+    const btnNext = document.getElementById('fm-veh-btn-next');
+    if (btnNext) btnNext.disabled = (page >= totalPages);
+
+    // Calculate Summary Stats from data (Wait, if data is only 1 page, we shouldn't calculate total active from just this page. Let's do a fast count if page=1 and no filters, or just use what we have in the current view for now, or fetch the breakdown KPI).
+    // The instructions say: "If summary counts require an additional endpoint/query: make the smallest server-side addition necessary." 
+    // We already have GET /api/v1/vehicles/distribution-kpi that provides fleet distribution. We will use it!
+    
+    if (page === 1) {
+      apiFetch('/api/v1/vehicles/distribution-kpi').then(dist => {
+        if (dist && dist.metrics) {
+          setText('fm-veh-sum-total', dist.metrics.totalVehicles || 0);
+          setText('fm-veh-sum-active', dist.metrics.totalOperational || 0);
+          setText('fm-veh-sum-available', (dist.metrics.totalOperational || 0) - (dist.metrics.totalGrounded || 0));
+          setText('fm-veh-sum-workshop', dist.metrics.totalInWorkshop || 0);
+          setText('fm-veh-sum-maintenance', dist.metrics.totalInMaintenance || 0);
+        }
+      }).catch(e => console.error('Failed to load vehicle KPI', e));
+    }
+
+    renderVehicleTable('#fm-vehicles-table', data);
+  } catch (err) {
+    document.querySelector('#fm-vehicles-table tbody').innerHTML = `<tr><td colspan="10" class="text-center text-red py-4">Failed to load vehicles: ${err.message}</td></tr>`;
+  }
+};
+
+function renderVehicleTable(selector, list) {
   const tbody = document.querySelector(`${selector} tbody`);
   if (!tbody) return;
   tbody.innerHTML = list.map(v => {
     const statusVal = v.vehicleStatus || v.status || (v.isActive !== false ? 'ACTIVE' : 'INACTIVE');
     const badgeHtml = statusBadge2(statusVal);
+    
+    let availHtml = '<span class="badge-code text-green">AVAILABLE</span>';
+    if (statusVal === 'MAINTENANCE') availHtml = '<span class="badge-code text-amber">IN WORKSHOP</span>';
+    else if (statusVal === 'GROUNDED') availHtml = '<span class="badge-code text-red">GROUNDED</span>';
+    else if (statusVal === 'SOLD') availHtml = '<span class="badge-code muted">SOLD</span>';
+    else if (v.isActive === false) availHtml = '<span class="badge-code muted">INACTIVE</span>';
 
     const fittedCount = v._count?.tyreFitments ?? v._count?.tyres ?? 0;
     const capacity = v.expectedTyres || getCapacityForClass(v.vehicleClass, `${v.make || ''} ${v.model || ''}`);
@@ -1890,17 +1974,23 @@ function renderVehicleTable(selector, list, showTyreCount = true) {
             ${v.registrationNumber} &rarr;
           </a>
         </td>
-        <td class="small muted">${v.fleetNumber || '—'}</td>
-        <td class="small">${v.vehicleClass || 'Heavy Truck'}</td>
-        <td class="small">${v.make || ''} ${v.model || ''}</td>
-        <td class="small muted">${v.region || '—'}</td>
-        <td class="small muted">${v.depot || '—'}</td>
+        <td class="small">
+          <div>${v.make || ''} ${v.model || ''}</div>
+          <div class="muted text-xs">${v.vehicleClass || 'Heavy Truck'}</div>
+        </td>
+        <td class="small">${v.assignedDriver ? `<span class="font-bold">👤 ${v.assignedDriver}</span>` : `<span class="muted text-xs">Unassigned</span>`}</td>
         <td>${badgeHtml}</td>
-        <td class="small">${v.assignedDriver ? `<span class="badge-code text-green">👤 ${v.assignedDriver}</span>` : `<span class="muted text-xs">UNASSIGNED</span>`}</td>
-        ${showTyreCount ? `<td class="small text-center">${countBadge}</td>` : ''}
+        <td>${availHtml}</td>
+        <td class="small text-right">${v.currentOdometer ? v.currentOdometer.toLocaleString() : '--'} km</td>
+        <td class="small muted">${v.depot || v.region || '—'}</td>
+        <td class="small text-center">${v.workshopId ? '<span class="badge-code text-amber">WS</span>' : '<span class="badge-code text-green">OK</span>'}</td>
+        <td class="small text-center">${countBadge}</td>
+        <td class="text-right">
+           <button class="btn tiny outline" onclick="window.openVehicleWorkspace('${v.id}')">View</button>
+        </td>
       </tr>
     `;
-  }).join('') || `<tr><td colspan="${showTyreCount ? 9 : 8}" class="muted text-center">No vehicles registered</td></tr>`;
+  }).join('') || `<tr><td colspan="10" class="muted text-center py-4">No vehicles found.</td></tr>`;
 }
 
 function getCapacityForClass(vClass = '', makeModel = '') {
@@ -2931,12 +3021,6 @@ function initTabs() {
         if (titleEl) titleEl.textContent = 'Tyre Fleet Health & Intelligence';
         if (subEl) subEl.textContent = 'Real-time asset condition, safety defects, risk analysis, and governed financial metrics';
         window.loadFmTyresCommandCenter?.();
-      } else if (tabId === 'fm-vehicles' || tabId === 'fm-fitments' || tabId === 'fm-inspections' || tabId === 'fm-alerts' || tabId === 'fm-defects') {
-        document.getElementById('fm-fleet-overview-section')?.classList.remove('hidden');
-        const titleEl = document.getElementById('page-title');
-        const subEl = document.getElementById('page-subtitle');
-        if (titleEl) titleEl.textContent = 'Fleet Operations';
-        if (subEl) subEl.textContent = `Region: ${currentUser?.region || 'All'} · Depot: ${currentUser?.depot || 'All'}`;
       }
     });
   });
@@ -3169,8 +3253,39 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Global click-away handler
-  document.addEventListener('click', () => {
+  // Global click-away and Event Delegation handler
+  document.addEventListener('click', (e) => {
+    // 1. Quick Navigation Dropdown Delegation
+    const searchItem = e.target.closest('.search-result-item');
+    if (searchItem) {
+      const target = searchItem.getAttribute('data-target') || searchItem.getAttribute('data-action');
+      const userNav = NAV_MAP[currentUser?.role] || [];
+      
+      if (target === 'dashboard') {
+        if (userNav[0]) userNav[0].action();
+      } else {
+        const navEntry = userNav.find(n => n.viewId === target);
+        if (navEntry) {
+          navEntry.action();
+        } else {
+          const names = {
+            'fm-vehicles': 'Vehicles',
+            'fm-tyres': 'Tyres',
+            'dashboard-workshop': 'Workshop',
+            'dashboard-inventory': 'Inventory',
+            'dashboard-finance': 'Finance'
+          };
+          const name = names[target] || 'This';
+          showToast(`${name} dashboard is unavailable for your role.`, 'warning');
+        }
+      }
+      document.getElementById('search-results-dropdown')?.classList.add('hidden');
+      const searchInput = document.getElementById('global-search');
+      if (searchInput) searchInput.value = '';
+      return;
+    }
+
+    // 2. Hide dropdowns on click-away
     dropdowns.forEach(d => {
       document.getElementById(d.menuId)?.classList.add('hidden');
     });
@@ -3205,25 +3320,6 @@ document.addEventListener('DOMContentLoaded', () => {
       e.stopPropagation();
     });
   }
-
-  // Master Search Quick Navigation Handling
-  document.querySelectorAll('.search-result-item').forEach(item => {
-    item.addEventListener('click', (e) => {
-      const action = e.currentTarget.getAttribute('data-action');
-      if (action === 'dashboard') {
-        const defaultNav = NAV_MAP[currentUser?.role]?.[0];
-        if (defaultNav) defaultNav.action();
-      } else if (action === 'vehicles') {
-        window.showDashboard('dashboard-fleet-manager', 'Fleet Operations');
-        window.showFmDashboard('fm-vehicles');
-      } else if (action === 'tyres') {
-        window.showDashboard('dashboard-fleet-manager', 'Tyre Fleet Health & Intelligence');
-        window.showFmDashboard('fm-tyres');
-      }
-      searchDropdown?.classList.add('hidden');
-      searchInput.value = '';
-    });
-  });
 
   // Universal Report Form Submit
   document.getElementById('universal-report-form')?.addEventListener('submit', async (e) => {
@@ -3630,7 +3726,35 @@ function renderReportPDFWindow(data) {
       });
       closeModal('assign-vehicle-modal');
       showToast(response.message || 'Vehicle assigned successfully', 'success');
-      await loadViewData(currentActiveDashboard());
+      
+      const activeDashboard = currentActiveDashboard();
+      if (activeDashboard === 'vehicle-workspace-view' && window.currentWorkspaceVehicle && window.currentWorkspaceVehicle.id === vehicleId) {
+        // 1. Call EXISTING vehicle-details API once
+        const updatedVehicle = await apiFetch(`/api/v1/vehicles/${encodeURIComponent(vehicleId)}`);
+        
+        // 2. The existing API DOES NOT return assignedDriver. We must manually inject it from the assignment success response.
+        const d = response.driver;
+        updatedVehicle.assignedDriver = (d && (d.firstName || d.lastName)) ? `${d.firstName || ''} ${d.lastName || ''}`.trim() : (d?.email || 'UNASSIGNED');
+        
+        // 3. Replace current vehicle state
+        window.currentWorkspaceVehicle = updatedVehicle;
+        
+        // 4. Re-render existing views immediately
+        if (typeof renderVehicleQuickProfile === 'function') renderVehicleQuickProfile(window.currentWorkspaceVehicle);
+        if (window.vwActiveTab === 'overview' && typeof renderVehicleOverviewTab === 'function') renderVehicleOverviewTab(window.currentWorkspaceVehicle);
+        if (window.vwActiveTab === 'driver' && typeof renderVehicleDriverTab === 'function') await renderVehicleDriverTab(window.currentWorkspaceVehicle);
+        
+        // Re-render modal to reflect assignment
+        const driverSelect = document.getElementById('av-driver-select');
+        if (driverSelect) {
+            Array.from(driverSelect.options).forEach(opt => {
+                opt.text = opt.text.replace(' [Assigned]', '');
+                if (opt.value === d?.email) opt.text += ' [Assigned]';
+            });
+        }
+      } else {
+        await loadViewData(activeDashboard);
+      }
       
       const kpiTitle = document.getElementById('kpi-drill-title')?.textContent || '';
       if (kpiTitle.includes('Fleet') || kpiTitle.includes('Vehicle')) {
@@ -5156,10 +5280,26 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('tyre-fitment-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
+      const vehicleReg = document.getElementById('fitment-vehicle-reg').value;
+      
+      // Resolve Vehicle ID
+      let vehicleId;
+      try {
+        const veh = await apiFetch(`/api/v1/vehicles/${encodeURIComponent(vehicleReg)}`);
+        vehicleId = veh.id;
+      } catch (vehErr) {
+        throw new Error('Please select a valid vehicle.');
+      }
+
+      const positionIdVal = document.getElementById('fitment-position-id').value;
+      if (!positionIdVal) {
+        throw new Error('Please select a valid wheel position.');
+      }
+
       const payload = {
         tyreIdentifier: document.getElementById('fitment-tyre-id').value,
-        vehicleRegistration: document.getElementById('fitment-vehicle-reg').value,
-        positionCode: document.getElementById('fitment-position-code').value,
+        vehicleId: vehicleId,
+        positionId: parseInt(positionIdVal, 10),
         fitmentOdometer: Number(document.getElementById('fitment-odometer').value),
         fitmentDate: new Date().toISOString(),
       };
@@ -5171,8 +5311,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
       showToast('Tyre fitment recorded successfully', 'success');
       closeModal('tyre-fitment-modal');
-      if (currentUser?.role === 'TYRE_TECHNICIAN') loadTechnicianDashboard();
-      else if (currentUser?.role === 'TYRE_SUPERVISOR') loadTyreSupervisorDashboard();
+      
+      // Update the ledger/view immediately if on Tyre details
+      if (window.currentTyreId && typeof window.loadTyreWorkspace === 'function') {
+        window.loadTyreWorkspace(window.currentTyreId);
+      } else if (currentUser?.role === 'TYRE_TECHNICIAN') {
+        loadTechnicianDashboard();
+      } else if (currentUser?.role === 'TYRE_SUPERVISOR') {
+        loadTyreSupervisorDashboard();
+      }
     } catch (err) {
       showToast(`Fitment key-in error: ${err.message}`, 'error');
     }
@@ -6961,8 +7108,37 @@ window.reloadFmTyresCommandCenter = async function() {
   showToast('Tyre Command Center updated', 'success');
 };
 
-window.exportTyreReport = function() {
-  window.open('/api/v1/reports/tyres/inventory', '_blank');
+window.exportTyreReport = async function() {
+  try {
+    setLoading(true);
+    const data = await apiFetch('/api/v1/reports/generate', {
+      method: 'POST',
+      body: JSON.stringify({ reportType: 'tyre-inventory', format: 'CSV' })
+    });
+    
+    // We can use the existing formatReportCSV function
+    const csvContent = formatReportCSV(data);
+    const dateStr = new Date().toISOString().split('T')[0];
+    const fileName = `FI360_Tyre_Inventory_Report_${dateStr}.csv`;
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', fileName);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+    showToast('Exported Tyre Report successfully', 'success');
+  } catch (err) {
+    showToast('Failed to export report: ' + err.message, 'error');
+  } finally {
+    setLoading(false);
+  }
 };
 
 // ══════════════════════════════════════════════════════════════════════════════

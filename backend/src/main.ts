@@ -18,9 +18,8 @@ async function bootstrap() {
     }),
   );
 
-  // Enable CORS for frontend development
   app.enableCors({
-    origin: '*',
+    origin: true,
     credentials: true,
   });
 

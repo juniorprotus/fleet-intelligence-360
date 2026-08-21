@@ -76,7 +76,6 @@ export enum Permission {
   PROCUREMENT_CREATE       = 'procurement.create',
   PROCUREMENT_UPDATE       = 'procurement.update',
   PROCUREMENT_DELETE       = 'procurement.delete',
-
   // ── Fuel ─────────────────────────────────────
   FUEL_READ                = 'fuel.read',
   FUEL_CREATE              = 'fuel.create',
@@ -86,7 +85,10 @@ export enum Permission {
   FINANCE_READ             = 'finance.read',
   FINANCE_CREATE           = 'finance.create',
   FINANCE_UPDATE           = 'finance.update',
-
+  // ── Payment (new) ────────────────────────────────
+  VIEW_PAYMENT             = 'payment.view',
+  INITIATE_PAYMENT         = 'payment.initiate',
+  CANCEL_PAYMENT           = 'payment.cancel',
   // ── Vehicle Financial & Acquisition (Step 5D) ─────────────
   VEHICLE_FINANCIAL_READ   = 'vehicle.financial.read',
   VEHICLE_FINANCIAL_MANAGE = 'vehicle.financial.manage',
@@ -186,6 +188,12 @@ export enum Permission {
   // ── Step 6A: Product Catalog ──────────────────
   PRODUCT_CATALOG_READ     = 'product.catalog.read',
   PRODUCT_CATALOG_MANAGE   = 'product.catalog.manage',
+
+  // ── Step 6D: Subscriptions ───────────────────
+  SUBSCRIPTION_READ        = 'subscription.read',
+  SUBSCRIPTION_MANAGE      = 'subscription.manage',
+  SUBSCRIPTION_CANCEL      = 'subscription.cancel',
+  SUBSCRIPTION_CHANGE_PLAN = 'subscription.change_plan',
 }
 
 /**

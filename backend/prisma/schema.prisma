@@ -22,8 +22,10 @@ model Tenant {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  organizations Organization[]
-  subscriptions Subscription[]
+  organizations       Organization[]
+  subscriptions       Subscription[]
+  paymentTransactions PaymentTransaction[]
+  paymentAttempts     PaymentAttempt[]
 
   @@map("tenants")
 }
@@ -1910,7 +1912,8 @@ model Subscription {
   createdAt          DateTime           @default(now()) @map("created_at")
   updatedAt          DateTime           @updatedAt @map("updated_at")
 
-  statusHistory SubscriptionStatusHistory[]
+  statusHistory       SubscriptionStatusHistory[]
+  paymentTransactions PaymentTransaction[]
 
   @@index([tenantId])
   @@index([planVersionId])
@@ -1930,4 +1933,74 @@ model SubscriptionStatusHistory {
 
   @@index([subscriptionId])
   @@map("subscription_status_history")
+}
+
+// ============================================================
+// PAYMENT CORE MODELS
+// ============================================================
+
+enum PaymentStatus {
+  INITIATED
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+  EXPIRED
+  REVERSED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+model PaymentTransaction {
+  id                String           @id @default(uuid()) @map("transaction_id")
+  tenantId          String           @map("tenant_id")
+  tenant            Tenant           @relation(fields: [tenantId], references: [id])
+  subscriptionId    String?          @map("subscription_id")
+  subscription      Subscription?    @relation(fields: [subscriptionId], references: [id])
+  amount            Decimal          @map("amount") @db.Decimal(14, 2)
+  currency          String           @map("currency") // ISO‑4217
+  status            PaymentStatus    @default(PENDING) @map("status")
+  providerCode      String           @map("provider_code")
+  providerReference String?          @map("provider_reference")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+  attempts          PaymentAttempt[]
+
+  @@index([tenantId])
+  @@index([subscriptionId])
+  @@map("payment_transactions")
+}
+
+model PaymentAttempt {
+  id                     String                 @id @default(uuid()) @map("attempt_id")
+  transactionId          String                 @map("transaction_id")
+  transaction            PaymentTransaction     @relation(fields: [transactionId], references: [id])
+  tenantId               String                 @map("tenant_id")
+  tenant                 Tenant                 @relation(fields: [tenantId], references: [id])
+  amount                 Decimal                @map("amount") @db.Decimal(14, 2)
+  currency               String                 @map("currency")
+  providerCode           String                 @map("provider_code")
+  providerReference      String?                @map("provider_reference")
+  idempotencyKey         String                 @map("idempotency_key")
+  status                 PaymentStatus          @map("status")
+  createdAt              DateTime               @default(now()) @map("created_at")
+  updatedAt              DateTime               @updatedAt @map("updated_at")
+  paymentStatusHistories PaymentStatusHistory[]
+
+  @@unique([tenantId, idempotencyKey])
+  @@index([transactionId])
+  @@map("payment_attempts")
+}
+
+model PaymentStatusHistory {
+  id        String         @id @default(uuid()) @map("history_id")
+  attemptId String         @map("attempt_id")
+  attempt   PaymentAttempt @relation(fields: [attemptId], references: [id])
+  oldStatus PaymentStatus  @map("old_status")
+  newStatus PaymentStatus  @map("new_status")
+  changedAt DateTime       @default(now()) @map("changed_at")
+  changedBy String?        @map("changed_by")
+
+  @@index([attemptId])
+  @@map("payment_status_history")
 }

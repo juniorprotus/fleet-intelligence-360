@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { SubscriptionService } from './subscription.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { EventPublisherService } from '../events/event-publisher.service';
 import { SubscriptionStatus } from '@prisma/client';
 
 describe('SubscriptionService', () => {
@@ -23,10 +24,17 @@ describe('SubscriptionService', () => {
       subscriptionStatusHistory: {
         create: jest.fn(),
       },
+      planVersion: {
+        findUnique: jest.fn(),
+      },
     };
 
     auditService = {
       logAction: jest.fn(),
+    };
+
+    const mockEventPublisher = {
+      publish: jest.fn().mockResolvedValue({}),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -34,10 +42,12 @@ describe('SubscriptionService', () => {
         SubscriptionService,
         { provide: PrismaService, useValue: prismaService },
         { provide: AuditService, useValue: auditService },
+        { provide: EventPublisherService, useValue: mockEventPublisher },
       ],
     }).compile();
 
     service = module.get<SubscriptionService>(SubscriptionService);
+    (service as any).eventPublisher = mockEventPublisher;
   });
 
   it('should be defined', () => {
@@ -57,6 +67,10 @@ describe('SubscriptionService', () => {
       const createdSub = { id: 'sub-1', ...dto };
       prismaService.subscription.create.mockResolvedValue(createdSub);
       prismaService.subscriptionStatusHistory.create.mockResolvedValue({});
+      prismaService.planVersion.findUnique.mockResolvedValue({
+        id: 'plan-v-1',
+        plan: { id: 'plan-1', planKey: 'plan-key' },
+      });
 
       const result = await service.createSubscription('user-1', dto);
 
@@ -69,15 +83,22 @@ describe('SubscriptionService', () => {
           newStatus: SubscriptionStatus.ACTIVE,
         }),
       });
+      expect(auditService.logAction).toHaveBeenCalledWith(expect.objectContaining({
+        action: 'SUBSCRIPTION_CREATED',
+      }), expect.anything());
     });
   });
 
   describe('changeSubscriptionStatus', () => {
     it('should update status and log history', async () => {
-      const existingSub = { id: 'sub-1', status: SubscriptionStatus.ACTIVE };
+      const existingSub = { id: 'sub-1', status: SubscriptionStatus.ACTIVE, planVersionId: 'plan-v-1', tenantId: 'tenant-1' };
       prismaService.subscription.findUnique.mockResolvedValue(existingSub);
       prismaService.subscription.update.mockResolvedValue({ ...existingSub, status: SubscriptionStatus.SUSPENDED });
       prismaService.subscriptionStatusHistory.create.mockResolvedValue({});
+      prismaService.planVersion.findUnique.mockResolvedValue({
+        id: 'plan-v-1',
+        plan: { id: 'plan-1', planKey: 'plan-key' },
+      });
 
       const result = await service.changeSubscriptionStatus('user-1', 'sub-1', {
         status: SubscriptionStatus.SUSPENDED,
@@ -92,6 +113,9 @@ describe('SubscriptionService', () => {
           newStatus: SubscriptionStatus.SUSPENDED,
         }),
       });
+      expect(auditService.logAction).toHaveBeenCalledWith(expect.objectContaining({
+        action: 'SUBSCRIPTION_SUSPENDED',
+      }), expect.anything());
     });
   });
 });

@@ -49,6 +49,10 @@ export const ROLE_MATRIX: Record<UserRole, RoleConfig> = {
       Permission.SYSTEM_CONFIGURE,
       Permission.SYSTEM_HEALTH_READ,
       Permission.SYSTEM_SETTINGS_MANAGE,
+      // Payment permissions
+      Permission.VIEW_PAYMENT,
+      Permission.INITIATE_PAYMENT,
+      Permission.CANCEL_PAYMENT,
       // Roles & RBAC
       Permission.ROLE_READ,
       Permission.ROLE_CREATE,
@@ -101,6 +105,11 @@ export const ROLE_MATRIX: Record<UserRole, RoleConfig> = {
       Permission.AI_CONFIGURATION_MANAGE,
       Permission.AI_MODEL_READ,
       Permission.AI_AUDIT_READ,
+      // Subscription permissions
+      Permission.SUBSCRIPTION_READ,
+      Permission.SUBSCRIPTION_MANAGE,
+      Permission.SUBSCRIPTION_CANCEL,
+      Permission.SUBSCRIPTION_CHANGE_PLAN,
       // Read-only & Operational permissions
       Permission.VEHICLE_READ,
       Permission.VEHICLE_CREATE,
@@ -151,6 +160,7 @@ export const ROLE_MATRIX: Record<UserRole, RoleConfig> = {
       Permission.VEHICLE_FINANCIAL_READ,
       Permission.VEHICLE_BOOK_VALUE_READ,
       Permission.PRODUCT_CATALOG_READ,
+      Permission.SUBSCRIPTION_READ,
     ],
   },
 
@@ -199,6 +209,10 @@ export const ROLE_MATRIX: Record<UserRole, RoleConfig> = {
       Permission.VEHICLE_DISPOSAL_MANAGE,
       Permission.VEHICLE_BOOK_VALUE_READ,
       Permission.PRODUCT_CATALOG_READ,
+      Permission.SUBSCRIPTION_READ,
+      Permission.SUBSCRIPTION_MANAGE,
+      Permission.SUBSCRIPTION_CANCEL,
+      Permission.SUBSCRIPTION_CHANGE_PLAN,
     ],
   },
 
@@ -344,6 +358,10 @@ export const ROLE_MATRIX: Record<UserRole, RoleConfig> = {
       Permission.FINANCE_CREATE,
       Permission.FINANCE_UPDATE,
       Permission.BUDGET_READ,
+      // Payment permissions
+      Permission.VIEW_PAYMENT,
+      Permission.INITIATE_PAYMENT,
+      Permission.CANCEL_PAYMENT,
       Permission.BUDGET_CREATE,
       Permission.BUDGET_UPDATE,
       Permission.VEHICLE_READ,

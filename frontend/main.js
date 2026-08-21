@@ -142,6 +142,7 @@ function setLoading(show) {
 }
 
 // ─── View Management ──────────────────────────────────────────────────────────
+window.showDashboard = showDashboard;
 function showDashboard(id, title, subtitle = '') {
   if (window.innerWidth <= 768) {
     closeMobileSidebar();
@@ -194,6 +195,7 @@ function showDashboard(id, title, subtitle = '') {
   loadViewData(id);
 }
 
+window.showFmDashboard = showFmDashboard;
 function showFmDashboard(targetTab = 'fm-vehicles') {
   if (targetTab === 'fm-tyres') {
     showDashboard('dashboard-fleet-manager', 'Tyre Fleet Health & Intelligence', 'Real-time asset condition, safety defects, risk analysis, and governed financial metrics');
@@ -437,6 +439,22 @@ window.populatePersonnelDatalist = async function(inputId, defaultVal = null) {
     }
   } catch (err) {
     console.warn('Failed to load registered personnel datalist:', err);
+  }
+};
+
+window.openUniversalReportModal = async function() {
+  try {
+    const catalogueRes = await apiFetch('/api/v1/reports/catalogue').catch(() => null);
+    const catalogue = catalogueRes?.data?.reports || catalogueRes?.reports || [];
+    
+    const select = document.getElementById('univ-report-select');
+    if (select) {
+      select.innerHTML = catalogue.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+    }
+    
+    openModal('universal-report-modal');
+  } catch (err) {
+    showToast('Failed to load report catalogue: ' + err.message, 'error');
   }
 };
 
@@ -3013,23 +3031,23 @@ function buildQuickAddMenu() {
   } else if (role === 'FLEET_MANAGER') {
     actions.push({ label: 'Add Vehicle', icon: 'truck', action: () => openModal('add-vehicle-modal') });
     actions.push({ label: 'Add Tyre', icon: 'disc', action: () => openModal('add-tyre-modal') });
-    actions.push({ label: 'Record Inspection', icon: 'clipboard-list', action: () => openModal('inspection-modal') });
-    actions.push({ label: 'Record Fitment', icon: 'wrench', action: () => openModal('fitment-modal') });
-    actions.push({ label: 'Generate Report', icon: 'file-text', action: () => openModal('universal-report-modal') });
+    actions.push({ label: 'Record Inspection', icon: 'clipboard-list', action: () => window.openInspectionModal() });
+    actions.push({ label: 'Record Fitment', icon: 'wrench', action: () => window.openFitmentModal() });
+    actions.push({ label: 'Generate Report', icon: 'file-text', action: () => window.openUniversalReportModal() });
   } else if (role === 'TYRE_SUPERVISOR') {
     actions.push({ label: 'Add Tyre', icon: 'disc', action: () => openModal('add-tyre-modal') });
-    actions.push({ label: 'Record Inspection', icon: 'clipboard-list', action: () => openModal('inspection-modal') });
-    actions.push({ label: 'Record Fitment', icon: 'wrench', action: () => openModal('fitment-modal') });
-    actions.push({ label: 'Generate Report', icon: 'file-text', action: () => openModal('universal-report-modal') });
+    actions.push({ label: 'Record Inspection', icon: 'clipboard-list', action: () => window.openInspectionModal() });
+    actions.push({ label: 'Record Fitment', icon: 'wrench', action: () => window.openFitmentModal() });
+    actions.push({ label: 'Generate Report', icon: 'file-text', action: () => window.openUniversalReportModal() });
   } else if (role === 'TYRE_TECHNICIAN') {
-    actions.push({ label: 'Record Inspection', icon: 'clipboard-list', action: () => openModal('inspection-modal') });
-    actions.push({ label: 'Record Fitment', icon: 'wrench', action: () => openModal('fitment-modal') });
+    actions.push({ label: 'Record Inspection', icon: 'clipboard-list', action: () => window.openInspectionModal() });
+    actions.push({ label: 'Record Fitment', icon: 'wrench', action: () => window.openFitmentModal() });
   } else if (role === 'WORKSHOP_MANAGER' || role === 'INVENTORY_MANAGER') {
-    actions.push({ label: 'Record Inspection', icon: 'clipboard-list', action: () => openModal('inspection-modal') });
-    actions.push({ label: 'Record Fitment', icon: 'wrench', action: () => openModal('fitment-modal') });
-    actions.push({ label: 'Generate Report', icon: 'file-text', action: () => openModal('universal-report-modal') });
+    actions.push({ label: 'Record Inspection', icon: 'clipboard-list', action: () => window.openInspectionModal() });
+    actions.push({ label: 'Record Fitment', icon: 'wrench', action: () => window.openFitmentModal() });
+    actions.push({ label: 'Generate Report', icon: 'file-text', action: () => window.openUniversalReportModal() });
   } else if (role === 'FINANCE_MANAGER') {
-    actions.push({ label: 'Generate Report', icon: 'file-text', action: () => openModal('universal-report-modal') });
+    actions.push({ label: 'Generate Report', icon: 'file-text', action: () => window.openUniversalReportModal() });
   }
 
   if (actions.length === 0) {
@@ -3187,6 +3205,63 @@ document.addEventListener('DOMContentLoaded', () => {
       e.stopPropagation();
     });
   }
+
+  // Master Search Quick Navigation Handling
+  document.querySelectorAll('.search-result-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      const action = e.currentTarget.getAttribute('data-action');
+      if (action === 'dashboard') {
+        const defaultNav = NAV_MAP[currentUser?.role]?.[0];
+        if (defaultNav) defaultNav.action();
+      } else if (action === 'vehicles') {
+        window.showDashboard('dashboard-fleet-manager', 'Fleet Operations');
+        window.showFmDashboard('fm-vehicles');
+      } else if (action === 'tyres') {
+        window.showDashboard('dashboard-fleet-manager', 'Tyre Fleet Health & Intelligence');
+        window.showFmDashboard('fm-tyres');
+      }
+      searchDropdown?.classList.add('hidden');
+      searchInput.value = '';
+    });
+  });
+
+  // Universal Report Form Submit
+  document.getElementById('universal-report-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const reportType = document.getElementById('univ-report-select')?.value;
+    const format = document.getElementById('univ-report-format')?.value || 'CSV';
+    
+    try {
+      const data = await apiFetch('/api/v1/reports/generate', {
+        method: 'POST',
+        body: JSON.stringify({ reportType, format })
+      });
+      
+      if (format === 'CSV') {
+        const csvContent = formatReportCSV(data);
+        const dateStr = new Date().toISOString().split('T')[0];
+        const fileName = `FI360_Report_${reportType}_${dateStr}.csv`;
+        
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        if (link.download !== undefined) {
+          const url = URL.createObjectURL(blob);
+          link.setAttribute('href', url);
+          link.setAttribute('download', fileName);
+          link.style.visibility = 'hidden';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      } else {
+        renderReportPDFWindow(data);
+      }
+      showToast(`Generated ${format} report successfully`, 'success');
+      closeModal('universal-report-modal');
+    } catch (err) {
+      showToast('Failed to generate report: ' + err.message, 'error');
+    }
+  });
 
   // Login form
   document.getElementById('login-form').addEventListener('submit', async (e) => {

@@ -1,31 +1,16 @@
-import { Controller, Get, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Req, UseGuards, ForbiddenException, HttpCode } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermissions } from '../auth/permissions.decorator';
+import { Permission, ScopeLevel } from '../auth/permissions.enum';
+import { getScopeLevelForRole } from '../auth/permissions.matrix';
 import { CoreEntitlementResolver } from '../entitlement/core-entitlement.resolver';
 import { EntitlementService } from '../entitlement/entitlement.service';
 import { UsageService } from '../usage/usage.service';
+import { SubscriptionService } from './subscription.service';
+import { CreateSubscriptionDto } from './subscription.dto';
 
-/**
- * SubscriptionController — UX-facing commercial context API.
- *
- * Orchestrates existing services to answer:
- *  - What plan am I on?
- *  - What is my subscription status?
- *  - What is my current period?
- *  - When does it end/renew?
- *  - What features are available?
- *  - What limits apply?
- *  - What usage is currently consumed?
- *  - Why is access unavailable?
- *  - What action should the user take?
- *
- * This controller does NOT duplicate commercial logic. It delegates to:
- *   SubscriptionResolverService — authoritative subscription resolution
- *   EntitlementService          — feature entitlement data
- *   UsageService                — current usage against limits
- *
- * It does NOT independently calculate vehicle counts or validate subscriptions.
- */
 @ApiTags('Commercial Subscription')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
@@ -35,6 +20,7 @@ export class SubscriptionController {
     private readonly entitlementResolver: CoreEntitlementResolver,
     private readonly entitlementService: EntitlementService,
     private readonly usageService: UsageService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   /**
@@ -185,5 +171,101 @@ export class SubscriptionController {
       default:
         return 'No action required.';
     }
+  }
+
+  @Post()
+  @RequirePermissions(Permission.SUBSCRIPTION_MANAGE)
+  @UseGuards(PermissionsGuard)
+  @ApiOperation({ summary: 'Create subscription' })
+  async createSubscription(@Req() req: any, @Body() dto: CreateSubscriptionDto) {
+    const scopeLevel = req.user.scopeLevel || getScopeLevelForRole(req.user.role);
+    if (scopeLevel !== ScopeLevel.SYSTEM && dto.tenantId !== req.user.tenantId) {
+      throw new ForbiddenException('Access denied: cannot create subscription for another tenant');
+    }
+    return this.subscriptionService.createSubscription(req.user.userId || 'system', dto);
+  }
+
+  @Get(':id')
+  @RequirePermissions(Permission.SUBSCRIPTION_READ)
+  @UseGuards(PermissionsGuard)
+  @ApiOperation({ summary: 'Get subscription by ID' })
+  async getSubscription(@Req() req: any, @Param('id') id: string) {
+    await this.checkTenantAccess(req, id);
+    return this.subscriptionService.getSubscription(id);
+  }
+
+  @Post(':id/activate')
+  @RequirePermissions(Permission.SUBSCRIPTION_MANAGE)
+  @UseGuards(PermissionsGuard)
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Activate subscription' })
+  async activateSubscription(@Req() req: any, @Param('id') id: string, @Body() body?: { reason?: string }) {
+    await this.checkTenantAccess(req, id);
+    return this.subscriptionService.activateSubscription(req.user.userId || 'system', id, body?.reason);
+  }
+
+  @Post(':id/change-plan')
+  @RequirePermissions(Permission.SUBSCRIPTION_CHANGE_PLAN)
+  @UseGuards(PermissionsGuard)
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Change subscription plan version' })
+  async changePlan(@Req() req: any, @Param('id') id: string, @Body() body: { planVersionId: string; reason?: string }) {
+    await this.checkTenantAccess(req, id);
+    return this.subscriptionService.changeSubscriptionPlan(req.user.userId || 'system', id, body.planVersionId, body.reason);
+  }
+
+  @Post(':id/suspend')
+  @RequirePermissions(Permission.SUBSCRIPTION_MANAGE)
+  @UseGuards(PermissionsGuard)
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Suspend subscription' })
+  async suspendSubscription(@Req() req: any, @Param('id') id: string, @Body() body?: { reason?: string }) {
+    await this.checkTenantAccess(req, id);
+    return this.subscriptionService.suspendSubscription(req.user.userId || 'system', id, body?.reason);
+  }
+
+  @Post(':id/cancel')
+  @RequirePermissions(Permission.SUBSCRIPTION_CANCEL)
+  @UseGuards(PermissionsGuard)
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Cancel subscription' })
+  async cancelSubscription(@Req() req: any, @Param('id') id: string, @Body() body?: { reason?: string }) {
+    await this.checkTenantAccess(req, id);
+    return this.subscriptionService.cancelSubscription(req.user.userId || 'system', id, body?.reason);
+  }
+
+  @Post(':id/expire')
+  @RequirePermissions(Permission.SUBSCRIPTION_MANAGE)
+  @UseGuards(PermissionsGuard)
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Expire subscription' })
+  async expireSubscription(@Req() req: any, @Param('id') id: string, @Body() body?: { reason?: string }) {
+    await this.checkTenantAccess(req, id);
+    return this.subscriptionService.expireSubscription(req.user.userId || 'system', id, body?.reason);
+  }
+
+  @Post(':id/renew')
+  @RequirePermissions(Permission.SUBSCRIPTION_MANAGE)
+  @UseGuards(PermissionsGuard)
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Renew subscription' })
+  async renewSubscription(@Req() req: any, @Param('id') id: string, @Body() body: { currentPeriodStart: string; currentPeriodEnd: string; reason?: string }) {
+    await this.checkTenantAccess(req, id);
+    return this.subscriptionService.renewSubscription(
+      req.user.userId || 'system',
+      id,
+      new Date(body.currentPeriodStart),
+      new Date(body.currentPeriodEnd),
+      body.reason,
+    );
+  }
+
+  private async checkTenantAccess(req: any, subscriptionId: string) {
+    const sub = await this.subscriptionService.getSubscription(subscriptionId);
+    const scopeLevel = req.user.scopeLevel || getScopeLevelForRole(req.user.role);
+    if (scopeLevel !== ScopeLevel.SYSTEM && sub.tenantId !== req.user.tenantId) {
+      throw new ForbiddenException('Access denied: subscription belongs to another tenant');
+    }
+    return sub;
   }
 }

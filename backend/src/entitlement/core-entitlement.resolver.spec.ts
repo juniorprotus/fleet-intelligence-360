@@ -36,7 +36,11 @@ describe('CoreEntitlementResolver', () => {
 
   it('should use DevelopmentEntitlementContextResolver when TEST_MODE=true', async () => {
     process.env.TEST_MODE = 'true';
-    devResolver.resolvePlanVersion.mockResolvedValue('test-plan-version');
+    devResolver.resolvePlanVersion.mockResolvedValue({
+      planVersionId: 'test-plan-version',
+      planId: 'plan-id',
+      planKey: 'plan-key',
+    });
     const res = await resolver.resolvePlanVersion('t1');
     expect(res).toBe('test-plan-version');
     expect(devResolver.resolvePlanVersion).toHaveBeenCalledWith('t1');

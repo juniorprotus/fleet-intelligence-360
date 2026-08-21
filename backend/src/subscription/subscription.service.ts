@@ -112,6 +112,18 @@ export class SubscriptionService {
     });
   }
 
+  async getPlanInfoForVersion(planVersionId: string): Promise<{ planId: string; planKey: string } | null> {
+    const version = await this.prisma.planVersion.findUnique({
+      where: { id: planVersionId },
+      include: { plan: true },
+    });
+    if (!version || !version.plan) return null;
+    return {
+      planId: version.plan.id,
+      planKey: version.plan.planKey,
+    };
+  }
+
   async getSubscriptionDetails(tenantId: string) {
     const sub = await this.prisma.subscription.findFirst({
       where: { tenantId },

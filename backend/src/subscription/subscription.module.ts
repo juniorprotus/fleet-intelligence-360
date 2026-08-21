@@ -7,7 +7,7 @@ import { SubscriptionController } from './subscription.controller';
 
 @Module({
   imports: [PrismaModule, AuditModule],
-  controllers: [SubscriptionController],
+  controllers: [],
   providers: [SubscriptionService, SubscriptionResolverService],
   exports: [SubscriptionService, SubscriptionResolverService],
 })

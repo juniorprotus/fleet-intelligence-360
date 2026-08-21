@@ -9,8 +9,32 @@ export interface UsageSnapshot {
   configuredLimit: number | null;
   isUnlimited: boolean;
   remaining: number | null;
-  status: 'OK' | 'AT_LIMIT' | 'OVER_LIMIT' | 'UNLIMITED' | 'NOT_CONFIGURED' | 'INSUFFICIENT_DATA';
+  /**
+   * OK            — within limit
+   * AT_LIMIT      — exactly at limit
+   * OVER_LIMIT    — exceeded limit (data drift)
+   * UNLIMITED     — plan grants unlimited usage
+   * NOT_CONFIGURED — limit definition not found for the plan
+   * INSUFFICIENT_DATA — commercial context unavailable (see reason for code)
+   * SUSPENDED     — subscription is suspended
+   * EXPIRED       — subscription has expired
+   * NO_SUBSCRIPTION — tenant has no subscription
+   */
+  status:
+    | 'OK'
+    | 'AT_LIMIT'
+    | 'OVER_LIMIT'
+    | 'UNLIMITED'
+    | 'NOT_CONFIGURED'
+    | 'INSUFFICIENT_DATA'
+    | 'SUSPENDED'
+    | 'EXPIRED'
+    | 'NO_SUBSCRIPTION';
   dataQuality: 'VALID' | 'INSUFFICIENT_DATA';
+  /**
+   * Machine-readable code matching CommercialContext.code when commercial access
+   * is denied. Preserves specific denial reason.
+   */
   reason?: string;
 }
 
@@ -24,35 +48,26 @@ export class UsageService {
   ) {}
 
   async getVehicleUsage(tenantId: string | undefined, client?: Prisma.TransactionClient): Promise<UsageSnapshot> {
-    let planVersionId: string | null = null;
-    try {
-      planVersionId = await this.resolver.resolvePlanVersion(tenantId);
-    } catch (error) {
+    // Resolve commercial context — preserves specific denial reason
+    const commercialContext = await this.resolver.resolveCommercialContext(tenantId);
+
+    if (commercialContext.status !== 'VALID' || !commercialContext.planVersionId) {
+      // Map commercial denial codes to specific UsageSnapshot statuses
+      // Section 3 correction: do NOT broadly map everything to NOT_CONFIGURED
+      const usageStatus = this.commercialStatusToUsageStatus(commercialContext.status);
       return {
         limitCode: 'MAX_VEHICLES',
         currentUsage: 0,
         configuredLimit: null,
         isUnlimited: false,
         remaining: null,
-        status: 'NOT_CONFIGURED',
+        status: usageStatus,
         dataQuality: 'INSUFFICIENT_DATA',
-        reason: error.response?.code || 'NO_ENTITLEMENT_CONTEXT',
+        reason: commercialContext.code,
       };
     }
 
-    if (!planVersionId) {
-      return {
-        limitCode: 'MAX_VEHICLES',
-        currentUsage: 0,
-        configuredLimit: null,
-        isUnlimited: false,
-        remaining: null,
-        status: 'NOT_CONFIGURED',
-        dataQuality: 'INSUFFICIENT_DATA',
-        reason: 'NO_ENTITLEMENT_CONTEXT',
-      };
-    }
-
+    const planVersionId = commercialContext.planVersionId;
     const prismaClient = client ?? this.prisma;
     const currentUsage = await prismaClient.vehicle.count({
       where: {
@@ -152,34 +167,24 @@ export class UsageService {
   }
 
   async getIntegrationUsage(tenantId: string | undefined): Promise<UsageSnapshot> {
-    let planVersionId: string | null = null;
-    try {
-      planVersionId = await this.resolver.resolvePlanVersion(tenantId);
-    } catch (error) {
+    // Resolve commercial context — preserves specific denial reason
+    const commercialContext = await this.resolver.resolveCommercialContext(tenantId);
+
+    if (commercialContext.status !== 'VALID' || !commercialContext.planVersionId) {
+      const usageStatus = this.commercialStatusToUsageStatus(commercialContext.status);
       return {
         limitCode: 'MAX_INTEGRATIONS',
         currentUsage: 0,
         configuredLimit: null,
         isUnlimited: false,
         remaining: null,
-        status: 'NOT_CONFIGURED',
+        status: usageStatus,
         dataQuality: 'INSUFFICIENT_DATA',
-        reason: error.response?.code || 'NO_ENTITLEMENT_CONTEXT',
+        reason: commercialContext.code,
       };
     }
 
-    if (!planVersionId) {
-      return {
-        limitCode: 'MAX_INTEGRATIONS',
-        currentUsage: 0,
-        configuredLimit: null,
-        isUnlimited: false,
-        remaining: null,
-        status: 'NOT_CONFIGURED',
-        dataQuality: 'INSUFFICIENT_DATA',
-        reason: 'NO_ENTITLEMENT_CONTEXT',
-      };
-    }
+    const planVersionId = commercialContext.planVersionId;
 
     const currentUsage = await this.prisma.integrationConnection.count({
       where: {
@@ -261,5 +266,26 @@ export class UsageService {
       this.getWorkshopUsage(tenantId),
       this.getIntegrationUsage(tenantId),
     ]);
+  }
+
+  /**
+   * Maps a CommercialContext status to the appropriate UsageSnapshot status.
+   * Section 3 correction: do NOT map SUSPENDED/EXPIRED/NO_SUBSCRIPTION to NOT_CONFIGURED.
+   */
+  private commercialStatusToUsageStatus(
+    commercialStatus: string,
+  ): UsageSnapshot['status'] {
+    switch (commercialStatus) {
+      case 'SUSPENDED':
+        return 'SUSPENDED';
+      case 'EXPIRED':
+        return 'EXPIRED';
+      case 'NO_SUBSCRIPTION':
+        return 'NO_SUBSCRIPTION';
+      case 'NOT_CONFIGURED':
+        return 'NOT_CONFIGURED';
+      default:
+        return 'INSUFFICIENT_DATA';
+    }
   }
 }

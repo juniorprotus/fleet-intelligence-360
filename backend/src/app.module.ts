@@ -28,6 +28,7 @@ import { ProductCatalogModule } from './product-catalog/product-catalog.module';
 import { EntitlementModule } from './entitlement/entitlement.module';
 import { UsageModule } from './usage/usage.module';
 import { SubscriptionModule } from './subscription/subscription.module';
+import { SubscriptionApiModule } from './subscription/subscription-api.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -60,6 +61,7 @@ import { SubscriptionModule } from './subscription/subscription.module';
     EntitlementModule,
     UsageModule,
     SubscriptionModule,
+    SubscriptionApiModule,
   ],
   controllers: [AppController],
   providers: [AppService],

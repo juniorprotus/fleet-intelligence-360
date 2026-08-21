@@ -35,14 +35,41 @@ export class LimitEnforcementService {
   ): Promise<void> {
     const client = tx ?? this.prisma;
 
-    // Resolve the active PlanVersion for the tenant
-    const planVersionId = await this.resolver.resolvePlanVersion(tenantId);
+    let planVersionId: string;
+    try {
+      planVersionId = await this.resolver.resolvePlanVersion(tenantId);
+    } catch (error) {
+      if (error instanceof ForbiddenException) {
+        const response = (error as any).getResponse();
+        const code = response.code;
+        if (code === 'NO_ENTITLEMENT_CONTEXT' || code === 'NO_SUBSCRIPTION') {
+          await this.audit.logAction({
+            module: 'limit-enforcement',
+            action: 'denied',
+            entityType: 'ENTITLEMENT_CONTEXT',
+            entityId: tenantId,
+            userId: undefined,
+            userEmail: undefined,
+            beforeValue: undefined,
+            afterValue: undefined,
+            ipAddress: undefined,
+          });
+          throw new ForbiddenException({
+            code: 'LIMIT_NOT_CONFIGURED',
+            message: response.message || 'No entitlement context',
+          });
+        }
+        throw error;
+      }
+      throw error;
+    }
+
     if (!planVersionId) {
-      this.logger.warn(`No entitlement context for tenant ${tenantId}`);
+      this.logger.warn(`Commercial context denied for tenant ${tenantId}`);
       await this.audit.logAction({
         module: 'limit-enforcement',
         action: 'denied',
-        entityType: limitCode,
+        entityType: 'ENTITLEMENT_CONTEXT',
         entityId: tenantId,
         userId: undefined,
         userEmail: undefined,
@@ -50,7 +77,10 @@ export class LimitEnforcementService {
         afterValue: undefined,
         ipAddress: undefined,
       });
-      throw new ForbiddenException({ code: 'LIMIT_NOT_CONFIGURED', message: 'No entitlement context' });
+      throw new ForbiddenException({
+        code: 'LIMIT_NOT_CONFIGURED',
+        message: 'No entitlement context',
+      });
     }
 
     // Fetch limit configuration

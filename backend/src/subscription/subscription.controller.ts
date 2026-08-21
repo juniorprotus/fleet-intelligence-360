@@ -1,108 +1,189 @@
 import { Controller, Get, Req, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { SubscriptionService } from './subscription.service';
+import { CoreEntitlementResolver } from '../entitlement/core-entitlement.resolver';
+import { EntitlementService } from '../entitlement/entitlement.service';
+import { UsageService } from '../usage/usage.service';
 
-@Controller('api/v1/subscription')
+/**
+ * SubscriptionController — UX-facing commercial context API.
+ *
+ * Orchestrates existing services to answer:
+ *  - What plan am I on?
+ *  - What is my subscription status?
+ *  - What is my current period?
+ *  - When does it end/renew?
+ *  - What features are available?
+ *  - What limits apply?
+ *  - What usage is currently consumed?
+ *  - Why is access unavailable?
+ *  - What action should the user take?
+ *
+ * This controller does NOT duplicate commercial logic. It delegates to:
+ *   SubscriptionResolverService — authoritative subscription resolution
+ *   EntitlementService          — feature entitlement data
+ *   UsageService                — current usage against limits
+ *
+ * It does NOT independently calculate vehicle counts or validate subscriptions.
+ */
+@ApiTags('Commercial Subscription')
+@ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
+@Controller('api/v1/subscription')
 export class SubscriptionController {
-  constructor(private readonly subscriptionService: SubscriptionService) {}
+  constructor(
+    private readonly entitlementResolver: CoreEntitlementResolver,
+    private readonly entitlementService: EntitlementService,
+    private readonly usageService: UsageService,
+  ) {}
 
+  /**
+   * GET /api/v1/subscription/me
+   *
+   * Returns the full commercial context for the authenticated user's tenant,
+   * including plan, features, limits, usage, and UX-friendly status.
+   */
   @Get('me')
+  @ApiOperation({ summary: 'Get full commercial subscription context for the authenticated tenant' })
   async getMySubscription(@Req() req: any) {
     const tenantId = req.user.tenantId;
-    const details = await this.subscriptionService.getSubscriptionDetails(tenantId);
-    return this.formatDetails(details, tenantId);
+    return this.buildCommercialResponse(tenantId);
   }
 
+  /**
+   * GET /api/v1/subscription/status
+   *
+   * Returns the commercial subscription status for the authenticated tenant.
+   * Same payload as /me — optimized for status polling by frontend.
+   */
   @Get('status')
+  @ApiOperation({ summary: 'Get commercial subscription status for the authenticated tenant' })
   async getSubscriptionStatus(@Req() req: any) {
     const tenantId = req.user.tenantId;
-    const details = await this.subscriptionService.getSubscriptionDetails(tenantId);
-    return this.formatDetails(details, tenantId);
+    return this.buildCommercialResponse(tenantId);
   }
 
-  private formatDetails(details: any, tenantId: string) {
-    if (!details) {
+  /**
+   * Orchestrates SubscriptionResolverService, EntitlementService, and UsageService
+   * to build the unified commercial context response.
+   *
+   * Does NOT duplicate any service logic.
+   */
+  private async buildCommercialResponse(tenantId: string) {
+    // 1. Resolve commercial context (authoritative subscription decision)
+    const decision = await this.entitlementResolver.resolveCommercialContext(tenantId);
+
+    // 2. If denied: return structured denial response with UX guidance
+    if (decision.status !== 'VALID' || !decision.planVersionId) {
       return {
         tenantId,
-        subscriptionId: null,
-        status: 'NO_SUBSCRIPTION',
+        status: decision.status,
+        code: decision.status,
         plan: null,
-        trialState: null,
         currentPeriod: null,
+        trialState: null,
         features: [],
         limits: {},
-        usage: {
-          MAX_VEHICLES: 0,
-          MAX_INTEGRATIONS: 0,
-        },
-        message: 'Your commercial account is not yet configured.',
-        nextAction: 'Please contact support or configure a subscription.',
+        usage: {},
+        message: this.getStatusMessage(decision.status),
+        nextAction: this.getNextAction(decision.status),
       };
     }
 
-    const { sub, vehicleCount, integrationCount } = details;
-    const plan = {
-      planId: sub.planVersion?.plan?.id || null,
-      planKey: sub.planVersion?.plan?.planKey || null,
-      name: sub.planVersion?.plan?.name || null,
-      planVersionId: sub.planVersionId,
-    };
+    const planVersionId = decision.planVersionId;
 
-    const trialState = {
-      isTrial: sub.status === 'TRIAL',
-      endsAt: sub.trialEndsAt,
-    };
+    // 3. Fetch features via EntitlementService (the authoritative source)
+    const enabledFeatures = await this.entitlementService.listEnabledFeatures(planVersionId);
+    const featureCodes = enabledFeatures.map((f) => f.featureCode);
 
-    const currentPeriod = {
-      start: sub.currentPeriodStart,
-      end: sub.currentPeriodEnd,
-    };
+    // 4. Fetch limits via EntitlementService (reads PlanVersionLimits directly)
+    const planEntitlements = await this.entitlementService.listFeaturesForPlanVersion(planVersionId);
 
-    const features = sub.planVersion?.entitlements
-      ?.filter((e: any) => e.enabled)
-      ?.map((e: any) => e.feature?.featureCode) || [];
-
-    const limits: Record<string, any> = {};
-    sub.planVersion?.limitConfigurations?.forEach((l: any) => {
-      const code = l.limitDefinition?.limitCode;
-      if (code) {
-        limits[code] = l.isUnlimited ? 'UNLIMITED' : l.limitValue;
+    // 5. Fetch usage via UsageService (the authoritative usage authority)
+    const usageSummary = await this.usageService.getUsageSummary(tenantId);
+    const usageMap: Record<string, any> = {};
+    const limitsMap: Record<string, any> = {};
+    for (const snapshot of usageSummary) {
+      usageMap[snapshot.limitCode] = {
+        current: snapshot.currentUsage,
+        limit: snapshot.isUnlimited ? 'UNLIMITED' : snapshot.configuredLimit,
+        remaining: snapshot.isUnlimited ? null : snapshot.remaining,
+        status: snapshot.status,
+      };
+      if (snapshot.status !== 'NOT_CONFIGURED') {
+        limitsMap[snapshot.limitCode] = snapshot.isUnlimited ? 'UNLIMITED' : snapshot.configuredLimit;
       }
-    });
+    }
 
-    const usage = {
-      MAX_VEHICLES: vehicleCount,
-      MAX_INTEGRATIONS: integrationCount,
+    // 6. Build plan metadata from resolver decision (no DB re-fetch needed)
+    const plan = {
+      planVersionId,
+      planId: decision.planId ?? null,
+      planKey: decision.planKey ?? null,
     };
 
-    let message = `Your subscription is currently ${sub.status}.`;
-    let nextAction = 'No action required.';
-    if (sub.status === 'SUSPENDED') {
-      message = 'Your subscription is suspended.';
-      nextAction = 'Please update your billing details to resolve the suspension.';
-    } else if (sub.status === 'EXPIRED') {
-      message = 'Your subscription has expired.';
-      nextAction = 'Please renew your subscription to restore access.';
-    } else if (sub.status === 'ACTIVE') {
-      message = 'Your subscription is active.';
-    } else if (sub.status === 'TRIAL') {
-      message = `Your trial is active.`;
-    }
+    // 7. Build current period from resolver decision
+    const currentPeriod = {
+      start: decision.currentPeriodStart ?? null,
+      end: decision.currentPeriodEnd ?? null,
+    };
 
     return {
       tenantId,
-      subscriptionId: sub.id,
-      status: sub.status,
+      subscriptionId: decision.subscriptionId ?? null,
+      status: decision.subscriptionStatus ?? decision.status,
+      code: 'VALID',
       plan,
-      trialState,
       currentPeriod,
-      endPeriodDate: sub.endedAt || sub.cancelledAt || sub.currentPeriodEnd,
-      features,
-      limits,
-      usage,
-      message,
-      nextAction,
+      trialState: {
+        isTrial: decision.subscriptionStatus === 'TRIAL',
+      },
+      features: featureCodes,
+      limits: limitsMap,
+      usage: usageMap,
+      message: this.getStatusMessage(decision.subscriptionStatus ?? 'ACTIVE'),
+      nextAction: 'No action required.',
     };
+  }
+
+  private getStatusMessage(status: string): string {
+    switch (status) {
+      case 'VALID':
+      case 'ACTIVE':
+        return 'Your subscription is active.';
+      case 'TRIAL':
+        return 'Your trial is active.';
+      case 'PAST_DUE':
+        return 'Your subscription payment is past due.';
+      case 'CANCELLED':
+        return 'Your subscription has been cancelled but remains active until the period ends.';
+      case 'SUSPENDED':
+        return 'Your subscription is currently suspended.';
+      case 'EXPIRED':
+        return 'Your subscription has expired.';
+      case 'NO_SUBSCRIPTION':
+        return 'Your commercial account is not yet configured.';
+      case 'NOT_CONFIGURED':
+        return 'No valid commercial entitlement context. Please contact support.';
+      default:
+        return `Subscription status: ${status}.`;
+    }
+  }
+
+  private getNextAction(status: string): string {
+    switch (status) {
+      case 'SUSPENDED':
+        return 'Please update your billing details to resolve the suspension.';
+      case 'EXPIRED':
+        return 'Please renew your subscription to restore access.';
+      case 'NO_SUBSCRIPTION':
+        return 'Please contact support or configure a subscription.';
+      case 'PAST_DUE':
+        return 'Please update your payment method to avoid service interruption.';
+      case 'NOT_CONFIGURED':
+        return 'Please contact support to configure your commercial account.';
+      default:
+        return 'No action required.';
+    }
   }
 }

@@ -26,7 +26,7 @@ export class DevelopmentEntitlementContextResolver {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async resolvePlanVersion(tenantId: string | undefined): Promise<string | null> {
+  async resolvePlanVersion(tenantId: string | undefined): Promise<{ planVersionId: string, planId: string, planKey: string } | null> {
     if (!tenantId) {
       this.logger.debug('No tenantId resolved in authentication context.');
       return null;
@@ -58,6 +58,10 @@ export class DevelopmentEntitlementContextResolver {
       return null;
     }
 
-    return plan.versions[0].id;
+    return {
+      planVersionId: plan.versions[0].id,
+      planId: plan.id,
+      planKey: plan.planKey,
+    };
   }
 }

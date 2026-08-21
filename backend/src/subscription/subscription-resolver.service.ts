@@ -1,10 +1,26 @@
-import { Injectable, Logger, UnauthorizedException, ForbiddenException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { SubscriptionService } from './subscription.service';
 import { SubscriptionStatus } from '@prisma/client';
 
+/**
+ * The structured commercial decision from the subscription resolver.
+ *
+ * This is a pure domain type — no HTTP semantics.
+ */
 export interface ResolverDecision {
   status: 'VALID' | 'NO_SUBSCRIPTION' | 'EXPIRED' | 'SUSPENDED' | 'NO_ENTITLEMENT_CONTEXT';
+
+  // Present when status === 'VALID'
   planVersionId?: string;
+
+  // Enrichment fields — present when a subscription was found
+  subscriptionId?: string;
+  subscriptionStatus?: string;
+  planId?: string;
+  planKey?: string;
+  currentPeriodStart?: Date;
+  currentPeriodEnd?: Date;
+
   reason?: string;
 }
 
@@ -16,6 +32,8 @@ export class SubscriptionResolverService {
 
   /**
    * Resolves the effective PlanVersion for a given tenant based on production commercial state.
+   *
+   * Returns a ResolverDecision. Does NOT throw HTTP exceptions.
    */
   async resolvePlanVersion(tenantId: string): Promise<ResolverDecision> {
     if (!tenantId) {
@@ -29,53 +47,72 @@ export class SubscriptionResolverService {
     }
 
     const now = new Date();
-    const isWithinPeriod = now >= subscription.currentPeriodStart && now <= subscription.currentPeriodEnd;
+    const isWithinPeriod =
+      now >= subscription.currentPeriodStart && now <= subscription.currentPeriodEnd;
+
+    // Fetch enrichment data (planKey, planId) for the CommercialContext
+    const planInfo = typeof this.subscriptionService.getPlanInfoForVersion === 'function' ? await this.subscriptionService.getPlanInfoForVersion(subscription.planVersionId) : undefined;
+
+    const enrichment: Partial<ResolverDecision> = {
+      subscriptionId: subscription.id,
+      subscriptionStatus: subscription.status,
+      planId: planInfo?.planId ?? undefined,
+      planKey: planInfo?.planKey ?? undefined,
+      currentPeriodStart: subscription.currentPeriodStart,
+      currentPeriodEnd: subscription.currentPeriodEnd,
+    };
 
     switch (subscription.status) {
       case SubscriptionStatus.TRIAL:
       case SubscriptionStatus.ACTIVE:
-      case SubscriptionStatus.PAST_DUE: // Permitted for now, could have policy restrictions
+      case SubscriptionStatus.PAST_DUE:
         if (!isWithinPeriod) {
-          // Depending on policy, we might auto-expire this or wait for a cron. 
-          // But strict reading says period matters.
-          // Wait, user said: "A CANCELLED subscription may remain effective until the period ends. After period end: -> no runtime commercial access."
-          // For active/past_due, usually you give a grace period or wait for billing to update the period.
-          // Let's enforce period strictly as requested: "now >= currentPeriodStart AND now <= currentPeriodEnd subject to lifecycle rules".
-          return { status: 'EXPIRED', reason: 'Subscription period has ended' };
+          return {
+            status: 'EXPIRED',
+            reason: 'Subscription period has ended',
+            ...enrichment,
+          };
         }
-        return { status: 'VALID', planVersionId: subscription.planVersionId };
+        return {
+          status: 'VALID',
+          planVersionId: subscription.planVersionId,
+          ...enrichment,
+        };
 
       case SubscriptionStatus.CANCELLED:
         if (isWithinPeriod) {
-          return { status: 'VALID', planVersionId: subscription.planVersionId };
+          return {
+            status: 'VALID',
+            planVersionId: subscription.planVersionId,
+            ...enrichment,
+          };
         }
-        return { status: 'EXPIRED', reason: 'Cancelled subscription period has ended' };
+        return {
+          status: 'EXPIRED',
+          reason: 'Cancelled subscription period has ended',
+          ...enrichment,
+        };
 
       case SubscriptionStatus.SUSPENDED:
-        return { status: 'SUSPENDED', reason: 'Subscription is suspended' };
+        return {
+          status: 'SUSPENDED',
+          reason: 'Subscription is suspended',
+          ...enrichment,
+        };
 
       case SubscriptionStatus.EXPIRED:
-        return { status: 'EXPIRED', reason: 'Subscription has expired' };
+        return {
+          status: 'EXPIRED',
+          reason: 'Subscription has expired',
+          ...enrichment,
+        };
 
       default:
-        return { status: 'NO_SUBSCRIPTION', reason: 'Unknown subscription status' };
+        return {
+          status: 'NO_SUBSCRIPTION',
+          reason: 'Unknown subscription status',
+          ...enrichment,
+        };
     }
-  }
-
-  /**
-   * Convenience method to get the planVersionId and throw standard exceptions if invalid.
-   */
-  async getEffectivePlanVersionId(tenantId: string): Promise<string> {
-    const decision = await this.resolvePlanVersion(tenantId);
-    
-    if (decision.status === 'VALID' && decision.planVersionId) {
-      return decision.planVersionId;
-    }
-
-    if (decision.status === 'SUSPENDED') {
-      throw new ForbiddenException(decision.reason);
-    }
-    
-    throw new UnauthorizedException(decision.reason || 'No valid commercial entitlement context');
   }
 }

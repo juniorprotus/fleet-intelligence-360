@@ -21,6 +21,7 @@ describe('UsageService', () => {
   };
 
   const mockResolver = {
+    resolveCommercialContext: jest.fn(),
     resolvePlanVersion: jest.fn(),
   };
 
@@ -41,7 +42,7 @@ describe('UsageService', () => {
   });
 
   it('should return NOT_CONFIGURED when tenant context/plan version cannot be resolved', async () => {
-    mockResolver.resolvePlanVersion.mockResolvedValue(null);
+    mockResolver.resolveCommercialContext.mockResolvedValue({ status: 'NOT_CONFIGURED', code: 'NO_ENTITLEMENT_CONTEXT', reason: 'NO_ENTITLEMENT_CONTEXT' });
 
     const vehicleUsage = await service.getVehicleUsage('UNKNOWN_TENANT');
     expect(vehicleUsage.status).toBe('NOT_CONFIGURED');
@@ -63,7 +64,7 @@ describe('UsageService', () => {
   });
 
   it('should calculate finite limit correctly (OK status)', async () => {
-    mockResolver.resolvePlanVersion.mockResolvedValue('starter-version-id');
+    mockResolver.resolveCommercialContext.mockResolvedValue({ status: 'VALID', planVersionId: 'starter-version-id' });
     mockPrismaService.vehicle.count.mockResolvedValue(4);
     mockPrismaService.planVersionLimit.findFirst.mockResolvedValue({
       isUnlimited: false,
@@ -79,7 +80,7 @@ describe('UsageService', () => {
   });
 
   it('should handle AT_LIMIT status correctly', async () => {
-    mockResolver.resolvePlanVersion.mockResolvedValue('starter-version-id');
+    mockResolver.resolveCommercialContext.mockResolvedValue({ status: 'VALID', planVersionId: 'starter-version-id' });
     mockPrismaService.vehicle.count.mockResolvedValue(10);
     mockPrismaService.planVersionLimit.findFirst.mockResolvedValue({
       isUnlimited: false,
@@ -93,7 +94,7 @@ describe('UsageService', () => {
   });
 
   it('should handle OVER_LIMIT status correctly', async () => {
-    mockResolver.resolvePlanVersion.mockResolvedValue('starter-version-id');
+    mockResolver.resolveCommercialContext.mockResolvedValue({ status: 'VALID', planVersionId: 'starter-version-id' });
     mockPrismaService.vehicle.count.mockResolvedValue(12);
     mockPrismaService.planVersionLimit.findFirst.mockResolvedValue({
       isUnlimited: false,
@@ -107,7 +108,7 @@ describe('UsageService', () => {
   });
 
   it('should handle UNLIMITED status correctly', async () => {
-    mockResolver.resolvePlanVersion.mockResolvedValue('enterprise-version-id');
+    mockResolver.resolveCommercialContext.mockResolvedValue({ status: 'VALID', planVersionId: 'enterprise-version-id' });
     mockPrismaService.vehicle.count.mockResolvedValue(45);
     mockPrismaService.planVersionLimit.findFirst.mockResolvedValue({
       isUnlimited: true,
@@ -123,7 +124,7 @@ describe('UsageService', () => {
   });
 
   it('should handle integration count filter status predicate correctly', async () => {
-    mockResolver.resolvePlanVersion.mockResolvedValue('pro-version-id');
+    mockResolver.resolveCommercialContext.mockResolvedValue({ status: 'VALID', planVersionId: 'pro-version-id' });
     mockPrismaService.integrationConnection.count.mockResolvedValue(2);
     mockPrismaService.planVersionLimit.findFirst.mockResolvedValue({
       isUnlimited: false,

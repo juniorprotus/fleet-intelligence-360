@@ -16,6 +16,7 @@ async function main() {
   console.log('STEP 6C.4 — USAGE MEASUREMENT E2E TESTS');
   console.log('============================================================\n');
 
+  const { PrismaPg } = require('@prisma/adapter-pg');
   const connectionString = process.env.DATABASE_URL;
   const adapter = new PrismaPg({ connectionString });
   const prisma = new PrismaClient({ adapter });
@@ -114,6 +115,7 @@ async function main() {
   console.log('============================================================');
 
   await prisma.$disconnect();
+  await new Promise(r => setTimeout(r, 500));
   process.exit(failed > 0 ? 1 : 0);
 }
 

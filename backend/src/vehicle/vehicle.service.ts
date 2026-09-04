@@ -99,7 +99,7 @@ export class VehicleService {
     vehicleClass?: string;
     status?: string;
     search?: string;
-    isActive?: string;
+    isActive?: string | boolean;
     availability?: string;
     page?: number;
     limit?: number;
